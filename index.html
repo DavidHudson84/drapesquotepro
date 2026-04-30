@@ -236,6 +236,37 @@ header{background:var(--navy);position:sticky;top:0;z-index:200;box-shadow:0 3px
 .toast{position:fixed;bottom:18px;right:18px;background:var(--navy);color:#fff;padding:10px 16px;border-radius:7px;font-size:.8rem;font-weight:700;box-shadow:0 8px 40px rgba(43,45,126,.20);opacity:0;transform:translateY(10px);transition:all .3s;z-index:1000;border-left:4px solid var(--red);font-family:'Montserrat',sans-serif;max-width:calc(100vw - 36px);}
 .toast.show{opacity:1;transform:translateY(0);}
 
+
+
+/* ── Fast Quote line items - new layout ── */
+.fq-line-inner{display:flex;flex-direction:column;gap:8px;}
+.fq-row-top{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;}
+.fq-meas-row{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;align-items:end;}
+@media(max-width:700px){.fq-row-top{grid-template-columns:1fr auto;}.fq-meas-row{grid-template-columns:1fr 1fr;}}
+@media(max-width:430px){.fq-meas-row{grid-template-columns:1fr;}}
+.fq-rm-wrap{display:flex;flex-direction:column;}
+.fq-conv{font-size:.67rem;color:var(--navy);font-weight:700;margin-top:2px;min-height:14px;}
+
+/* ── Fuel Surcharge ── */
+.fuel-tog{display:flex;align-items:center;justify-content:space-between;background:#fffbeb;border:1.5px solid rgba(217,119,6,.3);border-radius:8px;padding:10px 13px;margin-bottom:12px;}
+.fuel-tog-left{display:flex;align-items:center;gap:10px;}
+.fuel-tog-label{font-family:'Montserrat',sans-serif;font-weight:700;font-size:.84rem;color:#92400e;}
+.fuel-tog-desc{font-size:.72rem;color:var(--g500);margin-top:1px;}
+.fuel-sw{width:40px;height:21px;background:var(--g200);border-radius:10px;position:relative;transition:background .2s;flex-shrink:0;cursor:pointer;}
+.fuel-sw.on{background:#d97706;}
+.fuel-sw::after{content:'';position:absolute;width:15px;height:15px;background:#fff;border-radius:50%;top:3px;left:3px;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);}
+.fuel-sw.on::after{left:22px;}
+.fuel-amt{display:flex;align-items:center;gap:6px;}
+.fuel-amt span{font-size:.8rem;color:#92400e;font-weight:700;}
+.fuel-amt input{width:70px;border:1.5px solid rgba(217,119,6,.4);border-radius:6px;padding:6px 8px;font-size:.88rem;font-family:'Open Sans',sans-serif;background:#fff8ed;color:#92400e;font-weight:700;outline:none;}
+.fuel-amt input:focus{border-color:#d97706;}
+/* Saved FQ jobs */
+.fq-saved-list{margin-top:10px;}
+.fq-sji{display:flex;justify-content:space-between;align-items:center;background:var(--g50);border:1.5px solid var(--g100);border-radius:7px;padding:8px 11px;transition:all .15s;margin-bottom:6px;}
+.fq-sji:hover{border-color:var(--fast);}
+.fq-sji strong{display:block;font-size:.8rem;color:var(--fast);font-family:'Montserrat',sans-serif;}
+.fq-sji span{font-size:.69rem;color:var(--g300);}
+
 /* ── Touch ── */
 @media(hover:none){.ba,.bh,.fq-btn,.btn-mg{min-height:44px;}.f input,.f select,.f textarea{font-size:16px;}}
 @media print{header,.tab-nav,.qp,.abs,.asl,.brm,.ovr,.mdr,.ba2,.tog,.manage-actions,.fq-actions{display:none!important;}body{background:#fff;}.ct{grid-template-columns:1fr;max-width:100%;padding:0;}.cb.col{display:block!important;}}
@@ -301,7 +332,23 @@ header{background:var(--navy);position:sticky;top:0;z-index:200;box-shadow:0 3px
           <div class="f"><label>Email</label><input type="email" id="customerEmail" placeholder="email@example.com" inputmode="email"></div>
           <div class="f"><label>Job Reference / Room</label><input type="text" id="jobRef" placeholder="e.g. Lounge - Main Curtain"></div>
         </div>
-        <div class="f"><label>Site Address</label><input type="text" id="siteAddress" placeholder="Street, Suburb, State, Postcode"></div>
+        <div style="margin-top:0">
+          <div class="f" style="margin-bottom:7px">
+            <label>Address Format</label>
+            <select id="addrFormat" onchange="toggleAddrFormat()">
+              <option value="full">Full Address</option>
+              <option value="suburb">Suburb Only</option>
+            </select>
+          </div>
+          <div id="addrFull" class="f">
+            <label>Site Address</label>
+            <input type="text" id="siteAddress" placeholder="e.g. 12 Main St, Altona VIC 3018">
+          </div>
+          <div id="addrSuburb" class="g2" style="display:none">
+            <div class="f"><label>Suburb</label><input type="text" id="siteSuburb" placeholder="e.g. Altona"></div>
+            <div class="f"><label>State / Postcode</label><input type="text" id="siteState" placeholder="e.g. VIC 3018"></div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -373,6 +420,19 @@ header{background:var(--navy);position:sticky;top:0;z-index:200;box-shadow:0 3px
         <div class="tog" id="aoToggle" onclick="toggleAO()"><div class="sw" id="aoSwitch"></div><div class="tog-txt"><strong>Enable Add-On Costs</strong><span>Transport, rehanging, call-out and other on-costs</span></div></div>
         <div class="ao-fields" id="aoFields">
           <h4>&#128666; Cost Items</h4>
+          <div class="fuel-tog" style="margin-bottom:10px">
+            <div class="fuel-tog-left">
+              <div class="fuel-sw on" id="fuelSw" onclick="toggleFuel()"></div>
+              <div>
+                <div class="fuel-tog-label">&#9981; Fuel Surcharge</div>
+                <div class="fuel-tog-desc">Applied to every job by default</div>
+              </div>
+            </div>
+            <div class="fuel-amt">
+              <span>$</span>
+              <input type="number" id="fuelAmt" value="30" min="0" step="5" inputmode="decimal" oninput="recalc()">
+            </div>
+          </div>
           <div class="g2" style="margin-bottom:9px">
             <div class="f"><label>Reference / Claim #</label><input type="text" id="claimNumber" placeholder="Ref / claim number"></div>
             <div class="f"><label>Authorised By</label><input type="text" id="insurerName" placeholder="Company or contact name"></div>
@@ -396,7 +456,14 @@ header{background:var(--navy);position:sticky;top:0;z-index:200;box-shadow:0 3px
       <div class="ch dk" onclick="tc('nb2')"><h2>&#128221; Notes &amp; Terms</h2><span class="ci" id="ti-nb2">&#9658;</span></div>
       <div class="cb col" id="nb2">
         <div class="f"><label>Internal Notes (not on quote)</label><textarea id="internalNotes" placeholder="Internal use only..." rows="2"></textarea></div>
-        <div class="f" style="margin-top:9px"><label>Customer Notes / Terms (shown on quote)</label><textarea id="customerNotes" rows="3">Quote valid for 30 days. All prices include GST. Minimum call-out charges may apply.</textarea></div>
+        <div class="f" style="margin-top:9px"><label>Customer Notes / Terms (shown on quote)</label><textarea id="customerNotes" rows="3">With our service we Take Down | Dry Clean | Rehang.
+We allow a 10–12 business day turnaround.
+All services are completed off-site.
+Payment is due prior to rehang.
+
+For any questions, please call 1300 652 866 or email drdrapes@hudsongroup.com.au — we look forward to working with you.
+
+Quote valid for 30 days. All prices include GST.</textarea></div>
       </div>
     </div>
 
@@ -455,6 +522,26 @@ header{background:var(--navy);position:sticky;top:0;z-index:200;box-shadow:0 3px
         <div class="f"><label>Email</label><input type="email" id="fq-email" placeholder="email@example.com" inputmode="email"></div>
         <div class="f"><label>Job Reference</label><input type="text" id="fq-ref" placeholder="e.g. Lounge room blinds"></div>
       </div>
+      <div style="margin-top:8px">
+        <div class="fq-row">
+          <div class="f">
+            <label>Address Format</label>
+            <select id="fqAddrFormat" onchange="toggleFQAddrFormat()">
+              <option value="none">No address needed</option>
+              <option value="suburb">Suburb Only</option>
+              <option value="full">Full Address</option>
+            </select>
+          </div>
+          <div class="f" id="fqAddrFull" style="display:none">
+            <label>Full Address</label>
+            <input type="text" id="fqAddress" placeholder="e.g. 12 Main St, Altona VIC 3018">
+          </div>
+          <div id="fqAddrSuburbWrap" style="display:none" class="fq-row" style="grid-template-columns:1fr 1fr">
+            <div class="f"><label>Suburb</label><input type="text" id="fqSuburb" placeholder="e.g. Altona"></div>
+            <div class="f"><label>State / Postcode</label><input type="text" id="fqState" placeholder="e.g. VIC 3018"></div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -467,9 +554,57 @@ header{background:var(--navy);position:sticky;top:0;z-index:200;box-shadow:0 3px
     </div>
   </div>
 
+  <!-- Fuel Surcharge -->
+  <div class="fq-step">
+    <div class="fq-step-hdr" style="background:#92400e"><div class="fq-num" style="background:rgba(255,255,255,0.2)">3</div><h3>Fuel Surcharge</h3></div>
+    <div class="fq-step-body">
+      <div class="fuel-tog" style="margin-bottom:0">
+        <div class="fuel-tog-left">
+          <div class="fuel-sw on" id="fqFuelSw" onclick="toggleFQFuel()"></div>
+          <div>
+            <div class="fuel-tog-label">&#9981; Fuel Surcharge (default ON)</div>
+            <div class="fuel-tog-desc">Toggle off for jobs that don't require it</div>
+          </div>
+        </div>
+        <div class="fuel-amt">
+          <span>$</span>
+          <input type="number" id="fqFuelAmt" value="30" min="0" step="5" inputmode="decimal" oninput="recalcFQ()">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add-On Costs -->
+  <div class="fq-step">
+    <div class="fq-step-hdr" style="background:var(--addon)"><div class="fq-num" style="background:rgba(255,255,255,0.2)">4</div><h3>Add-On Costs</h3></div>
+    <div class="fq-step-body">
+      <div class="tog" id="fqAOToggle" onclick="toggleFQAO()" style="margin-bottom:10px">
+        <div class="sw" id="fqAOSwitch"></div>
+        <div class="tog-txt"><strong>Enable Add-On Costs</strong><span>Transport, rehanging, call-out and other on-costs</span></div>
+      </div>
+      <div class="ao-fields" id="fqAOFields">
+        <h4>&#128666; Cost Items</h4>
+        <div class="g2" style="margin-bottom:9px">
+          <div class="f"><label>Reference / Claim #</label><input type="text" id="fqClaimNumber" placeholder="Ref / claim number"></div>
+          <div class="f"><label>Authorised By</label><input type="text" id="fqInsurerName" placeholder="Company or contact name"></div>
+        </div>
+        <div class="g3" style="margin-bottom:9px">
+          <div class="f"><label>Transport ($)</label><input type="number" id="fqTransportCost" value="0" min="0" step="5" inputmode="decimal" oninput="recalcFQ()"></div>
+          <div class="f"><label>Rehanging ($)</label><input type="number" id="fqRehangCost" value="0" min="0" step="5" inputmode="decimal" oninput="recalcFQ()"></div>
+          <div class="f"><label>Call-Out Fee ($)</label><input type="number" id="fqCalloutFee" value="0" min="0" step="5" inputmode="decimal" oninput="recalcFQ()"></div>
+        </div>
+        <div class="g2">
+          <div class="f"><label>Storage / Cleaning ($)</label><input type="number" id="fqStorageCost" value="0" min="0" step="5" inputmode="decimal" oninput="recalcFQ()"></div>
+          <div class="f"><label>Other Cost ($)</label><input type="number" id="fqOtherCost" value="0" min="0" step="5" inputmode="decimal" oninput="recalcFQ()"></div>
+        </div>
+        <div class="f" style="margin-top:9px"><label>Other Cost Description</label><input type="text" id="fqOtherCostDesc" placeholder="e.g. Track replacement, sundries..."></div>
+      </div>
+    </div>
+  </div>
+
   <!-- Discount -->
   <div class="fq-step">
-    <div class="fq-step-hdr"><div class="fq-num">3</div><h3>Discount (Optional)</h3></div>
+    <div class="fq-step-hdr"><div class="fq-num">5</div><h3>Discount (Optional)</h3></div>
     <div class="fq-step-body">
       <div class="fq-row">
         <div class="f"><label>Discount Type</label><select id="fq-disc-type" onchange="recalcFQ()"><option value="none">No Discount</option><option value="pct">Percentage (%)</option><option value="fixed">Fixed Amount ($)</option></select></div>
@@ -487,12 +622,24 @@ header{background:var(--navy);position:sticky;top:0;z-index:200;box-shadow:0 3px
     <div class="fq-total-row grand"><span>TOTAL</span><span id="fq-total">$0.00</span></div>
   </div>
 
-  <div class="fq-actions">
+  <div class="fq-actions" style="grid-template-columns:1fr 1fr 1fr">
     <button class="fq-btn primary" onclick="fqDownloadHTML()">&#128196; Quote Page</button>
     <button class="fq-btn sec" onclick="fqExportCSV()">&#128190; Export CSV</button>
     <button class="fq-btn out" onclick="fqCopyEmail()">&#128231; Copy Email</button>
   </div>
-  <div style="font-size:.72rem;color:var(--g300);text-align:center;margin-top:8px;">Quote Page opens a printable HTML · CSV opens in Excel · Copy Email puts quote text in your clipboard</div>
+  <div class="fq-actions" style="grid-template-columns:1fr 1fr;margin-top:8px">
+    <button class="fq-btn" style="background:#059669;color:#fff" onclick="saveFastQuote()">&#128190; Save Fast Quote</button>
+    <button class="fq-btn" style="background:transparent;color:var(--red);border:1.5px solid var(--red)" onclick="clearFastQuote()">&#8635; Clear / New Fast Quote</button>
+  </div>
+  <div style="font-size:.72rem;color:var(--g300);text-align:center;margin-top:8px;">Quote Page = printable HTML · CSV = opens in Excel · Copy Email = paste into any email</div>
+
+  <!-- Saved Fast Quotes - bottom -->
+  <div class="fq-step" style="margin-top:16px">
+    <div class="fq-step-hdr" style="background:#1a1c50"><div class="fq-num" style="background:rgba(255,255,255,0.15)">&#128188;</div><h3>Saved Fast Quotes</h3></div>
+    <div class="fq-step-body">
+      <div id="fqSavedList"><div class="es" style="color:var(--g300)">No saved fast quotes yet</div></div>
+    </div>
+  </div>
 </div>
 </div><!-- end panel-fast -->
 
@@ -796,29 +943,100 @@ function rebuildManageSelects(){
   });
 }
 
-function addFQLine(){
-  var id = ++fqCounter;
+var FQ_BLIND_TYPES=['roman','austrian','roller-sun','roller-block','venetian'];
+
+function mm2mFQ(v){
+  var n=parseFloat(v);
+  if(isNaN(n)||n<=0) return 0;
+  return n>=100 ? +(n/1000).toFixed(4) : n;
+}
+
+function isFQBlind(type){ return FQ_BLIND_TYPES.indexOf(type)!==-1; }
+
+function buildFQLineHTML(id){
   var opts = getFQOptions();
   var optHtml = opts.map(function(o){ return '<option value="'+o.value+'">'+o.label+(o.price?' - $'+o.price+'/'+o.unit:'')+'</option>'; }).join('');
+  return '<div class="fq-line-inner">'+
+    // Row 1: Type select + description + remove
+    '<div class="fq-row-top">'+
+      '<div class="f fq-sel-wrap"><label>Item / Service</label><select class="fq-sel" id="fqs-'+id+'" onchange="onFQSel('+id+')">' + optHtml + '</select></div>'+
+      '<div class="f fq-desc-wrap"><label>Description / Room</label><input type="text" id="fqd-'+id+'" placeholder="e.g. Lounge" oninput="recalcFQ()"></div>'+
+      '<div class="fq-rm-wrap"><label style="font-size:.65rem;color:transparent">rm</label><button class="brm" style="display:block;padding:9px;color:var(--red);font-size:1.1rem" onclick="removeFQLine('+id+')">&times;</button></div>'+
+    '</div>'+
+    // Row 2: measurements (changes based on type)
+    '<div class="fq-meas-row" id="fqmeas-'+id+'">'+
+      buildFQMeasFields(id, '')+
+    '</div>'+
+  '</div>';
+}
+
+function buildFQMeasFields(id, type){
+  var isBlind = isFQBlind(type);
+  if(isBlind){
+    return '<div class="f">'+
+        '<label>Width (mm or m)</label>'+
+        '<input type="number" id="fqw-'+id+'" min="0" step="0.001" placeholder="e.g. 1200 or 1.2" inputmode="decimal" oninput="recalcFQ()">'+
+        '<div class="fq-conv" id="fqwc-'+id+'"></div>'+
+      '</div>'+
+      '<div class="f">'+
+        '<label>Height (mm or m)</label>'+
+        '<input type="number" id="fqh-'+id+'" min="0" step="0.001" placeholder="e.g. 1800 or 1.8" inputmode="decimal" oninput="recalcFQ()">'+
+        '<div class="fq-conv" id="fqhc-'+id+'"></div>'+
+      '</div>'+
+      '<div class="f"><label>m² (auto)</label><input type="text" id="fqsqm-'+id+'" readonly placeholder="0.00 m²" style="background:#f0f1f8;color:var(--navy);font-weight:700"></div>'+
+      '<div class="f"><label>Rate ($/m²)</label><input type="number" id="fqp-'+id+'" value="0" min="0" step="0.5" inputmode="decimal" oninput="recalcFQ()"></div>';
+  } else {
+    // Check if this is a width-based item (curtains, pelmet, swags, valance) or qty-based (repairs)
+    var widthTypes=['curtain-s','curtain-m','curtain-l','sheer-s','sheer-l','velvet-s','velvet-m','velvet-l','pelmet','swags','valance'];
+    var isWidth = widthTypes.indexOf(type) !== -1;
+    if(isWidth){
+      return '<div class="f">'+
+          '<label>Width (mm or m)</label>'+
+          '<input type="number" id="fqq-'+id+'" min="0" step="0.001" placeholder="e.g. 1500 or 1.5" inputmode="decimal" oninput="recalcFQ()">'+
+          '<div class="fq-conv" id="fqwc-'+id+'"></div>'+
+          '<div style="font-size:.67rem;color:var(--g300);margin-top:1px;font-style:italic">mm (≥10²) auto-converts to m</div>'+
+        '</div>'+
+        '<div class="f">'+
+          '<label>Unit Price ($/m width)</label>'+
+          '<input type="number" id="fqp-'+id+'" value="0" min="0" step="0.5" inputmode="decimal" oninput="recalcFQ()">'+
+        '</div>'+
+        '<div class="f"></div><div class="f"></div>';
+    } else {
+      return '<div class="f">'+
+          '<label>Quantity</label>'+
+          '<input type="number" id="fqq-'+id+'" value="1" min="0" step="1" inputmode="decimal" oninput="recalcFQ()">'+
+        '</div>'+
+        '<div class="f">'+
+          '<label>Unit Price ($)</label>'+
+          '<input type="number" id="fqp-'+id+'" value="0" min="0" step="0.5" inputmode="decimal" oninput="recalcFQ()">'+
+        '</div>'+
+        '<div class="f"></div><div class="f"></div>';
+    }
+  }
+}
+
+function addFQLine(){
+  var id = ++fqCounter;
   var div = document.createElement('div');
-  div.className = 'fq-line'; div.id = 'fql-'+id;
-  div.innerHTML =
-    '<div class="f"><label>Item / Service</label><select class="fq-sel" id="fqs-'+id+'" onchange="onFQSel('+id+')">' + optHtml + '</select></div>'+
-    '<div class="f"><label>Description / Room</label><input type="text" id="fqd-'+id+'" placeholder="e.g. Lounge" oninput="recalcFQ()"></div>'+
-    '<div class="f" id="fq-qty-wrap-'+id+'"><label>Qty / Width</label><input type="number" id="fqq-'+id+'" value="1" min="0" step="0.1" inputmode="decimal" oninput="recalcFQ()"></div>'+
-    '<div class="f" id="fq-price-wrap-'+id+'"><label>Unit Price ($)</label><input type="number" id="fqp-'+id+'" value="0" min="0" step="0.5" inputmode="decimal" oninput="recalcFQ()"></div>'+
-    '<div><label style="font-size:.65rem;color:transparent">x</label><button class="brm" style="display:block;padding:8px;color:var(--red)" onclick="removeFQLine('+id+')">&times;</button></div>';
+  div.className = 'li'; div.id = 'fql-'+id;
+  div.style.padding = '12px';
+  div.innerHTML = buildFQLineHTML(id);
   document.getElementById('fqLines').appendChild(div);
   recalcFQ();
 }
 
 function onFQSel(id){
   var sel = document.getElementById('fqs-'+id);
+  var type = sel ? sel.value : '';
   var opts = getFQOptions();
-  var opt = opts.find(function(o){ return o.value === sel.value; });
+  var opt = opts.find(function(o){ return o.value === type; });
+  // Rebuild measurement fields for this line
+  var measDiv = document.getElementById('fqmeas-'+id);
+  if(measDiv){ measDiv.innerHTML = buildFQMeasFields(id, type); }
+  // Set default price
   var inp = document.getElementById('fqp-'+id);
-  if(opt && opt.price){ inp.value = opt.price; }
-  else { inp.value = 0; }
+  if(inp && opt && opt.price){ inp.value = opt.price; }
+  else if(inp){ inp.value = 0; }
   recalcFQ();
 }
 
@@ -826,22 +1044,91 @@ function removeFQLine(id){ var e=document.getElementById('fql-'+id); if(e)e.remo
 
 function getFQLineData(){
   var lines = [];
-  document.querySelectorAll('.fq-line').forEach(function(div){
+  document.querySelectorAll('[id^="fql-"]').forEach(function(div){
     var id = div.id.replace('fql-','');
+    if(!id) return;
     var sel = document.getElementById('fqs-'+id);
     var desc = document.getElementById('fqd-'+id);
-    var qty = parseFloat((document.getElementById('fqq-'+id)||{}).value)||0;
-    var price = parseFloat((document.getElementById('fqp-'+id)||{}).value)||0;
+    var type = sel ? sel.value : '';
     var opts = getFQOptions();
-    var opt = opts.find(function(o){ return o.value === (sel?sel.value:''); }) || {label:'',unit:''};
-    lines.push({id:id, label:opt.label, desc:(desc?desc.value:''), qty:qty, price:price, total:qty*price, unit:opt.unit, type:sel?sel.value:''});
+    var opt = opts.find(function(o){ return o.value === type; }) || {label:'',unit:''};
+    var price = parseFloat((document.getElementById('fqp-'+id)||{}).value)||0;
+    var qty=0, total=0, measLabel='', W=0, H=0, sqm=0;
+
+    if(isFQBlind(type)){
+      // Width x Height blind
+      var wRaw = parseFloat((document.getElementById('fqw-'+id)||{}).value)||0;
+      var hRaw = parseFloat((document.getElementById('fqh-'+id)||{}).value)||0;
+      W = mm2mFQ(wRaw); H = mm2mFQ(hRaw);
+      sqm = +(W*H).toFixed(4);
+      // Update conversion hints
+      var wc = document.getElementById('fqwc-'+id);
+      var hc = document.getElementById('fqhc-'+id);
+      var sqmEl = document.getElementById('fqsqm-'+id);
+      if(wc) wc.textContent = wRaw>=100 ? '= '+W.toFixed(3)+'m' : '';
+      if(hc) hc.textContent = hRaw>=100 ? '= '+H.toFixed(3)+'m' : '';
+      if(sqmEl) sqmEl.value = sqm > 0 ? sqm.toFixed(3)+' m²' : '';
+      qty = sqm;
+      total = sqm * price;
+      measLabel = W.toFixed(2)+'m × '+H.toFixed(2)+'m = '+sqm.toFixed(3)+' m² × $'+price+'/m²';
+    } else {
+      var widthTypes2=['curtain-s','curtain-m','curtain-l','sheer-s','sheer-l','velvet-s','velvet-m','velvet-l','pelmet','swags','valance'];
+      var isWidthItem = widthTypes2.indexOf(type) !== -1;
+      var rawQty = parseFloat((document.getElementById('fqq-'+id)||{}).value)||0;
+      if(isWidthItem && rawQty > 0){
+        qty = mm2mFQ(rawQty);
+        // Update conversion hint
+        var wc2 = document.getElementById('fqwc-'+id);
+        if(wc2) wc2.textContent = rawQty >= 100 ? '= '+qty.toFixed(3)+'m' : '';
+      } else {
+        qty = rawQty;
+      }
+      total = qty * price;
+      measLabel = isWidthItem ? qty.toFixed(3)+'m × $'+price+'/m' : qty+' × $'+price;
+    }
+
+    lines.push({
+      id:id, label:opt.label, desc:(desc?desc.value:''),
+      qty:qty, price:price, total:total, unit:opt.unit,
+      type:type, measLabel:measLabel, isBlind:isFQBlind(type),
+      W:W, H:H, sqm:sqm
+    });
   });
   return lines;
 }
 
+function getFQAOTotal(){
+  if(!fqIsAO) return 0;
+  return (parseFloat(document.getElementById('fqTransportCost')?document.getElementById('fqTransportCost').value:0)||0)+
+    (parseFloat(document.getElementById('fqRehangCost')?document.getElementById('fqRehangCost').value:0)||0)+
+    (parseFloat(document.getElementById('fqCalloutFee')?document.getElementById('fqCalloutFee').value:0)||0)+
+    (parseFloat(document.getElementById('fqStorageCost')?document.getElementById('fqStorageCost').value:0)||0)+
+    (parseFloat(document.getElementById('fqOtherCost')?document.getElementById('fqOtherCost').value:0)||0);
+}
+function getFQAOItems(){
+  if(!fqIsAO) return [];
+  var items=[];
+  var add=function(id,lbl){ var v=parseFloat(document.getElementById(id)?document.getElementById(id).value:0)||0; if(v>0) items.push({label:lbl,amount:v}); };
+  add('fqTransportCost','Transport'); add('fqRehangCost','Rehanging'); add('fqCalloutFee','Call-Out Fee');
+  add('fqStorageCost','Storage/Cleaning');
+  var oc=parseFloat(document.getElementById('fqOtherCost')?document.getElementById('fqOtherCost').value:0)||0;
+  if(oc>0){ var d=document.getElementById('fqOtherCostDesc'); items.push({label:(d&&d.value)||'Other',amount:oc}); }
+  return items;
+}
+
+var fqIsAO = false;
+function toggleFQAO(){
+  fqIsAO=!fqIsAO;
+  document.getElementById('fqAOSwitch').classList.toggle('on',fqIsAO);
+  document.getElementById('fqAOFields').classList.toggle('vis',fqIsAO);
+  recalcFQ();
+}
+
 function recalcFQ(){
   var lines = getFQLineData();
-  var sub = lines.reduce(function(a,l){ return a+l.total; },0);
+  var fqFuel = getFQFuelAmt();
+  var fqAOS = getFQAOTotal();
+  var sub = lines.reduce(function(a,l){ return a+l.total; },0) + fqFuel + fqAOS;
   var dtype = document.getElementById('fq-disc-type').value;
   var dval = parseFloat(document.getElementById('fq-disc-val').value)||0;
   var disc = 0;
@@ -860,7 +1147,15 @@ function recalcFQ(){
   else discRow.style.display='none';
 
   var preview = document.getElementById('fq-lines-preview');
-  preview.innerHTML = lines.map(function(l){ return '<div style="display:flex;justify-content:space-between;font-size:.78rem;padding:2px 0"><span style="color:rgba(255,255,255,.7)">'+(l.desc||l.label||'Item')+'</span><span>'+fmt(l.total)+'</span></div>'; }).join('') || '<div style="color:rgba(255,255,255,.4);font-size:.78rem">Add items above</div>';
+  var fqFuelPrev = getFQFuelAmt();
+  var fqAOPrev = getFQAOTotal();
+  var linesHtml = lines.filter(function(l){ return l.total>0||l.label; }).map(function(l){
+    var detail = l.isBlind && l.sqm>0 ? ' ('+l.sqm.toFixed(2)+'m²)' : '';
+    return '<div style="display:flex;justify-content:space-between;font-size:.78rem;padding:2px 0"><span style="color:rgba(255,255,255,.7)">'+(l.desc||l.label||'Item')+detail+'</span><span>'+fmt(l.total)+'</span></div>';
+  }).join('');
+  if(fqFuelPrev>0) linesHtml += '<div style="display:flex;justify-content:space-between;font-size:.78rem;padding:2px 0"><span style="color:rgba(251,191,36,.8)">&#9981; Fuel Surcharge</span><span>'+fmt(fqFuelPrev)+'</span></div>';
+  if(fqAOPrev>0) linesHtml += '<div style="display:flex;justify-content:space-between;font-size:.78rem;padding:2px 0"><span style="color:rgba(147,197,253,.8)">&#128666; Add-On Costs</span><span>'+fmt(fqAOPrev)+'</span></div>';
+  preview.innerHTML = linesHtml || '<div style="color:rgba(255,255,255,.4);font-size:.78rem">Add items above</div>';
 }
 
 function fqExportCSV(){
@@ -868,7 +1163,10 @@ function fqExportCSV(){
   var name = document.getElementById('fq-name').value||'Customer';
   var dtype = document.getElementById('fq-disc-type').value;
   var dval = parseFloat(document.getElementById('fq-disc-val').value)||0;
-  var sub = lines.reduce(function(a,l){ return a+l.total; },0);
+  var fqFuelD = getFQFuelAmt();
+  var fqAOD = getFQAOTotal();
+  var fqAOItemsD = getFQAOItems();
+  var sub = lines.reduce(function(a,l){ return a+l.total; },0) + fqFuelD + fqAOD;
   var disc = dtype==='pct'?Math.min(sub,sub*dval/100):(dtype==='fixed'?Math.min(sub,dval):0);
   var preTax=sub-disc; var gst=preTax*0.1; var grand=preTax+gst;
   var date = new Date().toLocaleDateString('en-AU');
@@ -879,7 +1177,17 @@ function fqExportCSV(){
     ['','','',''],
     ['#','Item / Service','Qty','Unit Price','Total'],
   ];
-  lines.forEach(function(l,i){ rows.push([i+1,(l.desc?l.desc+' - ':'')+l.label,l.qty,'$'+l.price.toFixed(2),'$'+l.total.toFixed(2)]); });
+  var csvLineNum=1;
+  lines.forEach(function(l){
+    if(!l.label&&!l.desc) return;
+    var widthTC=['curtain-s','curtain-m','curtain-l','sheer-s','sheer-l','velvet-s','velvet-m','velvet-l','pelmet','swags','valance'];
+    var qtyCell = l.isBlind ? l.W.toFixed(2)+'m x '+l.H.toFixed(2)+'m = '+l.sqm.toFixed(3)+'m2' : (widthTC.indexOf(l.type)!==-1&&l.qty>0) ? l.qty.toFixed(3)+'m width' : l.qty;
+    var rateCell = '$'+l.price.toFixed(2)+(l.isBlind?'/m2':'');
+    rows.push([csvLineNum,(l.desc?l.desc+' - ':'')+l.label,qtyCell,rateCell,'$'+l.total.toFixed(2)]);
+    csvLineNum++;
+  });
+  if(fqFuelC>0) rows.push([csvLineNum++,'Fuel Surcharge','1 job','$'+fqFuelC.toFixed(2),'$'+fqFuelC.toFixed(2)]);
+  if(fqAOC>0){ rows.push(['','ADD-ON COSTS','','','']); fqAOItemsC.forEach(function(it){ rows.push(['',it.label,'1','$'+it.amount.toFixed(2),'$'+it.amount.toFixed(2)]); }); }
   rows.push(['','','','','']);
   if(disc>0) rows.push(['','Discount','','','-$'+disc.toFixed(2)]);
   rows.push(['','Subtotal (ex GST)','','','$'+preTax.toFixed(2)]);
@@ -902,27 +1210,69 @@ function fqCopyEmail(){
   var ref = document.getElementById('fq-ref').value||'';
   var dtype = document.getElementById('fq-disc-type').value;
   var dval = parseFloat(document.getElementById('fq-disc-val').value)||0;
-  var sub = lines.reduce(function(a,l){ return a+l.total; },0);
+  var fqFuelD = getFQFuelAmt();
+  var fqAOD = getFQAOTotal();
+  var fqAOItemsD = getFQAOItems();
+  var sub = lines.reduce(function(a,l){ return a+l.total; },0) + fqFuelD + fqAOD;
   var disc = dtype==='pct'?Math.min(sub,sub*dval/100):(dtype==='fixed'?Math.min(sub,dval):0);
   var preTax=sub-disc; var gst=preTax*0.1; var grand=preTax+gst;
   var date = new Date().toLocaleDateString('en-AU');
   var sep = '────────────────────────────────';
-  var text = 'DR DRAPES CURTAIN CLINIC\nFast Quote – '+date+'\n'+sep+'\n';
+  var text = 'Thanks for the opportunity to provide a quote.\nPlease see below pricing for your enquiry.\n\n';
+  text += 'DR DRAPES CURTAIN CLINIC\nFast Quote – '+date+'\n'+sep+'\n';
   if(name) text+='Customer: '+name+'\n';
   if(phone) text+='Phone: '+phone+'\n';
   if(email) text+='Email: '+email+'\n';
   if(ref) text+='Reference: '+ref+'\n';
+  var fqAddr=getFQAddress(); if(fqAddr) text+='Address: '+fqAddr+'\n';
   text+=sep+'\n';
-  lines.forEach(function(l,i){
-    text += (i+1)+'. '+(l.desc?l.desc+' — ':'')+l.label+'\n';
-    text += '   Qty: '+l.qty+' × $'+l.price.toFixed(2)+' = $'+l.total.toFixed(2)+'\n';
+  var lineNum = 1;
+  lines.forEach(function(l){
+    if(!l.label && !l.desc) return;
+    text += lineNum+'. '+(l.desc?l.desc+' — ':'')+l.label+'\n';
+    if(l.isBlind){
+      text += '   '+l.W.toFixed(2)+'m (W) × '+l.H.toFixed(2)+'m (H) = '+l.sqm.toFixed(3)+' m² × $'+l.price.toFixed(2)+'/m² = $'+l.total.toFixed(2)+'\n';
+    } else {
+      // Show metres for width-based items
+      var widthT=['curtain-s','curtain-m','curtain-l','sheer-s','sheer-l','velvet-s','velvet-m','velvet-l','pelmet','swags','valance'];
+      if(widthT.indexOf(l.type)!==-1 && l.qty>0){
+        text += '   '+l.qty.toFixed(3)+'m width × $'+l.price.toFixed(2)+'/m = $'+l.total.toFixed(2)+'\n';
+      } else {
+        text += '   Qty: '+l.qty+' × $'+l.price.toFixed(2)+' = $'+l.total.toFixed(2)+'\n';
+      }
+    }
+    lineNum++;
   });
+  var fqfuel2=getFQFuelAmt();
+  if(fqfuel2>0){
+    text += lineNum+'. Fuel Surcharge\n';
+    text += '   Per job flat rate = $'+fqfuel2.toFixed(2)+'\n';
+    lineNum++;
+  }
+  var fqaoS2=getFQAOTotal();
+  if(fqaoS2>0){
+    text += '\nADD-ON COSTS:\n';
+    getFQAOItems().forEach(function(item){ text += '  '+item.label+': $'+item.amount.toFixed(2)+'\n'; });
+  }
   text+=sep+'\n';
-  if(disc>0) text+='Discount:          -$'+disc.toFixed(2)+'\n';
+  var dtype2=document.getElementById('fq-disc-type').value;
+  var dval2=parseFloat(document.getElementById('fq-disc-val').value)||0;
+  var sub2=lines.reduce(function(a,l){ return a+l.total; },0)+fqfuel2+fqaoS2;
+  var disc2=dtype2==='pct'?Math.min(sub2,sub2*dval2/100):(dtype2==='fixed'?Math.min(sub2,dval2):0);
+  if(disc2>0){
+    var discDesc2=document.getElementById('fq-disc-type')?document.getElementById('fq-disc-type').value:'';
+    text+='Discount'+(discDesc2==='pct'?' ('+dval2+'%)':'')+':-$'+disc2.toFixed(2)+'\n';
+  }
   text+='Subtotal (ex GST):  $'+preTax.toFixed(2)+'\n';
   text+='GST (10%):          $'+gst.toFixed(2)+'\n';
   text+='TOTAL:              $'+grand.toFixed(2)+'\n';
-  text+=sep+'\nQuote valid 30 days. All prices include GST.\nDr Drapes Curtain Clinic\n';
+  text+=sep+'\n';
+  text+='With our service we: Take Down | Dry Clean | Rehang\n';
+  text+='We allow a 10\u201312 business day turnaround.\n';
+  text+='All services are completed off-site.\n';
+  text+='Payment is due prior to rehang.\n';
+  text+='Call 1300 652 866 | drdrapes@hudsongroup.com.au\n';
+  text+='We look forward to doing business with you.\n';
   navigator.clipboard.writeText(text).then(function(){ showToast('📋 Email template copied to clipboard!'); }).catch(function(){
     var ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);showToast('📋 Copied!');
   });
@@ -936,21 +1286,44 @@ function fqDownloadHTML(){
   var ref = document.getElementById('fq-ref').value||'';
   var dtype = document.getElementById('fq-disc-type').value;
   var dval = parseFloat(document.getElementById('fq-disc-val').value)||0;
-  var sub = lines.reduce(function(a,l){ return a+l.total; },0);
+  var fqFuelD = getFQFuelAmt();
+  var fqAOD = getFQAOTotal();
+  var fqAOItemsD = getFQAOItems();
+  var sub = lines.reduce(function(a,l){ return a+l.total; },0) + fqFuelD + fqAOD;
   var disc = dtype==='pct'?Math.min(sub,sub*dval/100):(dtype==='fixed'?Math.min(sub,dval):0);
   var preTax=sub-disc; var gst=preTax*0.1; var grand=preTax+gst;
   var date = new Date().toLocaleDateString('en-AU');
   var logoSrc = document.querySelector('header img').src;
-  var rowsHtml = lines.map(function(l,i){ return '<tr><td style="color:#999;font-size:11px">'+(i+1)+'</td><td><strong style="color:#1e2060">'+(l.desc||l.label)+'</strong><div style="font-size:11px;color:#888;margin-top:2px">'+l.label+'</div></td><td style="font-size:12px;color:#666">'+l.qty+' &times; $'+l.price.toFixed(2)+'</td><td style="text-align:right;font-weight:700">$'+l.total.toFixed(2)+'</td></tr>'; }).join('');
+  var rowsHtml = lines.map(function(l,i){
+    var widthTD=['curtain-s','curtain-m','curtain-l','sheer-s','sheer-l','velvet-s','velvet-m','velvet-l','pelmet','swags','valance'];
+    var calcCell = l.isBlind
+      ? l.W.toFixed(2)+'m &times; '+l.H.toFixed(2)+'m = '+l.sqm.toFixed(3)+' m&sup2; &times; $'+l.price.toFixed(2)+'/m&sup2;'
+      : (widthTD.indexOf(l.type)!==-1 && l.qty>0)
+        ? l.qty.toFixed(3)+'m width &times; $'+l.price.toFixed(2)+'/m'
+        : l.qty+' &times; $'+l.price.toFixed(2);
+    return '<tr><td style="color:#999;font-size:11px">'+(i+1)+'</td><td><strong style="color:#1e2060">'+(l.desc||l.label)+'</strong><div style="font-size:11px;color:#888;margin-top:2px">'+l.label+'</div></td><td style="font-size:12px;color:#666">'+calcCell+'</td><td style="text-align:right;font-weight:700">$'+l.total.toFixed(2)+'</td></tr>';
+  }).join('')+fuelRow+fqAOHtml;
+  var fuelRow = fqFuelD>0 ? '<tr><td style="color:#999">+</td><td><strong style="color:#92400e">Fuel Surcharge</strong></td><td style="font-size:12px;color:#666">Per job</td><td style="text-align:right;font-weight:700;color:#92400e">$'+fqFuelD.toFixed(2)+'</td></tr>' : '';
+  var fqAddrStr = getFQAddress();
+  var fqAOHtml = fqAOD>0?'<tr><td colspan="4" style="background:#dbeafe;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#0369a1;font-weight:700;padding:8px 12px">ADD-ON COSTS</td></tr>'+fqAOItemsD.map(function(it){ return '<tr><td></td><td>'+it.label+'</td><td>Add-on cost</td><td style="text-align:right;font-weight:700">$'+it.amount.toFixed(2)+'</td></tr>'; }).join(''):'';
+  var fqAddrStr = getFQAddress();
   var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Fast Quote - '+name+'</title>'+
-  '<style>body{font-family:Arial,sans-serif;margin:0;background:#f0f1f8;}.page{max-width:820px;margin:20px auto;background:#fff;box-shadow:0 4px 28px rgba(0,0,0,.14);}.hdr{background:#2b2d7e;padding:20px 28px;display:flex;justify-content:space-between;align-items:center;gap:10px;}.hdr img{height:52px;}.hr{text-align:right;color:rgba(255,255,255,.75);font-size:12px;}.hr strong{color:#fff;font-size:18px;font-weight:900;display:block;}.hr .sub{color:#a5b4fc;font-size:11px;}.rb{height:5px;background:#e0192e;}.cust{background:#f0f1f8;padding:16px 28px;display:flex;justify-content:space-between;gap:16px;border-bottom:3px solid #2b2d7e;flex-wrap:wrap;}.cust h4{margin:0 0 5px;font-size:10px;text-transform:uppercase;letter-spacing:2px;color:#6264a0;}.cust p{margin:2px 0;font-size:13px;}.fq-badge{display:inline-block;background:#0e7490;color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:1px;margin-bottom:6px;}.tw{padding:20px 28px;}table{width:100%;border-collapse:collapse;}thead tr{background:#2b2d7e;}thead th{color:#fff;font-size:11px;text-transform:uppercase;letter-spacing:1px;padding:9px 11px;text-align:left;}thead th:last-child{text-align:right;}tbody tr:nth-child(even){background:#f7f8fc;}tbody td{padding:9px 11px;font-size:13px;vertical-align:top;}.tots{background:#f0f1f8;padding:12px 28px;border-top:2px solid #e4e5f0;}.tr{display:flex;justify-content:space-between;padding:4px 0;font-size:13px;}.tr.sub{border-top:1px solid #c8cae0;margin-top:4px;padding-top:7px;font-weight:700;color:#1e2060;}.tr.grand{font-size:19px;font-weight:900;color:#2b2d7e;padding-top:9px;margin-top:6px;border-top:2px solid #e0192e;}.tr.grand span:last-child{color:#e0192e;}.notes{padding:14px 28px;border-top:1px solid #e4e5f0;font-size:12px;color:#555;line-height:1.7;}.foot{background:#2b2d7e;padding:10px 28px;text-align:center;color:rgba(255,255,255,.5);font-size:10px;letter-spacing:1.5px;}@media print{body{background:#fff;}.page{box-shadow:none;margin:0;max-width:100%;}}</style>'+
+  '<style>body{font-family:Arial,sans-serif;margin:0;background:#f0f1f8;}.page{max-width:820px;margin:20px auto;background:#fff;box-shadow:0 4px 28px rgba(0,0,0,.14);}.hdr{background:#2b2d7e;padding:18px 28px;display:flex;justify-content:space-between;align-items:center;gap:12px;}.hdr img{height:70px;flex-shrink:0;}.hdr-contact{color:rgba(255,255,255,0.85);margin-top:5px;}.hdr-phone{font-size:13px;font-weight:700;color:#fff;letter-spacing:0.3px;}.hdr-web{font-size:11px;color:rgba(255,255,255,0.7);margin-top:1px;}.hr{text-align:right;color:rgba(255,255,255,.75);font-size:12px;}.hr strong{color:#fff;font-size:18px;font-weight:900;display:block;}.hr .sub{color:#a5b4fc;font-size:11px;}.rb{height:5px;background:#e0192e;}.cust{background:#f0f1f8;padding:18px 28px;display:flex;justify-content:space-between;gap:16px;border-bottom:3px solid #2b2d7e;flex-wrap:wrap;}.cust h4{margin:0 0 6px;font-size:11px;text-transform:uppercase;letter-spacing:2px;color:#6264a0;font-weight:700;}.cust p{margin:3px 0;font-size:15px;}.cust p strong{font-size:16px;color:#1e2060;}.fq-badge{display:inline-block;background:#0e7490;color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:1px;margin-bottom:6px;}.tw{padding:20px 28px;}table{width:100%;border-collapse:collapse;}thead tr{background:#2b2d7e;}thead th{color:#fff;font-size:11px;text-transform:uppercase;letter-spacing:1px;padding:9px 11px;text-align:left;}thead th:last-child{text-align:right;}tbody tr:nth-child(even){background:#f7f8fc;}tbody td{padding:9px 11px;font-size:13px;vertical-align:top;}.tots{background:#f0f1f8;padding:12px 28px;border-top:2px solid #e4e5f0;}.tr{display:flex;justify-content:space-between;padding:4px 0;font-size:13px;}.tr.sub{border-top:1px solid #c8cae0;margin-top:4px;padding-top:7px;font-weight:700;color:#1e2060;}.tr.grand{font-size:19px;font-weight:900;color:#2b2d7e;padding-top:9px;margin-top:6px;border-top:2px solid #e0192e;}.tr.grand span:last-child{color:#e0192e;}.notes{padding:14px 28px;border-top:1px solid #e4e5f0;font-size:12px;color:#555;line-height:1.7;}.foot{background:#2b2d7e;padding:10px 28px;text-align:center;color:rgba(255,255,255,.5);font-size:10px;letter-spacing:1.5px;}@media print{body{background:#fff;}.page{box-shadow:none;margin:0;max-width:100%;}}</style>'+
   '</head><body><div class="page">'+
-  '<div class="hdr"><img src="'+logoSrc+'" alt="Dr Drapes"><div class="hr"><div class="sub">FAST QUOTE</div><strong>'+date+'</strong>Valid 30 days</div></div>'+
+  '<div class="hdr"><div style="display:flex;flex-direction:column;align-items:flex-start"><img src="'+logoSrc+'" alt="Dr Drapes" style="height:70px"><div class="hdr-contact"><div class="hdr-phone">1300 652 866</div><div class="hdr-web">drdrapes.com.au</div></div></div><div class="hr"><div class="sub">FAST QUOTE</div><strong>'+date+'</strong>Valid 30 days</div></div>'+
   '<div class="rb"></div>'+
-  '<div class="cust"><div><h4>Customer</h4><div class="fq-badge">&#9889; FAST QUOTE</div><p><strong>'+name+'</strong></p>'+(phone?'<p>'+phone+'</p>':'')+(email?'<p>'+email+'</p>':'')+'</div><div><h4>Reference</h4><p>'+(ref||'&mdash;')+'</p></div></div>'+
+  '<div class="cust"><div><h4>Customer</h4><div class="fq-badge">&#9889; FAST QUOTE</div><p><strong>'+name+'</strong></p>'+(phone?'<p>'+phone+'</p>':'')+(email?'<p>'+email+'</p>':'')+'</div><div><h4>Site</h4><p>'+(fqAddrStr||ref||'&mdash;')+'</p>'+(fqAddrStr&&ref?'<p style="font-size:11px;color:#6264a0">'+ref+'</p>':'')+'</div></div>'+
   '<div class="tw"><table><thead><tr><th>#</th><th>Description</th><th>Calculation</th><th>Amount</th></tr></thead><tbody>'+rowsHtml+'</tbody></table></div>'+
-  '<div class="tots">'+(disc>0?'<div class="tr"><span>Discount</span><span>-$'+disc.toFixed(2)+'</span></div>':'')+'<div class="tr sub"><span>Subtotal (ex GST)</span><span>$'+preTax.toFixed(2)+'</span></div><div class="tr"><span>GST (10%)</span><span>$'+gst.toFixed(2)+'</span></div><div class="tr grand"><span>TOTAL (inc. GST)</span><span>$'+grand.toFixed(2)+'</span></div></div>'+
-  '<div class="notes">Quote valid for 30 days. All prices include GST. Minimum call-out charges may apply.</div>'+
+  '<div class="tots">'+(fqAOD>0?'<div class="tr"><span style="color:#0369a1">Add-On Costs</span><span style="color:#0369a1">$'+fqAOD.toFixed(2)+'</span></div>':'')+(disc>0?'<div class="tr"><span>Discount</span><span>-$'+disc.toFixed(2)+'</span></div>':'')+'<div class="tr sub"><span>Subtotal (ex GST)</span><span>$'+preTax.toFixed(2)+'</span></div><div class="tr"><span>GST (10%)</span><span>$'+gst.toFixed(2)+'</span></div><div class="tr grand"><span>TOTAL (inc. GST)</span><span>$'+grand.toFixed(2)+'</span></div></div>'+
+  '<div class="notes" style="padding:14px 28px;border-top:1px solid #e4e5f0">'+
+    '<p style="font-size:13px;font-weight:700;color:#2b2d7e;margin-bottom:6px">Our Service</p>'+
+    '<p style="font-size:12px;color:#555;line-height:1.8">With our service we: <strong>Take Down | Dry Clean | Rehang</strong><br>'+
+    'We allow a 10&ndash;12 business day turnaround. All services are completed off-site.<br>'+
+    'Payment is due prior to rehang.<br>'+
+    'Call <strong>1300 652 866</strong> &nbsp;|&nbsp; <a href="mailto:drdrapes@hudsongroup.com.au">drdrapes@hudsongroup.com.au</a><br>'+
+    'We look forward to doing business with you.</p>'+
+    '<p style="font-size:11px;color:#888;margin-top:8px">Quote valid for 30 days. All prices include GST.</p>'+
+    '</div>'+
   '<div class="foot">DR DRAPES CURTAIN CLINIC &bull; Professional Curtain &amp; Blind Services &bull; DrapesQuotePro Fast Quote</div>'+
   '</div><script>window.onload=function(){window.print();};<\/script></body></html>';
   var blob=new Blob([html],{type:'text/html'});
@@ -994,7 +1367,7 @@ window.addEventListener('DOMContentLoaded',function(){
   document.getElementById('drdNumber').value='DRD-'+yr+'-'+r;
   loadPrices();
   addFQLine();
-  recalc(); renderSaved();
+  recalc(); renderSaved(); renderFQSaved();
 });
 
 function getTL(t){ if(RT[t]) return RT[t].label; var m={curtain:'Standard Curtain/Drape',sheer:'Sheer Curtain',velvet:'Velvet/Silk/Linen/Satin',blind:'Blind (m2)',pelmet:'Pelmet',swags:'Swags & Tails',valance:'Valance on Hooks',custom:'Custom Item'}; return m[t]||t; }
@@ -1111,7 +1484,8 @@ function calcDiscount(cleanS,repS,aoS){
 function recalc(){
   document.getElementById('qref').textContent=qn();
   var r=calcItems();
-  var aoS=0; if(isAO) aoS=gn('transportCost')+gn('rehangCost')+gn('calloutFee')+gn('storageCost')+gn('otherCost');
+  var fuelS=getFuelAmt();
+  var aoS=fuelS; if(isAO) aoS+=gn('transportCost')+gn('rehangCost')+gn('calloutFee')+gn('storageCost')+gn('otherCost');
   var dr=calcDiscount(r.cleanS,r.repS,aoS);
   var preTax=r.cleanS+r.repS+aoS-dr.disc; var gst=preTax*0.1; var grand=preTax+gst;
   var dval=gn('discValue'); var dtype=gv('discType');
@@ -1123,7 +1497,9 @@ function recalc(){
   document.getElementById('preDiscRow').style.display=hasDisc?'flex':'none';
   if(hasDisc){ document.getElementById('preDiscT').textContent=fmt(r.cleanS+r.repS+aoS); document.getElementById('discTR').style.display='flex'; document.getElementById('discLabel').textContent=(gv('discDesc')||'Discount')+(gv('discType')==='pct'?' ('+dval+'%)':''); document.getElementById('discT').textContent=fmtD(dr.disc); }
   else document.getElementById('discTR').style.display='none';
-  document.getElementById('aoTR').style.display=isAO&&aoS>0?'flex':'none'; document.getElementById('aoT').textContent=fmt(aoS);
+  var rawAO = isAO?(gn('transportCost')+gn('rehangCost')+gn('calloutFee')+gn('storageCost')+gn('otherCost')):0;
+  document.getElementById('aoTR').style.display=(fuelOn||rawAO>0)?'flex':'none';
+  document.getElementById('aoT').textContent=fmt(aoS);
   document.getElementById('subEx').textContent=fmt(preTax); document.getElementById('gstT').textContent=fmt(gst); document.getElementById('grandT').textContent=fmt(grand);
   var ql=document.getElementById('qlines');
   if(!r.lines.length){ ql.innerHTML='<div style="color:rgba(255,255,255,.35);text-align:center;padding:20px;font-size:.79rem;">Add items to see summary</div>'; }
@@ -1131,20 +1507,35 @@ function recalc(){
 }
 
 function getFD(){
-  return{drdNumber:gv('drdNumber'),quoteNumber:gv('quoteNumber'),quoteDate:gv('quoteDate'),customerName:gv('customerName'),customerPhone:gv('customerPhone'),customerEmail:gv('customerEmail'),jobRef:gv('jobRef'),siteAddress:gv('siteAddress'),isAO:isAO,claimNumber:gv('claimNumber'),insurerName:gv('insurerName'),transportCost:gv('transportCost'),rehangCost:gv('rehangCost'),calloutFee:gv('calloutFee'),storageCost:gv('storageCost'),otherCost:gv('otherCost'),otherCostDesc:gv('otherCostDesc'),discType:gv('discType'),discValue:gv('discValue'),discScope:gv('discScope'),discDesc:gv('discDesc'),customerNotes:gv('customerNotes'),internalNotes:gv('internalNotes'),
+  return{drdNumber:gv('drdNumber'),quoteNumber:gv('quoteNumber'),quoteDate:gv('quoteDate'),customerName:gv('customerName'),customerPhone:gv('customerPhone'),customerEmail:gv('customerEmail'),jobRef:gv('jobRef'),siteAddress:gv('siteAddress'),isAO:isAO,claimNumber:gv('claimNumber'),insurerName:gv('insurerName'),transportCost:gv('transportCost'),rehangCost:gv('rehangCost'),calloutFee:gv('calloutFee'),storageCost:gv('storageCost'),otherCost:gv('otherCost'),otherCostDesc:gv('otherCostDesc'),fuelOn:fuelOn,fuelAmt:gv('fuelAmt'),discType:gv('discType'),discValue:gv('discValue'),discScope:gv('discScope'),discDesc:gv('discDesc'),customerNotes:gv('customerNotes'),internalNotes:gv('internalNotes'),
   items:items.map(function(item){ var f={}; ['d','w','h','tier','bt','q','rp','pts','cp','op'].forEach(function(k){ var e=document.getElementById(k+'-'+item.id); if(e) f[k]=e.value; }); ['mould','ov'].forEach(function(k){ var e=document.getElementById(k+'-'+item.id); if(e) f[k]=e.checked; }); return{type:item.type,fields:f}; })};
 }
 function saveJob(){ var d=getFD(); var saves=JSON.parse(localStorage.getItem('drapes_saves')||'[]'); saves.push({key:'dj_'+Date.now(),data:d,savedAt:new Date().toLocaleString('en-AU')}); localStorage.setItem('drapes_saves',JSON.stringify(saves)); renderSaved(); showToast('Saved: '+(d.customerName||d.quoteNumber)); }
 function renderSaved(){
-  var saves=JSON.parse(localStorage.getItem('drapes_saves')||'[]'); var list=document.getElementById('savedList');
+  var saves=JSON.parse(localStorage.getItem('drapes_saves')||'[]');
+  var list=document.getElementById('savedList');
   if(!saves.length){ list.innerHTML='<div class="es">No saved jobs yet</div>'; return; }
-  list.innerHTML=[].concat(saves).reverse().map(function(s){ return '<div class="sji"><div><strong>'+(s.data.drdNumber?s.data.drdNumber+' | ':'')+s.data.quoteNumber+' - '+(s.data.customerName||'No name')+'</strong><span>'+(s.data.jobRef||'')+' | '+s.savedAt+'</span></div><div class="sja"><button class="bm ld" onclick="loadJob(\''+s.key+'\')">Load</button><button class="bm dl" onclick="deleteJob(\''+s.key+'\')">&#215;</button></div></div>'; }).join('');
+  list.innerHTML='';
+  [].concat(saves).reverse().forEach(function(s){
+    var div=document.createElement('div'); div.className='sji';
+    var info=document.createElement('div');
+    info.innerHTML='<strong>'+(s.data.drdNumber?s.data.drdNumber+' | ':'')+s.data.quoteNumber+' - '+(s.data.customerName||'No name')+'</strong><span>'+(s.data.jobRef||'')+' | '+s.savedAt+'</span>';
+    var acts=document.createElement('div'); acts.className='sja';
+    var lb=document.createElement('button'); lb.className='bm ld'; lb.textContent='Load';
+    lb.addEventListener('click',(function(k){ return function(){ loadJob(k); }; })(s.key));
+    var db=document.createElement('button'); db.className='bm dl'; db.innerHTML='&#215;';
+    db.addEventListener('click',(function(k){ return function(){ deleteJob(k); }; })(s.key));
+    acts.appendChild(lb); acts.appendChild(db);
+    div.appendChild(info); div.appendChild(acts); list.appendChild(div);
+  });
 }
 function loadJob(key){
   var saves=JSON.parse(localStorage.getItem('drapes_saves')||'[]'); var save=saves.find(function(s){ return s.key===key; }); if(!save) return; var d=save.data;
   var sv=function(id,v){ var e=document.getElementById(id); if(e) e.value=v||''; };
   ['drdNumber','quoteNumber','quoteDate','customerName','customerPhone','customerEmail','jobRef','siteAddress','claimNumber','insurerName','transportCost','rehangCost','calloutFee','storageCost','otherCost','otherCostDesc','discType','discValue','discScope','discDesc','customerNotes','internalNotes'].forEach(function(id){ sv(id,d[id]); });
   if(d.isAO!==isAO) toggleAO();
+  if(d.fuelOn!==undefined && d.fuelOn!==fuelOn) toggleFuel();
+  var fa=document.getElementById('fuelAmt'); if(fa&&d.fuelAmt) fa.value=d.fuelAmt;
   items=[];ic=0; document.getElementById('liCon').innerHTML=''; document.getElementById('riCon').innerHTML='';
   d.items.forEach(function(it){ addItem(it.type); var item=items[items.length-1]; Object.entries(it.fields).forEach(function(kv){ var e=document.getElementById(kv[0]+'-'+item.id); if(!e) return; if(e.type==='checkbox'){ e.checked=kv[1]; if(kv[0]==='ov') togOv(item.id); } else e.value=kv[1]; }); });
   updateBadges(); recalc(); showToast('Loaded: '+(d.customerName||'job'));
@@ -1154,7 +1545,8 @@ function deleteJob(key){ var saves=JSON.parse(localStorage.getItem('drapes_saves
 function resetForm(){ if(!confirm('Start a new quote? Unsaved data will be lost.')) return; items=[];ic=0; document.getElementById('liCon').innerHTML=''; document.getElementById('riCon').innerHTML=''; if(isAO) toggleAO(); ['customerName','customerPhone','customerEmail','jobRef','siteAddress','claimNumber','insurerName','internalNotes','discDesc'].forEach(function(id){ var e=document.getElementById(id); if(e) e.value=''; }); ['transportCost','rehangCost','calloutFee','storageCost','otherCost','discValue'].forEach(function(id){ var e=document.getElementById(id); if(e) e.value=0; }); var el=document.getElementById('discType'); if(el) el.value='none'; var el2=document.getElementById('discScope'); if(el2) el2.value='total'; var yr=new Date().getFullYear(); var r=String(Math.floor(Math.random()*900)+100); document.getElementById('quoteNumber').value='Q-'+yr+'-'+r; document.getElementById('drdNumber').value='DRD-'+yr+'-'+r; document.getElementById('quoteDate').value=new Date().toISOString().slice(0,10); document.getElementById('customerNotes').value='Quote valid for 30 days. All prices include GST. Minimum call-out charges may apply.'; updateBadges(); recalc(); }
 
 function downloadQuote(){
-  var r=calcItems(); var aoS=0,aoRows=[]; if(isAO){ var ai=function(id,lbl){ var v=parseFloat(document.getElementById(id)?document.getElementById(id).value:0)||0; if(v>0){ aoRows.push({label:lbl,amount:v}); aoS+=v; } }; ai('transportCost','Transport');ai('rehangCost','Rehanging');ai('calloutFee','Call-Out Fee');ai('storageCost','Storage / Cleaning'); var oc=parseFloat(document.getElementById('otherCost')?document.getElementById('otherCost').value:0)||0; if(oc>0){ var od=document.getElementById('otherCostDesc')?document.getElementById('otherCostDesc').value:'Other'; aoRows.push({label:od,amount:oc}); aoS+=oc; } }
+  var r=calcItems(); var fuelAmt=getFuelAmt(); var aoS=fuelAmt; var aoRows=fuelAmt>0?[{label:'Fuel Surcharge',amount:fuelAmt}]:[];
+  if(isAO){ var ai=function(id,lbl){ var v=parseFloat(document.getElementById(id)?document.getElementById(id).value:0)||0; if(v>0){ aoRows.push({label:lbl,amount:v}); aoS+=v; } }; ai('transportCost','Transport');ai('rehangCost','Rehanging');ai('calloutFee','Call-Out Fee');ai('storageCost','Storage / Cleaning'); var oc=parseFloat(document.getElementById('otherCost')?document.getElementById('otherCost').value:0)||0; if(oc>0){ var od=document.getElementById('otherCostDesc')?document.getElementById('otherCostDesc').value:'Other'; aoRows.push({label:od,amount:oc}); aoS+=oc; } }
   var dr=calcDiscount(r.cleanS,r.repS,aoS); var preTax=r.cleanS+r.repS+aoS-dr.disc; var gst=preTax*0.1; var grand=preTax+gst;
   var logoSrc=document.querySelector('header img').src;
   var rh=function(lines,col){ return lines.map(function(l,i){ return '<tr><td style="color:#999;font-size:11px">'+(i+1)+'</td><td><strong style="color:'+(col||'#1e2060')+'">'+l.desc+'</strong><div style="font-size:11px;color:#888;margin-top:2px">'+(l.ul||'')+'</div></td><td style="font-size:12px;color:#666">'+l.det+'</td><td style="text-align:right;font-weight:700;color:'+(col||'#1e2060')+'">'+fmt(l.total)+'</td></tr>'; }).join(''); };
@@ -1163,9 +1555,215 @@ function downloadQuote(){
   var aoHtml=isAO&&aoRows.length?'<tr><td colspan="4" style="background:#dbeafe;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#0369a1;font-weight:700;padding:8px 12px">ADD-ON COSTS</td></tr>'+aoRows.map(function(rw){ return '<tr><td></td><td>'+rw.label+'</td><td>Add-on cost item</td><td style="text-align:right;font-weight:700">'+fmt(rw.amount)+'</td></tr>'; }).join(''):'';
   var discHtml=dr.disc>0?'<tr><td colspan="4" style="background:#fef3c7;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#92400e;font-weight:700;padding:8px 12px">DISCOUNT</td></tr><tr><td></td><td>'+(gv('discDesc')||'Discount')+(gv('discType')==='pct'?' ('+gv('discValue')+'%)':'')+'</td><td>Applied to '+({total:'entire job',clean:'curtain & blind items',repair:'repairs & parts',addon:'add-on costs'}[gv('discScope')]||'')+'</td><td style="text-align:right;font-weight:700;color:#b45309">'+fmtD(dr.disc)+'</td></tr>':'';
   var cn=gv('customerNotes'); var drd=gv('drdNumber'); var ref=gv('claimNumber'); var auth=gv('insurerName');
-  var html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Quote '+qn()+' - Dr Drapes</title><style>body{font-family:Arial,sans-serif;margin:0;background:#f0f1f8;}.page{max-width:820px;margin:20px auto;background:#fff;box-shadow:0 4px 28px rgba(0,0,0,.14);}.hdr{background:#2b2d7e;padding:20px 28px;display:flex;justify-content:space-between;align-items:center;gap:10px;}.hdr img{height:52px;flex-shrink:0;}.hr{text-align:right;color:rgba(255,255,255,.75);font-size:12px;}.hr strong{color:#fff;font-size:18px;font-weight:900;display:block;}.hr .drd{color:#a5b4fc;font-size:11px;letter-spacing:1px;}.rb{height:5px;background:#e0192e;}.cust{background:#f0f1f8;padding:16px 28px;display:flex;justify-content:space-between;gap:16px;border-bottom:3px solid #2b2d7e;flex-wrap:wrap;}.cust h4{margin:0 0 5px;font-size:10px;text-transform:uppercase;letter-spacing:2px;color:#6264a0;}.cust p{margin:2px 0;font-size:13px;}.tw{padding:20px 28px;}table{width:100%;border-collapse:collapse;}thead tr{background:#2b2d7e;}thead th{color:#fff;font-size:11px;text-transform:uppercase;letter-spacing:1px;padding:9px 11px;text-align:left;}thead th:last-child{text-align:right;}tbody tr:nth-child(even){background:#f7f8fc;}tbody td{padding:9px 11px;font-size:13px;vertical-align:top;}.tots{background:#f0f1f8;padding:12px 28px;border-top:2px solid #e4e5f0;}.tr{display:flex;justify-content:space-between;padding:4px 0;font-size:13px;}.tr.sub{border-top:1px solid #c8cae0;margin-top:4px;padding-top:7px;font-weight:700;color:#1e2060;}.tr.grand{font-size:19px;font-weight:900;color:#2b2d7e;padding-top:9px;margin-top:6px;border-top:2px solid #e0192e;}.tr.grand span:last-child{color:#e0192e;}.tr.disc{color:#92400e;}.notes{padding:14px 28px;border-top:1px solid #e4e5f0;}.notes h5{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:#6264a0;margin-bottom:5px;}.notes p{font-size:12px;color:#555;line-height:1.7;}.foot{background:#2b2d7e;padding:10px 28px;text-align:center;color:rgba(255,255,255,.5);font-size:10px;letter-spacing:1.5px;}@media print{body{background:#fff;}.page{box-shadow:none;margin:0;max-width:100%;}}</style></head><body><div class="page"><div class="hdr"><img src="'+logoSrc+'" alt="Dr Drapes"><div class="hr">'+(drd?'<div class="drd">DRD Ref: '+drd+'</div>':'')+(ref||auth?'<div class="drd">Ref: '+(ref||'')+(auth?' | Auth: '+auth:'')+'</div>':'')+'<strong>'+qn()+'</strong>Date: '+(gv('quoteDate')||new Date().toLocaleDateString('en-AU'))+'<br>Valid 30 days</div></div><div class="rb"></div><div class="cust"><div><h4>Customer</h4><p><strong>'+(gv('customerName')||'–')+'</strong></p><p>'+(gv('customerPhone')||'')+'</p><p>'+(gv('customerEmail')||'')+'</p></div><div><h4>Site Address</h4><p>'+(gv('siteAddress')||'–')+'</p>'+(gv('jobRef')?'<p style="color:#6264a0;font-size:12px;margin-top:4px">'+gv('jobRef')+'</p>':'')+'</div></div><div class="tw"><table><thead><tr><th>#</th><th>Description</th><th>Calculation</th><th>Amount</th></tr></thead><tbody>'+(cleanLines.length?rh(cleanLines):'<tr><td colspan="4" style="text-align:center;color:#aaa;padding:20px">No curtain/blind items</td></tr>')+repHtml+aoHtml+discHtml+'</tbody></table></div><div class="tots">'+(repLines.length?'<div class="tr"><span>Curtain &amp; Blind Items</span><span>'+fmt(r.cleanS)+'</span></div><div class="tr"><span style="color:#065f46">Repairs &amp; Parts</span><span style="color:#065f46">'+fmt(r.repS)+'</span></div>':'')+(isAO&&aoS>0?'<div class="tr"><span style="color:#0369a1">Add-On Costs</span><span style="color:#0369a1">'+fmt(aoS)+'</span></div>':'')+(dr.disc>0?'<div class="tr disc"><span>'+(gv('discDesc')||'Discount')+'</span><span>'+fmtD(dr.disc)+'</span></div>':'')+'<div class="tr sub"><span>Subtotal (ex GST)</span><span>'+fmt(preTax)+'</span></div><div class="tr"><span>GST (10%)</span><span>'+fmt(gst)+'</span></div><div class="tr grand"><span>TOTAL (inc. GST)</span><span>'+fmt(grand)+'</span></div></div>'+(cn?'<div class="notes"><h5>Terms &amp; Notes</h5><p>'+cn.replace(/\n/g,'<br>')+'</p></div>':'')+'<div class="foot">DR DRAPES CURTAIN CLINIC &bull; Professional Curtain &amp; Blind Services &bull; DrapesQuotePro</div></div><script>window.onload=function(){window.print();};<\/script></body></html>';
+  var html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Quote '+qn()+' - Dr Drapes</title><style>body{font-family:Arial,sans-serif;margin:0;background:#f0f1f8;}.page{max-width:820px;margin:20px auto;background:#fff;box-shadow:0 4px 28px rgba(0,0,0,.14);}.hdr{background:#2b2d7e;padding:18px 28px;display:flex;justify-content:space-between;align-items:center;gap:12px;}.hdr img{height:70px;flex-shrink:0;}.hdr-contact{color:rgba(255,255,255,0.85);margin-top:5px;}.hdr-phone{font-size:13px;font-weight:700;color:#fff;letter-spacing:0.3px;}.hdr-web{font-size:11px;color:rgba(255,255,255,0.7);margin-top:1px;}.hr{text-align:right;color:rgba(255,255,255,.75);font-size:12px;}.hr strong{color:#fff;font-size:18px;font-weight:900;display:block;}.hr .drd{color:#a5b4fc;font-size:11px;letter-spacing:1px;}.rb{height:5px;background:#e0192e;}.cust{background:#f0f1f8;padding:18px 28px;display:flex;justify-content:space-between;gap:16px;border-bottom:3px solid #2b2d7e;flex-wrap:wrap;}.cust h4{margin:0 0 6px;font-size:11px;text-transform:uppercase;letter-spacing:2px;color:#6264a0;font-weight:700;}.cust p{margin:3px 0;font-size:15px;}.cust p strong{font-size:16px;color:#1e2060;}.tw{padding:20px 28px;}table{width:100%;border-collapse:collapse;}thead tr{background:#2b2d7e;}thead th{color:#fff;font-size:11px;text-transform:uppercase;letter-spacing:1px;padding:9px 11px;text-align:left;}thead th:last-child{text-align:right;}tbody tr:nth-child(even){background:#f7f8fc;}tbody td{padding:9px 11px;font-size:13px;vertical-align:top;}.tots{background:#f0f1f8;padding:12px 28px;border-top:2px solid #e4e5f0;}.tr{display:flex;justify-content:space-between;padding:4px 0;font-size:13px;}.tr.sub{border-top:1px solid #c8cae0;margin-top:4px;padding-top:7px;font-weight:700;color:#1e2060;}.tr.grand{font-size:19px;font-weight:900;color:#2b2d7e;padding-top:9px;margin-top:6px;border-top:2px solid #e0192e;}.tr.grand span:last-child{color:#e0192e;}.tr.disc{color:#92400e;}.notes{padding:14px 28px;border-top:1px solid #e4e5f0;}.notes h5{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:#6264a0;margin-bottom:5px;}.notes p{font-size:12px;color:#555;line-height:1.7;}.foot{background:#2b2d7e;padding:10px 28px;text-align:center;color:rgba(255,255,255,.5);font-size:10px;letter-spacing:1.5px;}@media print{body{background:#fff;}.page{box-shadow:none;margin:0;max-width:100%;}}</style></head><body><div class="page"><div class="hdr"><div style="display:flex;flex-direction:column;align-items:flex-start"><img src="'+logoSrc+'" alt="Dr Drapes" style="height:70px"><div class="hdr-contact"><div class="hdr-phone">1300 652 866</div><div class="hdr-web">drdrapes.com.au</div></div></div><div class="hr">'+(drd?'<div class="drd">DRD Ref: '+drd+'</div>':'')+(ref||auth?'<div class="drd">Ref: '+(ref||'')+(auth?' | Auth: '+auth:'')+'</div>':'')+'<strong>'+qn()+'</strong>Date: '+(gv('quoteDate')||new Date().toLocaleDateString('en-AU'))+'<br>Valid 30 days</div></div><div class="rb"></div><div class="cust"><div><h4>Customer</h4><p><strong>'+(gv('customerName')||'–')+'</strong></p><p>'+(gv('customerPhone')||'')+'</p><p>'+(gv('customerEmail')||'')+'</p></div><div><h4>Site Address</h4><p>'+(gv('siteAddress')||'–')+'</p>'+(gv('jobRef')?'<p style="color:#6264a0;font-size:14px;font-weight:600;margin-top:4px">'+gv('jobRef')+'</p>':'')+'</div></div><div class="tw"><table><thead><tr><th>#</th><th>Description</th><th>Calculation</th><th>Amount</th></tr></thead><tbody>'+(cleanLines.length?rh(cleanLines):'<tr><td colspan="4" style="text-align:center;color:#aaa;padding:20px">No curtain/blind items</td></tr>')+repHtml+aoHtml+discHtml+'</tbody></table></div><div class="tots">'+(repLines.length?'<div class="tr"><span>Curtain &amp; Blind Items</span><span>'+fmt(r.cleanS)+'</span></div><div class="tr"><span style="color:#065f46">Repairs &amp; Parts</span><span style="color:#065f46">'+fmt(r.repS)+'</span></div>':'')+(isAO&&aoS>0?'<div class="tr"><span style="color:#0369a1">Add-On Costs</span><span style="color:#0369a1">'+fmt(aoS)+'</span></div>':'')+(dr.disc>0?'<div class="tr disc"><span>'+(gv('discDesc')||'Discount')+'</span><span>'+fmtD(dr.disc)+'</span></div>':'')+'<div class="tr sub"><span>Subtotal (ex GST)</span><span>'+fmt(preTax)+'</span></div><div class="tr"><span>GST (10%)</span><span>'+fmt(gst)+'</span></div><div class="tr grand"><span>TOTAL (inc. GST)</span><span>'+fmt(grand)+'</span></div></div>'+(cn?'<div class="notes"><h5>Terms &amp; Notes</h5><p>'+cn.replace(/\n/g,'<br>')+'</p></div>':'')+'<div class="foot">DR DRAPES CURTAIN CLINIC &bull; Professional Curtain &amp; Blind Services &bull; DrapesQuotePro</div></div><script>window.onload=function(){window.print();};<\/script></body></html>';
   var blob=new Blob([html],{type:'text/html'}); var url=URL.createObjectURL(blob); var a=document.createElement('a'); a.href=url; a.download='Quote_'+qn()+'_'+(gv('customerName')||'DrDrapes').replace(/\s+/g,'_')+'.html'; a.click(); URL.revokeObjectURL(url); showToast('Quote downloaded - open & print to save as PDF');
 }
+
+// ── Fuel Surcharge ──────────────────────────────────────
+var fuelOn = true;
+var fqFuelOn = true;
+
+function toggleFuel(){
+  fuelOn = !fuelOn;
+  document.getElementById('fuelSw').classList.toggle('on', fuelOn);
+  document.getElementById('fuelAmt').disabled = !fuelOn;
+  recalc();
+}
+function toggleFQFuel(){
+  fqFuelOn = !fqFuelOn;
+  document.getElementById('fqFuelSw').classList.toggle('on', fqFuelOn);
+  document.getElementById('fqFuelAmt').disabled = !fqFuelOn;
+  recalcFQ();
+}
+function getFuelAmt(){ return fuelOn ? (parseFloat(document.getElementById('fuelAmt').value)||0) : 0; }
+function getFQFuelAmt(){ return fqFuelOn ? (parseFloat(document.getElementById('fqFuelAmt').value)||0) : 0; }
+
+// ── Address format toggle (Full Quote) ──────────────────
+function toggleAddrFormat(){
+  var fmt = document.getElementById('addrFormat').value;
+  document.getElementById('addrFull').style.display = fmt==='full' ? 'flex' : 'none';
+  document.getElementById('addrSuburb').style.display = fmt==='suburb' ? 'grid' : 'none';
+}
+function getSiteAddress(){
+  var fmt = document.getElementById('addrFormat').value;
+  if(fmt==='suburb'){
+    var sub = (document.getElementById('siteSuburb')||{}).value||'';
+    var st  = (document.getElementById('siteState')||{}).value||'';
+    return [sub, st].filter(Boolean).join(', ');
+  }
+  return gv('siteAddress');
+}
+
+// ── Address format toggle (Fast Quote) ─────────────────
+function toggleFQAddrFormat(){
+  var fmt = document.getElementById('fqAddrFormat').value;
+  document.getElementById('fqAddrFull').style.display   = fmt==='full'   ? 'flex' : 'none';
+  var sw=document.getElementById('fqAddrSuburbWrap'); if(sw) sw.style.display=fmt==='suburb'?'flex':'none';
+}
+function getFQAddress(){
+  var fmt = (document.getElementById('fqAddrFormat')||{}).value||'none';
+  if(fmt==='full') return (document.getElementById('fqAddress')||{}).value||'';
+  if(fmt==='suburb'){
+    var sub = (document.getElementById('fqSuburb')||{}).value||'';
+    var st  = (document.getElementById('fqState')||{}).value||'';
+    return [sub, st].filter(Boolean).join(', ');
+  }
+  return '';
+}
+
+// ── Service Notes text (reused across full + fast quote) ─
+var SERVICE_NOTES = [
+  'With our service we: Take Down | Dry Clean | Rehang',
+  'We allow a 10\u201312 business day turnaround.',
+  'All services are completed off-site.',
+  'Payment is due prior to rehang.',
+  'For questions please call 1300 652 866 or email drdrapes@hudsongroup.com.au',
+  'We look forward to doing business with you.'
+].join('\n');
+
+// ── Fast Quote: Save & Load ─────────────────────────────
+function saveFastQuote(){
+  var name = document.getElementById('fq-name').value || 'Unnamed';
+  var lines = getFQLineData();
+  if(!lines.length){ showToast('Add at least one item first'); return; }
+  var fqData = {
+    name: name,
+    phone: gv('fq-phone'),
+    email: gv('fq-email'),
+    ref: gv('fq-ref'),
+    address: getFQAddress(),
+    addrFormat: (document.getElementById('fqAddrFormat')||{}).value||'none',
+    addrFull: gv('fqAddress'),
+    addrSuburb: gv('fqSuburb'),
+    addrState: gv('fqState'),
+    fuelOn: fqFuelOn,
+    fuelAmt: gv('fqFuelAmt'),
+    isAO: fqIsAO,
+    claimNumber: gv('fqClaimNumber'),
+    insurerName: gv('fqInsurerName'),
+    transportCost: gv('fqTransportCost'),
+    rehangCost: gv('fqRehangCost'),
+    calloutFee: gv('fqCalloutFee'),
+    storageCost: gv('fqStorageCost'),
+    otherCost: gv('fqOtherCost'),
+    otherCostDesc: gv('fqOtherCostDesc'),
+    discType: gv('fq-disc-type'),
+    discVal: gv('fq-disc-val'),
+    lines: lines.map(function(l){
+      var type = (document.getElementById('fqs-'+l.id)||{}).value||'';
+      var isBlind = isFQBlind(type);
+      return {
+        type: type,
+        desc: gv('fqd-'+l.id),
+        qty:  isBlind ? '' : gv('fqq-'+l.id),
+        wRaw: isBlind ? gv('fqw-'+l.id) : '',
+        hRaw: isBlind ? gv('fqh-'+l.id) : '',
+        isBlind: isBlind,
+        price: gv('fqp-'+l.id)
+      };
+    })
+  };
+  var saves = JSON.parse(localStorage.getItem('drapes_fq_saves')||'[]');
+  saves.push({key:'fq_'+Date.now(), data:fqData, savedAt:new Date().toLocaleString('en-AU')});
+  localStorage.setItem('drapes_fq_saves', JSON.stringify(saves));
+  renderFQSaved();
+  showToast('\u2705 Fast quote saved: '+name);
+}
+
+function renderFQSaved(){
+  var saves = JSON.parse(localStorage.getItem('drapes_fq_saves')||'[]');
+  var el = document.getElementById('fqSavedList');
+  if(!el) return;
+  if(!saves.length){ el.innerHTML='<div class="es" style="color:var(--g300)">No saved fast quotes yet</div>'; return; }
+  el.innerHTML = '';
+  [].concat(saves).reverse().forEach(function(s){
+    var div = document.createElement('div');
+    div.className = 'fq-sji';
+    var info = document.createElement('div');
+    info.innerHTML = '<strong>'+s.data.name+'</strong><span>'+(s.data.ref?s.data.ref+' | ':'')+s.savedAt+'</span>';
+    var acts = document.createElement('div');
+    acts.className = 'sja';
+    var loadBtn = document.createElement('button');
+    loadBtn.className = 'bm ld';
+    loadBtn.style.background = 'var(--fast)';
+    loadBtn.textContent = 'Load';
+    loadBtn.addEventListener('click', (function(key){ return function(){ loadFastQuote(key); }; })(s.key));
+    var delBtn = document.createElement('button');
+    delBtn.className = 'bm dl';
+    delBtn.textContent = '\u00d7';
+    delBtn.addEventListener('click', (function(key){ return function(){ deleteFastQuote(key); }; })(s.key));
+    acts.appendChild(loadBtn);
+    acts.appendChild(delBtn);
+    div.appendChild(info);
+    div.appendChild(acts);
+    el.appendChild(div);
+  });
+}
+
+function loadFastQuote(key){
+  var saves = JSON.parse(localStorage.getItem('drapes_fq_saves')||'[]');
+  var save = saves.find(function(s){ return s.key===key; });
+  if(!save) return;
+  var d = save.data;
+  var sv = function(id,v){ var e=document.getElementById(id); if(e) e.value=v||''; };
+  sv('fq-name', d.name); sv('fq-phone', d.phone); sv('fq-email', d.email); sv('fq-ref', d.ref);
+  sv('fqFuelAmt', d.fuelAmt||30); sv('fq-disc-type', d.discType||'none'); sv('fq-disc-val', d.discVal||0);
+  if(d.isAO!==undefined && d.isAO!==fqIsAO) toggleFQAO();
+  sv('fqClaimNumber', d.claimNumber); sv('fqInsurerName', d.insurerName);
+  sv('fqTransportCost', d.transportCost||0); sv('fqRehangCost', d.rehangCost||0);
+  sv('fqCalloutFee', d.calloutFee||0); sv('fqStorageCost', d.storageCost||0);
+  sv('fqOtherCost', d.otherCost||0); sv('fqOtherCostDesc', d.otherCostDesc);
+  // Address
+  var af = document.getElementById('fqAddrFormat');
+  if(af){ af.value = d.addrFormat||'none'; toggleFQAddrFormat(); }
+  sv('fqAddress', d.addrFull); sv('fqSuburb', d.addrSuburb); sv('fqState', d.addrState);
+  // Fuel
+  fqFuelOn = d.fuelOn !== false;
+  document.getElementById('fqFuelSw').classList.toggle('on', fqFuelOn);
+  // Clear and re-add lines
+  document.getElementById('fqLines').innerHTML='';
+  fqCounter = 0;
+  d.lines.forEach(function(l){
+    addFQLine();
+    var id = fqCounter;
+    var sel = document.getElementById('fqs-'+id);
+    if(sel){ sel.value = l.type; onFQSel(id); }
+    sv('fqd-'+id, l.desc);
+    if(l.isBlind){
+      sv('fqw-'+id, l.wRaw||''); sv('fqh-'+id, l.hRaw||'');
+    } else {
+      sv('fqq-'+id, l.qty);
+    }
+    sv('fqp-'+id, l.price);
+  });
+  recalcFQ();
+  showToast('\u{1F4C2} Loaded: '+d.name);
+}
+
+function deleteFastQuote(key){
+  var saves = JSON.parse(localStorage.getItem('drapes_fq_saves')||'[]');
+  saves = saves.filter(function(s){ return s.key!==key; });
+  localStorage.setItem('drapes_fq_saves', JSON.stringify(saves));
+  renderFQSaved();
+  showToast('Deleted');
+}
+
+function clearFastQuote(){
+  if(!confirm('Clear this fast quote and start a new one?')) return;
+  ['fq-name','fq-phone','fq-email','fq-ref','fqAddress','fqSuburb','fqState'].forEach(function(id){ var e=document.getElementById(id); if(e) e.value=''; });
+  var af = document.getElementById('fqAddrFormat'); if(af) af.value='none'; toggleFQAddrFormat();
+  if(fqIsAO) toggleFQAO();
+  ['fqClaimNumber','fqInsurerName','fqOtherCostDesc'].forEach(function(id){ var e=document.getElementById(id); if(e) e.value=''; });
+  ['fqTransportCost','fqRehangCost','fqCalloutFee','fqStorageCost','fqOtherCost'].forEach(function(id){ var e=document.getElementById(id); if(e) e.value=0; });
+  var dt = document.getElementById('fq-disc-type'); if(dt) dt.value='none';
+  var dv = document.getElementById('fq-disc-val'); if(dv) dv.value=0;
+  document.getElementById('fqLines').innerHTML=''; fqCounter=0;
+  fqFuelOn=true; document.getElementById('fqFuelSw').classList.add('on');
+  var fa = document.getElementById('fqFuelAmt'); if(fa) fa.value=30;
+  addFQLine(); recalcFQ();
+  showToast('\u2705 Ready for a new quote');
+}
+
 </script>
 </body>
 </html>
