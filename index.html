@@ -262,6 +262,7 @@ header{background:var(--navy);position:sticky;top:0;z-index:200;box-shadow:0 3px
       <div class="at"><h1>Drapes<span>Quote</span>Pro</h1><p>Dr Drapes Curtain Clinic</p></div>
     </div>
     <div class="ha" id="headerActions">
+      <span id="syncBadge" style="font-size:.67rem;font-weight:700;font-family:Montserrat,sans-serif;padding:4px 10px;border-radius:20px;letter-spacing:.5px;background:rgba(255,255,255,.15);color:rgba(255,255,255,.6)">⬤ Ready</span>
       <button class="bh o" onclick="saveJob()">&#128190; Save</button>
       <button class="bh o" onclick="openSaved()">&#128194; Jobs</button>
       <button class="bh s" onclick="downloadQuote()">&#8659; Download</button>
@@ -810,6 +811,7 @@ header{background:var(--navy);position:sticky;top:0;z-index:200;box-shadow:0 3px
       <div class="price-item"><label>Roller Blind &ndash; Sunscreen</label><div class="desc">per m&sup2;</div><div class="price-inp"><span>$</span><input type="number" id="p-roller-sun" min="0" step="1" oninput="onPriceChange(this)"></div></div>
       <div class="price-item"><label>Roller Blind &ndash; Blockout</label><div class="desc">per m&sup2;</div><div class="price-inp"><span>$</span><input type="number" id="p-roller-block" min="0" step="1" oninput="onPriceChange(this)"></div></div>
       <div class="price-item"><label>Venetian Blind</label><div class="desc">per m&sup2;</div><div class="price-inp"><span>$</span><input type="number" id="p-venetian" min="0" step="1" oninput="onPriceChange(this)"></div></div>
+      <div class="price-item"><label>Mould Treatment — Blinds</label><div class="desc">extra per m&sup2;</div><div class="price-inp"><span>$</span><input type="number" id="p-mould-blind" min="0" step="1" oninput="onPriceChange(this)"></div></div>
     </div>
   </div>
   <div class="price-section"><div class="price-section-title">&#127968; Pelmets, Swags &amp; Valances <span style="font-weight:400;font-size:.72rem;color:var(--g300);text-transform:none;letter-spacing:0">(per metre width)</span></div>
@@ -876,6 +878,189 @@ header{background:var(--navy);position:sticky;top:0;z-index:200;box-shadow:0 3px
 <div class="toast" id="toast"></div>
 
 <script>
+
+// ══════════════════════════════════════════════════════════════
+// SUPABASE CLOUD SYNC — Phase 2
+// ══════════════════════════════════════════════════════════════
+var SUPABASE_URL = 'https://kspezkqanaqrhbirqmlc.supabase.co';
+var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzcGV6a3FhbmFxcmhiaXJxbWxjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwOTU1MDksImV4cCI6MjA5NDY3MTUwOX0.toB3DTsKZ8Cydhxw4DTJjzmanF7tghHlXQNOzJ4xOiA';
+
+// Sync status UI
+var syncStatus = 'idle'; // idle | syncing | online | offline | error
+function setSyncStatus(s, msg) {
+  syncStatus = s;
+  var el = document.getElementById('syncBadge');
+  if (!el) return;
+  var map = {
+    idle:    { text: '⬤ Ready',    bg: 'rgba(255,255,255,.15)', col: 'rgba(255,255,255,.6)' },
+    syncing: { text: '↻ Syncing',  bg: 'rgba(217,119,6,.3)',   col: '#fbbf24' },
+    online:  { text: '⬤ Synced',   bg: 'rgba(5,150,105,.3)',   col: '#6ee7b7' },
+    offline: { text: '⬤ Offline',  bg: 'rgba(239,68,68,.25)',  col: '#fca5a5' },
+    error:   { text: '⬤ Error',    bg: 'rgba(239,68,68,.25)',  col: '#fca5a5' }
+  };
+  var st = map[s] || map.idle;
+  el.textContent = msg || st.text;
+  el.style.background = st.bg;
+  el.style.color = st.col;
+}
+
+// Core fetch wrapper
+async function sbFetch(path, method, body) {
+  var opts = {
+    method: method || 'GET',
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': method === 'POST' ? 'return=representation' : ''
+    }
+  };
+  if (body) opts.body = JSON.stringify(body);
+  var r = await fetch(SUPABASE_URL + '/rest/v1' + path, opts);
+  if (!r.ok) {
+    var err = await r.text();
+    throw new Error(r.status + ': ' + err);
+  }
+  var ct = r.headers.get('content-type') || '';
+  return ct.includes('json') ? r.json() : r.text();
+}
+
+// ── JOBS (Full Quotes) ──────────────────────────────────────
+async function sbSaveJob(d) {
+  setSyncStatus('syncing');
+  // Upsert: if same DRD+quote_number exists update it, else insert
+  var existing = await sbFetch('/jobs?drd_number=eq.' + encodeURIComponent(d.drdNumber||'') + '&quote_number=eq.' + encodeURIComponent(d.quoteNumber||''), 'GET');
+  if (existing && existing.length > 0) {
+    await sbFetch('/jobs?id=eq.' + existing[0].id, 'PATCH', {
+      drd_number: d.drdNumber, quote_number: d.quoteNumber,
+      customer_name: d.customerName, customer_phone: d.customerPhone,
+      customer_email: d.customerEmail, job_ref: d.jobRef,
+      site_address: d.siteAddress, quote_date: d.quoteDate,
+      data: d, updated_at: new Date().toISOString()
+    });
+  } else {
+    await sbFetch('/jobs', 'POST', {
+      drd_number: d.drdNumber, quote_number: d.quoteNumber,
+      customer_name: d.customerName, customer_phone: d.customerPhone,
+      customer_email: d.customerEmail, job_ref: d.jobRef,
+      site_address: d.siteAddress, quote_date: d.quoteDate,
+      status: 'draft', data: d
+    });
+  }
+  setSyncStatus('online');
+}
+
+async function sbLoadJobs() {
+  return sbFetch('/jobs?order=saved_at.desc&limit=200', 'GET');
+}
+
+async function sbDeleteJob(id) {
+  return sbFetch('/jobs?id=eq.' + id, 'DELETE');
+}
+
+// ── FAST QUOTES ─────────────────────────────────────────────
+async function sbSaveFQ(d) {
+  setSyncStatus('syncing');
+  await sbFetch('/fast_quotes', 'POST', {
+    customer_name: d.name, job_ref: d.ref, data: d
+  });
+  setSyncStatus('online');
+}
+
+async function sbLoadFQs() {
+  return sbFetch('/fast_quotes?order=saved_at.desc&limit=200', 'GET');
+}
+
+async function sbDeleteFQ(id) {
+  return sbFetch('/fast_quotes?id=eq.' + id, 'DELETE');
+}
+
+// ── INSPECTIONS ─────────────────────────────────────────────
+async function sbSaveInspection(d) {
+  setSyncStatus('syncing');
+  var existing = await sbFetch('/inspections?drd_number=eq.' + encodeURIComponent(d.drd||'') + '&insp_type=eq.' + d.type, 'GET');
+  if (existing && existing.length > 0) {
+    await sbFetch('/inspections?id=eq.' + existing[0].id, 'PATCH', {
+      customer_name: d.customer, insp_date: d.date,
+      inspector: d.inspector, mode: d.mode, data: d,
+      updated_at: new Date().toISOString()
+    });
+  } else {
+    await sbFetch('/inspections', 'POST', {
+      drd_number: d.drd, insp_type: d.type, mode: d.mode,
+      customer_name: d.customer, insp_date: d.date,
+      inspector: d.inspector, data: d
+    });
+  }
+  setSyncStatus('online');
+}
+
+async function sbLoadInspections() {
+  return sbFetch('/inspections?order=saved_at.desc&limit=200', 'GET');
+}
+
+async function sbDeleteInspection(id) {
+  return sbFetch('/inspections?id=eq.' + id, 'DELETE');
+}
+
+// ── SETTINGS (prices, terms, staff names, email template) ───
+async function sbSaveSettings(pricesObj) {
+  setSyncStatus('syncing');
+  // Upsert each key
+  var entries = Object.entries(pricesObj).map(function(kv) {
+    return { key: kv[0], value: String(kv[1]) };
+  });
+  await sbFetch('/settings?on_conflict=key', 'POST', entries);
+  // Use upsert header
+  var opts = {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': 'resolution=merge-duplicates'
+    },
+    body: JSON.stringify(entries)
+  };
+  await fetch(SUPABASE_URL + '/rest/v1/settings', opts);
+  setSyncStatus('online');
+}
+
+async function sbLoadSettings() {
+  var rows = await sbFetch('/settings', 'GET');
+  var out = {};
+  (rows||[]).forEach(function(r) { out[r.key] = r.value; });
+  return out;
+}
+
+// ── INIT: load from cloud on startup ───────────────────────
+async function cloudInit() {
+  setSyncStatus('syncing', '↻ Connecting...');
+  try {
+    // Try to load settings from cloud first
+    var cloudSettings = await sbLoadSettings();
+    if (Object.keys(cloudSettings).length > 0) {
+      Object.keys(cloudSettings).forEach(function(k) {
+        if (DEFAULTS[k] !== undefined) {
+          P[k] = typeof DEFAULTS[k] === 'number' ? parseFloat(cloudSettings[k]) : cloudSettings[k];
+        }
+      });
+      // Apply to UI
+      Object.keys(P).forEach(function(k) {
+        var el = document.getElementById('p-' + k);
+        if (!el) return;
+        el.value = P[k];
+      });
+      rebuildStaffDropdowns();
+    }
+    setSyncStatus('online', '⬤ Online');
+    showToast('✅ Connected to cloud');
+  } catch(e) {
+    console.warn('Cloud init failed, using local data:', e.message);
+    setSyncStatus('offline', '⬤ Offline — local only');
+  }
+}
+
 // ══════════════════════════════════════════════════════════════
 // DRAPESQUOTEPRO — Complete Application JavaScript
 // ══════════════════════════════════════════════════════════════
@@ -885,7 +1070,7 @@ var DEFAULTS = {
   'sheer-s':80,'sheer-l':100,
   'velvet-s':115,'velvet-m':155,'velvet-l':200,
   'roman':45,'austrian':45,'roller-sun':35,'roller-block':40,'venetian':45,
-  'pelmet':50,'swags':60,'valance':40,'mould':10,
+  'pelmet':50,'swags':60,'valance':40,'mould':10,'mould-blind':10,
   'cord-replace':45,'cord-tidy':25,'hook-replace':15,'ring-replace':18,
   'weight-replace':30,'track-repair':65,'track-replace':120,
   'motor-service':85,'motor-replace':280,'lining-repair':55,
@@ -1026,7 +1211,9 @@ function buildBlind(item){
     '<div class="f" style="margin-bottom:8px"><label>Blind Type</label><select id="bt-'+item.id+'" onchange="recalc()">'+bo+'</select></div>'+
     '<div class="g2" style="margin-bottom:7px"><div><div class="f"><label>Width (m or mm)</label><input type="number" id="w-'+item.id+'" step="0.001" min="0" placeholder="900" inputmode="decimal" oninput="recalc()"></div><div class="cv" id="wc-'+item.id+'"></div></div>'+
     '<div><div class="f"><label>Height (m or mm)</label><input type="number" id="h-'+item.id+'" step="0.001" min="0" placeholder="1800" inputmode="decimal" oninput="recalc()"></div><div class="cv" id="hc-'+item.id+'"></div></div></div>'+
-    '<div class="mh" style="margin-bottom:7px">Price = Width × Height × Rate ($/m²)</div>'+ovr(item.id);
+    '<div class="mh" style="margin-bottom:7px">Price = Width × Height × Rate ($/m²)</div>'+
+    '<div class="mdr"><input type="checkbox" id="mould-'+item.id+'" onchange="recalc()"><label for="mould-'+item.id+'">Mould Treatment (+$'+(P['mould-blind']||10)+'/m²)</label></div>'+
+    ovr(item.id);
 }
 
 function buildW(item,dp,u){
@@ -1102,7 +1289,8 @@ function calcItems(){
     } else if(item.type==='blind'){
       var bs=document.getElementById('bt-'+item.id); var k=bs?bs.value:'roman'; var b=BT[k]||BT.roman;
       var rate=useOv?ovP:b.price;
-      if(W!==null&&H!==null){ total=W*H*rate; det=W.toFixed(2)+'m x '+H.toFixed(2)+'m x $'+rate+'/m²'; ul=b.label; }
+      var bmc=document.getElementById('mould-'+item.id); var bmd=bmc&&bmc.checked?(P['mould-blind']||10):0;
+      if(W!==null&&H!==null){ total=W*H*(rate+bmd); det=W.toFixed(2)+'m x '+H.toFixed(2)+'m x $'+(rate+bmd)+'/m²'+(bmd?' (incl. mould)':''); ul=b.label+(bmd?' + Mould Treatment':''); }
     } else if(item.type==='pelmet'){ var r=useOv?ovP:(P['pelmet']||50); if(W!==null){ total=W*r; det=W.toFixed(2)+'m x $'+r+'/m'; ul='Pelmet'; }}
     else if(item.type==='swags'){ var r=useOv?ovP:(P['swags']||60); if(W!==null){ total=W*r; det=W.toFixed(2)+'m x $'+r+'/m'; ul='Swags & Tails'; }}
     else if(item.type==='valance'){ var r=useOv?ovP:(P['valance']||40); if(W!==null){ total=W*r; det=W.toFixed(2)+'m x $'+r+'/m'; ul='Valance on Hooks'; }}
@@ -1165,9 +1353,17 @@ function getFD(){
   items:items.map(function(item){ var f={}; ['d','w','h','tier','bt','q','rp','pts','cp','op'].forEach(function(k){ var e=document.getElementById(k+'-'+item.id); if(e) f[k]=e.value; }); ['mould','ov'].forEach(function(k){ var e=document.getElementById(k+'-'+item.id); if(e) f[k]=e.checked; }); return{type:item.type,fields:f}; })};
 }
 function saveJob(){
-  var d=getFD(); var saves=JSON.parse(localStorage.getItem('drapes_saves')||'[]');
-  saves.push({key:'dj_'+Date.now(),data:d,savedAt:new Date().toLocaleString('en-AU')});
-  localStorage.setItem('drapes_saves',JSON.stringify(saves)); renderSaved(); showToast('Saved: '+(d.customerName||d.quoteNumber));
+  var d=getFD();
+  // Save locally first (instant)
+  var saves=JSON.parse(localStorage.getItem('drapes_saves')||'[]');
+  var key='dj_'+(d.drdNumber||'')+d.quoteNumber;
+  saves=saves.filter(function(s){ return s.key!==key; });
+  saves.push({key:key,data:d,savedAt:new Date().toLocaleString('en-AU')});
+  localStorage.setItem('drapes_saves',JSON.stringify(saves));
+  renderSaved();
+  showToast('Saved: '+(d.customerName||d.quoteNumber));
+  // Then sync to cloud
+  sbSaveJob(d).catch(function(e){ setSyncStatus('error'); console.error('Cloud save failed:',e); });
 }
 
 function loadJob(num){
@@ -1305,6 +1501,7 @@ function savePrices(){
   buildPricingTables(); rebuildManageSelects(); recalc();
   var badge=document.getElementById('savedBadge'); if(badge){ badge.classList.add('show'); setTimeout(function(){ badge.classList.remove('show'); },2500); }
   showToast('✅ Prices saved and applied!');
+  sbSaveSettings(saved).catch(function(e){ console.warn('Cloud settings save failed:',e); });
 }
 
 function resetPrices(){
@@ -1573,6 +1770,7 @@ function saveFastQuote(){
   saves.push({key:key,name:name,ref:gv('fq-ref'),savedAt:new Date().toLocaleString('en-AU'),data:data});
   localStorage.setItem('drapes_fq_saves',JSON.stringify(saves));
   renderFQSaved(); showToast('✅ Fast quote saved: '+name);
+  sbSaveFQ(data).catch(function(e){ console.warn('Cloud FQ save failed:',e); });
 }
 
 function loadFastQuote(key){
@@ -1601,11 +1799,14 @@ function loadFastQuote(key){
   recalcFQ(); showToast('Loaded: '+d.name);
 }
 
-function deleteFastQuote(key){
+function deleteFastQuote(key, cloudId){
   var saves=JSON.parse(localStorage.getItem('drapes_fq_saves')||'[]');
+  var found=saves.find(function(s){ return s.key===key; });
   saves=saves.filter(function(s){ return s.key!==key; });
   localStorage.setItem('drapes_fq_saves',JSON.stringify(saves));
   renderFQSaved(); showToast('Fast quote deleted');
+  var cid=cloudId||(found&&found.cloudId);
+  if(cid) sbDeleteFQ(cid).catch(function(e){ console.warn('Cloud FQ delete failed:',e); });
 }
 
 function clearFastQuote(silent){
@@ -2074,13 +2275,29 @@ function saveInspection(){
   localStorage.setItem('drapes_inspections',JSON.stringify(saves));
   renderSavedInspections();
   showToast('\u2705 Inspection saved: '+drd+' ('+inspType+')');
+  sbSaveInspection(data).catch(function(e){ console.warn('Cloud inspection save failed:',e); });
 }
 
 // ── Render saved list ─────────────────────────────────────────
 function renderSavedInspections(){
-  var saves=JSON.parse(localStorage.getItem('drapes_inspections')||'[]');
-  var el=document.getElementById('savedInspList');
-  if(!el) return;
+  var el=document.getElementById('savedInspList'); if(!el) return;
+  _renderInspFromData(JSON.parse(localStorage.getItem('drapes_inspections')||'[]'), false);
+  sbLoadInspections().then(function(rows){
+    if(!rows||!rows.length) return;
+    var cloudSaves=rows.map(function(r){
+      return {key:r.data.drd+'_'+r.data.type+'_cloud', cloudId:r.id, drd:r.drd_number, type:r.insp_type, customer:r.customer_name, date:r.insp_date, mode:r.mode, data:r.data, savedAt:new Date(r.updated_at||r.saved_at).toLocaleString('en-AU')};
+    });
+    var local=JSON.parse(localStorage.getItem('drapes_inspections')||'[]');
+    cloudSaves.forEach(function(cs){
+      local=local.filter(function(l){ return !(l.drd===cs.drd&&l.type===cs.type); });
+      local.push(cs);
+    });
+    localStorage.setItem('drapes_inspections',JSON.stringify(local));
+    _renderInspFromData(local, true);
+  }).catch(function(e){ setSyncStatus('offline'); });
+}
+function _renderInspFromData(saves, isCloud){
+  var el=document.getElementById('savedInspList'); if(!el) return;
   if(!saves.length){ el.innerHTML='<div class="es" style="color:var(--g300)">No saved inspections yet</div>'; return; }
   el.innerHTML='';
   [].concat(saves).reverse().forEach(function(s){
@@ -2099,11 +2316,14 @@ function renderSavedInspections(){
     div.appendChild(info); div.appendChild(acts); el.appendChild(div);
   });
 }
-function deleteInspection(key){
+function deleteInspection(key, cloudId){
   var saves=JSON.parse(localStorage.getItem('drapes_inspections')||'[]');
+  var found=saves.find(function(s){ return s.key===key; });
   saves=saves.filter(function(s){ return s.key!==key; });
   localStorage.setItem('drapes_inspections',JSON.stringify(saves));
   renderSavedInspections(); showToast('Inspection deleted');
+  var cid=cloudId||(found&&found.cloudId);
+  if(cid) sbDeleteInspection(cid).catch(function(e){ console.warn('Cloud insp delete failed:',e); });
 }
 function clearAllInspections(){
   localStorage.removeItem('drapes_inspections');
@@ -2392,6 +2612,8 @@ window.addEventListener('DOMContentLoaded', function(){
   addFQLine();
   recalc(); renderSaved(); renderFQSaved();
   initInspectionTab();
+  // Connect to cloud
+  cloudInit();
 });
 </script>
 </body>
