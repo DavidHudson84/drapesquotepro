@@ -773,8 +773,9 @@ header{background:var(--navy);position:sticky;top:0;z-index:200;box-shadow:0 3px
     <button class="fq-btn sec" onclick="fqExportCSV()">&#128190; Export CSV</button>
     <button class="fq-btn out" onclick="fqCopyEmail()">&#128231; Copy Email</button>
   </div>
-  <div class="fq-actions" style="grid-template-columns:1fr 1fr;margin-top:8px">
-    <button class="fq-btn" style="background:#059669;color:#fff" onclick="saveFastQuote()">&#128190; Save Fast Quote</button>
+  <div class="fq-actions" style="grid-template-columns:1fr 1fr 1fr;margin-top:8px">
+    <button class="fq-btn" style="background:#64748b;color:#fff" onclick="saveFastQuote()">&#128190; Save Draft</button>
+    <button class="fq-btn" style="background:#059669;color:#fff;font-weight:800" onclick="fqConvertToJobAndSave()">&#128188; Save as Job</button>
     <button class="fq-btn" style="background:transparent;color:var(--red);border:1.5px solid var(--red)" onclick="clearFastQuote()">&#8635; Clear / New Fast Quote</button>
   </div>
   <div style="font-size:.72rem;color:var(--g300);text-align:center;margin-top:8px;">Quote Page = printable HTML &middot; CSV = opens in Excel &middot; Copy Email = paste into any email</div>
@@ -3440,49 +3441,62 @@ function enqConvertToFQ(id){
     if(sumEl) sumEl.innerHTML=lines.join('<br>');
 
     // Load items as FQ lines
-    var container=document.getElementById('fqLinesContainer')||document.getElementById('fqLines');
-    if(container){ container.innerHTML=''; fqLineCount=0; }
+    // Clear existing lines
+    var fqContainer = document.getElementById('fqLines');
+    if(fqContainer){ fqContainer.innerHTML=''; fqCounter=0; }
     if(items.length){
-      var typeMap={curtain:'curtain',sheer:'sheer',velvet:'velvet',blind:'roman',venetian:'venetian',pelmet:'pelmet',valance:'valance',other:'custom'};
+      // Map enquiry item type to FQ select value
+      var typeMap={
+        curtain:'curtain-s', sheer:'sheer-s', velvet:'velvet-s',
+        blind:'roman', venetian:'venetian',
+        pelmet:'pelmet', valance:'valance', other:''
+      };
       items.forEach(function(it){
         addFQLine();
-        var lid=fqLineCount;
-        var sel=document.getElementById('fqs-'+lid);
-        if(sel){ sel.value=typeMap[it.type||'']||'custom'; onFQTypeChange(lid); }
-        setTimeout(function(l,item){ return function(){
-          var wEl=document.getElementById('fqw-'+l)||document.getElementById('fqq-'+l);
-          var hEl=document.getElementById('fqh-'+l);
-          if(wEl&&item.width)  wEl.value=item.width;
-          if(hEl&&item.height) hEl.value=item.height;
-          calcFQTotals();
-        };}(lid,it),150);
+        var lid = fqCounter; // fqCounter is incremented by addFQLine
+        // Set the type dropdown
+        var sel = document.getElementById('fqs-'+lid);
+        if(sel){
+          var mapped = typeMap[it.type||''] || '';
+          sel.value = mapped;
+          onFQSel(lid); // trigger field update for the selected type
+        }
+        // Set description/room
+        var descEl = document.getElementById('fqd-'+lid);
+        if(descEl && it.location) descEl.value = it.location;
+        // Set measurements after fields render
+        setTimeout(function(l, item){ return function(){
+          var wEl = document.getElementById('fqw-'+l);
+          var hEl = document.getElementById('fqh-'+l);
+          var qEl = document.getElementById('fqq-'+l);
+          if(wEl && item.width)  wEl.value = item.width;
+          if(hEl && item.height) hEl.value = item.height;
+          if(qEl && item.width)  qEl.value = item.width;
+          recalcFQ();
+        };}(lid, it), 200);
       });
-    } else { addFQLine(); }
+    } else {
+      addFQLine();
+    }
 
-    // Auto-create a job record in Supabase so it appears in Jobs tab
-    getNextDQNumber().then(function(dq){
+    // Create job from enquiry data immediately
+    var jobDQ = enq.dq_number || '';
+    (jobDQ ? Promise.resolve(jobDQ) : getNextDQNumber()).then(function(dq){
       var jobRecord = {
-        dq_number:      enq.dq_number || dq,
-        quote_number:   enq.dq_number || dq,
-        customer_name:  enq.customer_name,
-        customer_phone: enq.customer_phone,
-        customer_email: enq.customer_email,
-        site_address:   enq.site_address,
-        job_ref:        enq.dq_number||'',
-        status:         'quoted',
-        job_type:       'fast_quote',
-        created_by:     currentUserName||'',
-        data:           d
+        dq_number: dq, quote_number: dq,
+        customer_name: enq.customer_name||'', customer_phone: enq.customer_phone||'',
+        customer_email: enq.customer_email||'', site_address: enq.site_address||'',
+        job_ref: dq, status: 'quoted', job_type: 'fast_quote',
+        created_by: currentUserName||'', data: d
       };
-      sbFetch('/jobs','POST', jobRecord).then(function(result){
-        showToast('\u2705 Job created: '+(enq.dq_number||dq)+' \u2014 add pricing then save');
-        jobsLoad(); // refresh jobs tab
+      sbFetch('/jobs','POST',jobRecord).then(function(){
+        showToast('✅ Job '+dq+' created — add pricing and save Fast Quote');
+        jobsLoad();
       }).catch(function(e){
-        console.error('Job create failed:', e);
-        showToast('\u2705 Loaded into Fast Quote \u2014 save to create job');
+        console.error('Job create failed:',e);
+        showToast('✅ Loaded into Fast Quote — use + Job button to save as job');
       });
-    });
-
+    });;
     enqUpdateStatus(id,'converted');
   }, 400);
 }
@@ -3890,6 +3904,84 @@ function fqConvertToJob(save) {
       jobsLoad();
     }).catch(function(e){ showToast('Failed to create job'); });
   });
+}
+
+
+async function fqConvertToJobAndSave() {
+  // First save the FQ as a draft
+  saveFastQuote();
+
+  // Gather FQ data
+  var name  = document.getElementById('fq-name')  ? document.getElementById('fq-name').value.trim()  : '';
+  var phone = document.getElementById('fq-phone') ? document.getElementById('fq-phone').value.trim() : '';
+  var email = document.getElementById('fq-email') ? document.getElementById('fq-email').value.trim() : '';
+  var ref   = document.getElementById('fq-ref')   ? document.getElementById('fq-ref').value.trim()   : '';
+  var addr  = document.getElementById('fqAddress')? document.getElementById('fqAddress').value.trim(): '';
+
+  if(!name){ showToast('Add a customer name first'); return; }
+
+  // Get or assign DQ number
+  var dq = ref && ref.startsWith('DQ-') ? ref : await getNextDQNumber();
+
+  // Update the ref field with DQ number
+  var refEl = document.getElementById('fq-ref');
+  if(refEl && !ref.startsWith('DQ-')) refEl.value = dq;
+
+  // Collect line items from FQ
+  var lines = [];
+  var fqContainer = document.getElementById('fqLines');
+  if(fqContainer){
+    fqContainer.querySelectorAll('.li').forEach(function(row){
+      var id = row.id.replace('fql-','');
+      var sel  = document.getElementById('fqs-'+id);
+      var desc = document.getElementById('fqd-'+id);
+      var w    = document.getElementById('fqw-'+id);
+      var h    = document.getElementById('fqh-'+id);
+      var q    = document.getElementById('fqq-'+id);
+      if(sel && sel.value){
+        lines.push({
+          type: sel.value,
+          label: sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].text : sel.value,
+          location: desc ? desc.value : '',
+          width: w ? w.value : (q ? q.value : ''),
+          height: h ? h.value : ''
+        });
+      }
+    });
+  }
+
+  // Get FQ totals
+  var total = document.getElementById('fq-total') ? document.getElementById('fq-total').textContent : '';
+
+  var jobRecord = {
+    dq_number:      dq,
+    quote_number:   dq,
+    customer_name:  name,
+    customer_phone: phone,
+    customer_email: email,
+    site_address:   addr,
+    job_ref:        dq,
+    status:         'quoted',
+    job_type:       'fast_quote',
+    created_by:     currentUserName || '',
+    data: {
+      dqNumber: dq,
+      name: name, phone: phone, email: email, addr: addr,
+      ref: dq, items: lines, total: total,
+      savedAt: new Date().toISOString()
+    }
+  };
+
+  try {
+    await sbFetch('/jobs', 'POST', jobRecord);
+    showToast('✅ Job ' + dq + ' created — find it in the Jobs tab');
+    jobsLoad();
+    // Switch to Jobs tab after short delay so user sees it
+    setTimeout(function(){ switchTab('jobs'); }, 1200);
+  } catch(e) {
+    console.error('Job create failed:', e);
+    showToast('❌ Could not create job — check connection');
+  }
 }
 
 </script>
