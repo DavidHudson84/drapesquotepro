@@ -248,6 +248,61 @@ header{background:var(--navy);position:sticky;top:0;z-index:200;box-shadow:0 3px
 .report-option label{font-size:.86rem;color:var(--g700);cursor:pointer;flex:1;}
 .report-option .opt-desc{font-size:.72rem;color:var(--g300);display:block;margin-top:2px;}
 
+
+/* ── Reports Tab ─────────────────────────────────────────── */
+:root { --rpt:#1d4ed8; }
+.tab-btn.active .tb-rpt { background:var(--rpt); }
+.rpt-container { max-width:860px; margin:0 auto; padding:16px; }
+.rpt-hero { background:linear-gradient(135deg,#1d4ed8,#1e40af); border-radius:12px; padding:20px 24px; margin-bottom:18px; color:#fff; }
+.rpt-hero h2 { font-family:'Montserrat',sans-serif; font-size:1.2rem; font-weight:800; margin-bottom:3px; }
+.rpt-hero p { font-size:.8rem; opacity:.8; }
+.rpt-options { background:#fff; border-radius:10px; box-shadow:0 2px 8px rgba(29,78,216,.1); padding:16px; margin-bottom:14px; }
+.rpt-options h3 { font-family:'Montserrat',sans-serif; font-size:.88rem; font-weight:700; color:var(--navy); margin-bottom:12px; }
+.rpt-job-row { display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:8px; border:1.5px solid var(--g100); cursor:pointer; margin-bottom:7px; transition:all .15s; }
+.rpt-job-row:hover,.rpt-job-row.selected { border-color:var(--rpt); background:rgba(29,78,216,.04); }
+.rpt-job-row.selected { background:rgba(29,78,216,.08); }
+.rpt-job-info strong { display:block; font-size:.84rem; color:var(--rpt); font-family:'Montserrat',sans-serif; }
+.rpt-job-info span { font-size:.72rem; color:var(--g300); }
+.rpt-doc-badges { display:flex; gap:5px; flex-shrink:0; flex-wrap:wrap; }
+.rpt-badge { font-size:.65rem; font-weight:700; padding:2px 8px; border-radius:20px; font-family:'Montserrat',sans-serif; }
+.rpt-badge.has { background:rgba(5,150,105,.15); color:#065f46; }
+.rpt-badge.missing { background:var(--g50); color:var(--g300); text-decoration:line-through; }
+.rpt-check-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:14px; }
+@media(max-width:500px){.rpt-check-grid{grid-template-columns:1fr;}}
+.rpt-check { display:flex; align-items:center; gap:8px; padding:9px 12px; border-radius:8px; border:1.5px solid var(--g100); cursor:pointer; transition:all .15s; }
+.rpt-check:hover { border-color:var(--rpt); }
+.rpt-check.on { border-color:var(--rpt); background:rgba(29,78,216,.06); }
+.rpt-check input[type=checkbox] { accent-color:var(--rpt); width:16px; height:16px; flex-shrink:0; cursor:pointer; }
+.rpt-check label { font-size:.82rem; color:var(--g700); cursor:pointer; font-weight:600; font-family:'Montserrat',sans-serif; flex:1; }
+.rpt-check span { font-size:.7rem; color:var(--g400); display:block; font-weight:400; font-family:'Open Sans',sans-serif; margin-top:1px; }
+.rpt-format-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+@media(max-width:500px){.rpt-format-grid{grid-template-columns:1fr;}}
+.rpt-fmt { padding:10px 14px; border-radius:8px; border:2px solid var(--g100); cursor:pointer; transition:all .15s; }
+.rpt-fmt:hover { border-color:var(--rpt); }
+.rpt-fmt.selected { border-color:var(--rpt); background:rgba(29,78,216,.08); }
+.rpt-fmt strong { display:block; font-size:.82rem; color:var(--navy); font-family:'Montserrat',sans-serif; margin-bottom:2px; }
+.rpt-fmt span { font-size:.72rem; color:var(--g400); }
+.rpt-generate-btn { width:100%; padding:14px; border-radius:9px; background:var(--rpt); color:#fff; font-family:'Montserrat',sans-serif; font-size:.9rem; font-weight:800; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; transition:all .18s; margin-top:14px; }
+.rpt-generate-btn:hover { background:#1e40af; transform:translateY(-1px); }
+.rpt-generate-btn:disabled { background:var(--g200); cursor:not-allowed; transform:none; }
+.insp-item-card-hdr { background:var(--g50); padding:10px 14px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--g100); }
+.insp-item-body { padding:14px; }
+.item-section-label { font-size:.67rem; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--g400); font-family:'Montserrat',sans-serif; margin:10px 0 6px; }
+
+
+/* ── Enquiries ── */
+.enq-card { background:#fff; border:1.5px solid var(--g100); border-radius:10px; margin-bottom:10px; overflow:hidden; }
+.enq-card-hdr { padding:12px 14px; display:flex; align-items:flex-start; justify-content:space-between; gap:10px; border-bottom:1px solid var(--g50); }
+.enq-card-body { padding:12px 14px; font-size:.8rem; color:#555; }
+.enq-status { font-size:.65rem; font-weight:700; padding:3px 8px; border-radius:10px; font-family:'Montserrat',sans-serif; white-space:nowrap; flex-shrink:0; }
+.enq-status.new { background:rgba(239,68,68,.15); color:#b91c1c; }
+.enq-status.called { background:rgba(217,119,6,.15); color:#92400e; }
+.enq-status.converted { background:rgba(5,150,105,.15); color:#065f46; }
+.enq-status.declined { background:var(--g50); color:var(--g300); }
+.enq-name { font-family:'Montserrat',sans-serif; font-weight:700; font-size:.9rem; color:var(--navy); }
+.enq-ref { font-size:.7rem; color:var(--g300); font-family:'Montserrat',sans-serif; margin-top:1px; }
+.enq-actions { display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
+
 .toast{position:fixed;bottom:18px;right:18px;background:var(--navy);color:#fff;padding:10px 16px;border-radius:7px;font-size:.8rem;font-weight:700;box-shadow:0 8px 40px rgba(43,45,126,.20);opacity:0;transform:translateY(10px);transition:all .3s;z-index:1000;border-left:4px solid var(--red);font-family:'Montserrat',sans-serif;max-width:calc(100vw - 36px);}
 .toast.show{opacity:1;transform:translateY(0);}
 @media(hover:none){.ba,.bh,.fq-btn,.btn-mg{min-height:44px;}.f input,.f select,.f textarea{font-size:16px;}}
@@ -263,6 +318,10 @@ header{background:var(--navy);position:sticky;top:0;z-index:200;box-shadow:0 3px
     </div>
     <div class="ha" id="headerActions">
       <span id="syncBadge" style="font-size:.67rem;font-weight:700;font-family:Montserrat,sans-serif;padding:4px 10px;border-radius:20px;letter-spacing:.5px;background:rgba(255,255,255,.15);color:rgba(255,255,255,.6)">⬤ Ready</span>
+      <button class="bh" onclick="switchTab('enquiries')" id="enqBtn" style="background:rgba(255,255,255,.15);color:#fff;position:relative;display:none">
+        &#128276; Enquiries
+        <span id="enqBadge" style="position:absolute;top:-4px;right:-4px;background:var(--red);color:#fff;font-size:.6rem;font-weight:800;padding:2px 5px;border-radius:10px;font-family:Montserrat,sans-serif;display:none">0</span>
+      </button>
       <button class="bh o" onclick="saveJob()">&#128190; Save</button>
       <button class="bh o" onclick="openSaved()">&#128194; Jobs</button>
       <button class="bh s" onclick="downloadQuote()">&#8659; Download</button>
@@ -274,6 +333,7 @@ header{background:var(--navy);position:sticky;top:0;z-index:200;box-shadow:0 3px
     <button class="tab-btn active" onclick="switchTab('full')" id="tab-full"><span class="tb-dot tb-full" style="background:rgba(255,255,255,.3)"></span>&#128203; Full Quote</button>
     <button class="tab-btn" onclick="switchTab('fast')" id="tab-fast"><span class="tb-dot tb-fast" style="background:rgba(255,255,255,.3)"></span>&#9889; Fast Quote</button>
     <button class="tab-btn" onclick="switchTab('inspect')" id="tab-inspect"><span class="tb-dot tb-insp" style="background:rgba(255,255,255,.3)"></span>&#128203; Inspections</button>
+    <button class="tab-btn" onclick="switchTab('reports')" id="tab-reports"><span class="tb-dot tb-rpt" style="background:rgba(255,255,255,.3)"></span>&#128196; Reports</button>
     <button class="tab-btn" onclick="switchTab('manage')" id="tab-manage"><span class="tb-dot tb-manage" style="background:rgba(255,255,255,.3)"></span>&#9881; Manage Prices</button>
   </div>
 </div>
@@ -561,8 +621,11 @@ header{background:var(--navy);position:sticky;top:0;z-index:200;box-shadow:0 3px
           <div class="f">
             <label>DRD Number</label>
             <div style="display:flex;gap:7px">
-              <input type="text" id="insp-drd" placeholder="DRD-2026-###" oninput="inspDRDChanged()">
-              <button onclick="inspLinkQuote()" style="background:var(--insp);color:#fff;border:none;border-radius:7px;padding:0 12px;cursor:pointer;font-size:.8rem;font-weight:700;font-family:Montserrat,sans-serif;white-space:nowrap">&#128279; Link</button>
+              <select id="insp-drd-select" onchange="inspDRDFromDropdown()" style="border:1.5px solid var(--g100);border-radius:7px;padding:8px 10px;font-size:.82rem;font-family:Open Sans,sans-serif;background:var(--g50);outline:none;flex:1;min-width:0;cursor:pointer">
+                <option value="">— Select saved job —</option>
+              </select>
+              <input type="text" id="insp-drd" placeholder="or type DRD number" oninput="inspDRDChanged()" style="display:none">
+              <button onclick="inspLinkQuote()" style="background:var(--insp);color:#fff;border:none;border-radius:7px;padding:0 14px;cursor:pointer;font-size:.8rem;font-weight:700;font-family:Montserrat,sans-serif;white-space:nowrap;height:38px">&#128279; Link</button>
             </div>
             <div style="font-size:.7rem;color:var(--g300);margin-top:3px">Link to a saved quote to auto-fill details</div>
           </div>
@@ -752,6 +815,75 @@ header{background:var(--navy);position:sticky;top:0;z-index:200;box-shadow:0 3px
 </div>
 </div><!-- end panel-inspect -->
 
+
+
+<!-- ════════════════════════════════════════════════
+     TAB: REPORTS
+════════════════════════════════════════════════ -->
+<div class="tab-panel" id="panel-reports">
+<div class="rpt-container">
+  <div class="rpt-hero">
+    <h2>&#128196; Report Builder</h2>
+    <p>Select a job, choose what to include, generate a combined PDF in one click</p>
+  </div>
+  <div class="rpt-options">
+    <h3>&#128203; Step 1 — Select Job</h3>
+    <div class="f" style="margin-bottom:12px">
+      <label>Search by DRD Number or Customer Name</label>
+      <input type="text" id="rpt-search" placeholder="e.g. DRD-2026-001 or Smith" oninput="rptSearch()" style="border:1.5px solid var(--g100);border-radius:7px;padding:9px 11px;font-size:.88rem;font-family:Open Sans,sans-serif;outline:none;width:100%">
+    </div>
+    <div id="rptJobList"><div class="es" style="color:var(--g300)">Loading jobs...</div></div>
+  </div>
+  <div class="rpt-options" id="rptOptionsSection" style="opacity:.5;pointer-events:none">
+    <h3>&#9745; Step 2 — What to Include</h3>
+    <div class="rpt-check-grid">
+      <div class="rpt-check on" id="rchk-quote" onclick="rptToggleCheck('quote')"><input type="checkbox" id="rchk-quote-cb" checked><label for="rchk-quote-cb">Quote / Pricing<span>Line items, totals, terms</span></label></div>
+      <div class="rpt-check on" id="rchk-pre" onclick="rptToggleCheck('pre')"><input type="checkbox" id="rchk-pre-cb" checked><label for="rchk-pre-cb">Pre-Inspection<span>Take-down condition report</span></label></div>
+      <div class="rpt-check on" id="rchk-post" onclick="rptToggleCheck('post')"><input type="checkbox" id="rchk-post-cb" checked><label for="rchk-post-cb">Post-Inspection<span>Completion &amp; outcome report</span></label></div>
+      <div class="rpt-check on" id="rchk-photos" onclick="rptToggleCheck('photos')"><input type="checkbox" id="rchk-photos-cb" checked><label for="rchk-photos-cb">Include Photos<span>All inspection photos</span></label></div>
+      <div class="rpt-check on" id="rchk-terms" onclick="rptToggleCheck('terms')"><input type="checkbox" id="rchk-terms-cb" checked><label for="rchk-terms-cb">Terms of Trade<span>Full T&amp;Cs on quote</span></label></div>
+      <div class="rpt-check" id="rchk-internal" onclick="rptToggleCheck('internal')"><input type="checkbox" id="rchk-internal-cb"><label for="rchk-internal-cb">Internal Notes<span>Staff notes &amp; scores</span></label></div>
+    </div>
+    <h3 style="margin-top:4px">&#127891; Step 3 — Report Format</h3>
+    <div class="rpt-format-grid" style="margin-top:10px">
+      <div class="rpt-fmt" id="rfmt-full" onclick="rptSelectFormat('full')"><strong>Full Job Report</strong><span>All selected documents in one PDF</span></div>
+      <div class="rpt-fmt selected" id="rfmt-customer" onclick="rptSelectFormat('customer')"><strong>Customer Copy</strong><span>Quote + Post-inspection, no internal notes</span></div>
+      <div class="rpt-fmt" id="rfmt-insurance" onclick="rptSelectFormat('insurance')"><strong>Insurance Submission</strong><span>Quote + Pre + Post with photos, formal layout</span></div>
+      <div class="rpt-fmt" id="rfmt-internal" onclick="rptSelectFormat('internal')"><strong>Internal Only</strong><span>Full detail, scores, technician notes</span></div>
+    </div>
+    <button class="rpt-generate-btn" id="rptGenerateBtn" onclick="rptGenerate()" disabled>&#8659; Generate Report PDF</button>
+  </div>
+  <div id="rptStatus" style="font-size:.78rem;color:var(--g400);text-align:center;padding:8px;display:none"></div>
+</div>
+</div>
+
+
+<!-- ════════════════════════════════════════════════
+     TAB: ENQUIRIES (Customer Quote Requests)
+════════════════════════════════════════════════ -->
+<div class="tab-panel" id="panel-enquiries">
+<div class="rpt-container">
+
+  <div class="rpt-hero" style="background:linear-gradient(135deg,#1d4ed8,#0f766e)">
+    <h2>&#128276; Customer Enquiries</h2>
+    <p>Quote requests submitted via the customer portal — call to confirm details then convert to a Fast Quote</p>
+  </div>
+
+  <div class="rpt-options">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+      <h3 style="margin:0">Incoming Requests</h3>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button onclick="enqFilter('all')" id="enq-f-all" class="bm" style="background:var(--navy);color:#fff">All</button>
+        <button onclick="enqFilter('new')" id="enq-f-new" class="bm">New</button>
+        <button onclick="enqFilter('called')" id="enq-f-called" class="bm">Called</button>
+        <button onclick="enqFilter('converted')" id="enq-f-converted" class="bm">Converted</button>
+      </div>
+    </div>
+    <div id="enqList"><div class="es" style="color:var(--g300)">Loading enquiries...</div></div>
+  </div>
+
+</div>
+</div>
 
 <!-- MANAGE PRICES TAB -->
 <div class="tab-panel" id="panel-manage">
@@ -1055,6 +1187,7 @@ async function cloudInit() {
     }
     setSyncStatus('online', '⬤ Online');
     showToast('✅ Connected to cloud');
+    loadEnquiries();
   } catch(e) {
     console.warn('Cloud init failed, using local data:', e.message);
     setSyncStatus('offline', '⬤ Offline — local only');
@@ -1141,7 +1274,9 @@ function switchTab(name){
   document.getElementById('panel-'+name).classList.add('active');
   document.getElementById('tab-'+name).classList.add('active');
   document.getElementById('headerActions').style.display = name==='full'?'flex':'none';
-  if(name==='inspect') renderSavedInspections();
+  if(name==='inspect'){ renderSavedInspections(); populateInspDRDDropdown(); }
+  if(name==='reports') rptInit();
+  if(name==='enquiries') renderEnquiries();
 }
 
 // ── Address format toggles ────────────────────────────────────
@@ -1362,6 +1497,7 @@ function saveJob(){
   localStorage.setItem('drapes_saves',JSON.stringify(saves));
   renderSaved();
   showToast('Saved: '+(d.customerName||d.quoteNumber));
+  populateInspDRDDropdown();
   // Then sync to cloud
   sbSaveJob(d).catch(function(e){ setSyncStatus('error'); console.error('Cloud save failed:',e); });
 }
@@ -2139,8 +2275,45 @@ function rebuildStaffDropdowns(){
 }
 
 // ── Link quote to inspection ──────────────────────────────────
+function inspDRDFromDropdown(){
+  var sel=document.getElementById('insp-drd-select');
+  var drd=sel?sel.value:'';
+  // Sync hidden text input so inspLinkQuote still works
+  var txt=document.getElementById('insp-drd');
+  if(txt) txt.value=drd;
+}
+
+function populateInspDRDDropdown(){
+  var sel=document.getElementById('insp-drd-select');
+  if(!sel) return;
+  var saves=JSON.parse(localStorage.getItem('drapes_saves')||'[]');
+  // Keep the placeholder option, rebuild the rest
+  var current=sel.value;
+  while(sel.options.length>1) sel.remove(1);
+  if(!saves.length){
+    var o=document.createElement('option');
+    o.value=''; o.textContent='No saved jobs yet — save a Full Quote first';
+    o.disabled=true; sel.add(o);
+    return;
+  }
+  // Sort by DRD number descending (newest first)
+  [].concat(saves).sort(function(a,b){
+    return (b.data.drdNumber||'').localeCompare(a.data.drdNumber||'');
+  }).forEach(function(s){
+    var d=s.data;
+    var label=(d.drdNumber||'?')+' — '+(d.customerName||'No name')+(d.siteAddress?' ('+d.siteAddress+')':'');
+    var o=document.createElement('option');
+    o.value=d.drdNumber||'';
+    o.textContent=label;
+    if(d.drdNumber===current) o.selected=true;
+    sel.add(o);
+  });
+}
+
 function inspLinkQuote(){
-  var drd=document.getElementById('insp-drd').value.trim();
+  // Get DRD from dropdown first, fallback to text input
+  var sel=document.getElementById('insp-drd-select');
+  var drd=(sel&&sel.value?sel.value:(document.getElementById('insp-drd').value||'')).trim();
   if(!drd){ showToast('Enter a DRD Number first'); return; }
   var saves=JSON.parse(localStorage.getItem('drapes_saves')||'[]');
   var match=saves.find(function(s){ return (s.data.drdNumber||'').toUpperCase()===drd.toUpperCase(); });
@@ -2150,18 +2323,30 @@ function inspLinkQuote(){
   sv('insp-customer',d.customerName); sv('insp-phone',d.customerPhone);
   sv('insp-address',d.siteAddress||d.siteSuburb||'');
   document.getElementById('inspLinkedBadge').style.display='block';
-  // In per-item mode, load items from quote
+  // In per-item mode, load items from quote with auto checklist selection
   if(inspMode==='item' && d.items && d.items.length){
     inspItems=[];inspItemCounter=0;
     document.getElementById('inspItemList').innerHTML='';
     d.items.forEach(function(it){
-      var type=it.type;
+      var t=it.type;
       var catType='curtain';
-      if(['blind','roman','austrian','roller-sun','roller-block','venetian'].indexOf(type)!==-1) catType='blind';
-      else if(['cord-replace','cord-tidy','track-repair','track-replace','motor-service','motor-replace','bracket-replace','wand-replace','fascia-repair'].indexOf(type)!==-1) catType='hardware';
+      // Auto-map quote item type → inspection checklist type
+      if(['blind','roman','austrian','roller-sun','roller-block','venetian'].indexOf(t)!==-1) catType='blind';
+      else if(['curtain','sheer','velvet'].indexOf(t)!==-1) catType='curtain';
+      else if(['pelmet','swags','valance'].indexOf(t)!==-1) catType='curtain';
+      else if(['cord-replace','cord-tidy','track-repair','track-replace','motor-service',
+               'motor-replace','bracket-replace','wand-replace','fascia-repair'].indexOf(t)!==-1) catType='hardware';
       var desc=(it.fields&&it.fields.d)||'';
-      addInspItem(catType, desc);
+      // Build a meaningful description from type + room
+      var typeNames={curtain:'Curtain',sheer:'Sheer',velvet:'Velvet/Silk',
+        roman:'Roman Blind',austrian:'Austrian Blind','roller-sun':'Roller Sunscreen',
+        'roller-block':'Roller Blockout',venetian:'Venetian Blind',
+        pelmet:'Pelmet',swags:'Swags & Tails',valance:'Valance'};
+      var typeName=typeNames[t]||getTL(t);
+      var label=desc?(typeName+' — '+desc):typeName;
+      addInspItem(catType, label);
     });
+    showToast(d.items.length+' items loaded from quote');
   }
   showToast('Quote linked: '+d.customerName);
 }
@@ -2174,7 +2359,7 @@ var ITEM_TYPE_CHECKS={
   hardware:HW_CHECKS,
   other:[]
 };
-function addInspItem(type, desc){
+function addInspItem(type, desc, postData){
   var id=++inspItemCounter;
   inspItems.push({id:id,type:type,desc:desc||''});
   var container=document.getElementById('inspItemList');
@@ -2182,32 +2367,61 @@ function addInspItem(type, desc){
   div.className='insp-item-card'; div.id='insp-item-'+id;
   var typeLabel={curtain:'Curtain/Drape',blind:'Blind',hardware:'Track/Hardware',other:'Other'}[type]||type;
   var badgeCls={curtain:'curtain',blind:'blind',hardware:'hardware',other:'curtain'}[type]||'curtain';
+  var colMap={curtain:'var(--insp)',blind:'var(--fast)',hardware:'var(--amber)',other:'var(--g400)'};
   var checks=ITEM_TYPE_CHECKS[type]||[];
+
+  // Post-inspection outcome fields (only in post mode)
+  var isPost = inspType==='post';
+  var postHtml = isPost ? (
+    '<div class="item-section-label">✓ Post-Clean Outcome</div>'+
+    '<div class="g2" style="margin-bottom:8px">'+
+      '<div class="f"><label>Outcome</label><select id="iout-'+id+'" style="border:1.5px solid var(--g100);border-radius:6px;padding:7px 9px;font-size:.82rem;font-family:Open Sans,sans-serif;background:var(--g50);outline:none;width:100%">'+
+        '<option value="fully">Fully Restored</option>'+
+        '<option value="mostly">Mostly Restored</option>'+
+        '<option value="partial">Partially Restored</option>'+
+        '<option value="unable">Unable to Fully Restore</option>'+
+        '<option value="damaged">Damaged in Process</option>'+
+      '</select></div>'+
+      '<div><div class="score-label" style="margin-top:0">Post-Clean Score</div>'+
+        '<div class="score-wrap" style="padding:8px"><div class="score-slider">'+
+          '<input type="range" id="ipost-score-'+id+'" min="1" max="10" value="8" oninput="updateScore(\'ipost-score-'+id+'\',\'ipost-val-'+id+'\',\'ipost-tag-'+id+'\')">'+
+          '<div class="score-val" id="ipost-val-'+id+'">8</div>'+
+        '</div><div style="text-align:center;margin-top:4px"><span class="score-tag" id="ipost-tag-'+id+'"></span></div></div>'+
+      '</div>'+
+    '</div>'
+  ):'';
+
   div.innerHTML=
     '<div class="insp-item-card-hdr">'+
-      '<div style="display:flex;align-items:center;gap:8px">'+
-        '<span class="insp-item-type-badge '+badgeCls+'">'+typeLabel+'</span>'+
-        '<input type="text" id="iitem-desc-'+id+'" value="'+(desc||'')+'" placeholder="Room / description" style="border:1.5px solid var(--g100);border-radius:6px;padding:6px 9px;font-size:.82rem;font-family:Open Sans,sans-serif;outline:none;flex:1;min-width:0">'+
+      '<div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">'+
+        '<span class="insp-item-type-badge '+badgeCls+'" style="background:'+colMap[type]+';color:#fff">'+typeLabel+'</span>'+
+        '<input type="text" id="iitem-desc-'+id+'" value="'+(desc||'')+'" placeholder="Room / description (e.g. Lounge Roman Blind)" style="border:1.5px solid var(--g100);border-radius:6px;padding:6px 9px;font-size:.82rem;font-family:Open Sans,sans-serif;outline:none;flex:1;min-width:0">'+
       '</div>'+
-      '<button class="brm" style="color:var(--red);font-size:1rem" onclick="removeInspItem('+id+')">&#215;</button>'+
+      '<button class="brm" style="color:var(--red);font-size:1.1rem;margin-left:8px;flex-shrink:0" onclick="removeInspItem('+id+')">&#215;</button>'+
     '</div>'+
+    '<div class="insp-item-body">'+
     (checks.length?
+      '<div class="item-section-label">Condition Checklist</div>'+
       '<div class="chk-grid" id="iitem-chk-'+id+'">'+
-        checks.map(function(ck){return '<div class="chk-item"><input type="checkbox" id="'+ck.id+'-'+id+'" onchange="toggleChkNote(\''+ck.id+'-'+id+'\')"><div style=flex:1><label for="'+ck.id+'-'+id+'">'+ck.label+'<span>'+ck.hint+'</span></label><div class="chk-note" id="note-'+ck.id+'-'+id+'"><input type=text placeholder="Notes..."></div></div></div>';}).join('')+
-      '</div>':'<div style="font-size:.78rem;color:var(--g300);padding:6px 0">No specific checklist for this item type — use notes below.</div>')+
-    '<div style="margin-top:10px">'+
-      '<div class="score-label">Condition Score</div>'+
-      '<div class="score-wrap"><div class="score-slider">'+
-        '<input type="range" id="iscore-'+id+'" min="1" max="10" value="7" oninput="updateScore(\'iscore-'+id+'\',\'isval-'+id+'\',\'istag-'+id+'\')">'+
-        '<div class="score-val" id="isval-'+id+'">7</div>'+
-      '</div><div style="text-align:center;margin-top:5px"><span class="score-tag" id="istag-'+id+'">Good \u2014 normal wear, cleans well</span></div></div>'+
-    '</div>'+
-    '<div class="f" style="margin-top:10px"><label>Notes</label><textarea id="iitem-notes-'+id+'" rows="2" placeholder="Item-specific notes..."></textarea></div>'+
-    '<div style="margin-top:10px;font-size:.75rem;color:var(--g500);font-weight:700;font-family:Montserrat,sans-serif;text-transform:uppercase;letter-spacing:.8px">Photos (6 max)</div>'+
-    '<div class="photo-grid" id="iphoto-grid-'+id+'"></div>';
+        checks.map(function(ck){
+          return '<div class="chk-item"><input type="checkbox" id="'+ck.id+'-'+id+'" onchange="toggleChkNote(\''+ck.id+'-'+id+'\')"><div style="flex:1"><label for="'+ck.id+'-'+id+'">'+ck.label+'<span>'+ck.hint+'</span></label><div class="chk-note" id="note-'+ck.id+'-'+id+'"><input type="text" placeholder="Notes..."></div></div></div>';
+        }).join('')+
+      '</div>':
+      '<div style="font-size:.78rem;color:var(--g300);padding:6px 0">No specific checklist — use notes field below.</div>')+
+    '<div class="item-section-label" style="margin-top:12px">Pre-Clean Condition</div>'+
+    '<div class="score-wrap"><div class="score-slider">'+
+      '<input type="range" id="iscore-'+id+'" min="1" max="10" value="7" oninput="updateScore(\'iscore-'+id+'\',\'isval-'+id+'\',\'istag-'+id+'\')">'+
+      '<div class="score-val" id="isval-'+id+'">7</div>'+
+    '</div><div style="text-align:center;margin-top:5px"><span class="score-tag" id="istag-'+id+'"></span></div></div>'+
+    postHtml+
+    '<div class="f" style="margin-top:10px"><label>Notes</label><textarea id="iitem-notes-'+id+'" rows="2" placeholder="Item-specific notes, special instructions..."></textarea></div>'+
+    '<div class="item-section-label" style="margin-top:10px">Photos (6 max)</div>'+
+    '<div class="photo-grid" id="iphoto-grid-'+id+'"></div>'+
+    '</div>';
   container.appendChild(div);
   buildPhotoGrid('iphoto-grid-'+id,'iitem-'+id,6);
   updateScore('iscore-'+id,'isval-'+id,'istag-'+id);
+  if(isPost) updateScore('ipost-score-'+id,'ipost-val-'+id,'ipost-tag-'+id);
   document.getElementById('insp-item-count-badge').textContent=inspItems.length+' item'+(inspItems.length!==1?'s':'');
 }
 function removeInspItem(id){
@@ -2615,6 +2829,402 @@ window.addEventListener('DOMContentLoaded', function(){
   // Connect to cloud
   cloudInit();
 });
+
+// ══════════════════════════════════════════════════════════════
+// REPORTS TAB — Phase 3
+// ══════════════════════════════════════════════════════════════
+
+var rptSelectedDRD = null;
+var rptSelectedFormat = 'customer';
+var rptChecks = { quote:true, pre:true, post:true, photos:true, terms:true, internal:false };
+
+function rptToggleCheck(key){
+  rptChecks[key] = !rptChecks[key];
+  var el = document.getElementById('rchk-'+key);
+  var cb = document.getElementById('rchk-'+key+'-cb');
+  if(el) el.classList.toggle('on', rptChecks[key]);
+  if(cb) cb.checked = rptChecks[key];
+}
+
+function rptSelectFormat(fmt){
+  rptSelectedFormat = fmt;
+  ['full','customer','insurance','internal'].forEach(function(f){
+    var el = document.getElementById('rfmt-'+f);
+    if(el) el.classList.toggle('selected', f===fmt);
+  });
+  // Auto-set sensible defaults per format
+  if(fmt==='customer'){ rptChecks={quote:true,pre:false,post:true,photos:false,terms:true,internal:false}; }
+  else if(fmt==='insurance'){ rptChecks={quote:true,pre:true,post:true,photos:true,terms:true,internal:false}; }
+  else if(fmt==='internal'){ rptChecks={quote:false,pre:true,post:true,photos:true,terms:false,internal:true}; }
+  else { rptChecks={quote:true,pre:true,post:true,photos:true,terms:true,internal:false}; }
+  // Update checkboxes UI
+  Object.keys(rptChecks).forEach(function(k){
+    var el=document.getElementById('rchk-'+k); var cb=document.getElementById('rchk-'+k+'-cb');
+    if(el) el.classList.toggle('on',rptChecks[k]);
+    if(cb) cb.checked=rptChecks[k];
+  });
+}
+
+function rptSearch(){
+  var q = (document.getElementById('rpt-search').value||'').toLowerCase().trim();
+  rptRenderJobs(q);
+}
+
+function rptInit(){
+  rptRenderJobs('');
+}
+
+function rptRenderJobs(q){
+  var list = document.getElementById('rptJobList');
+  if(!list) return;
+
+  // Gather all jobs from localStorage
+  var jobs = JSON.parse(localStorage.getItem('drapes_saves')||'[]');
+  var insps = JSON.parse(localStorage.getItem('drapes_inspections')||'[]');
+
+  // Build a map of DRD → available docs
+  var jobMap = {};
+  jobs.forEach(function(j){
+    var drd = j.data&&j.data.drdNumber;
+    if(!drd) return;
+    if(!jobMap[drd]) jobMap[drd]={drd:drd,customer:j.data.customerName||'',quote:false,pre:false,post:false,jobData:j.data};
+    jobMap[drd].quote = true;
+  });
+  insps.forEach(function(s){
+    var drd = s.drd;
+    if(!drd) return;
+    if(!jobMap[drd]) jobMap[drd]={drd:drd,customer:s.customer||'',quote:false,pre:false,post:false};
+    if(s.type==='pre') jobMap[drd].pre = true;
+    if(s.type==='post') jobMap[drd].post = true;
+    if(s.customer) jobMap[drd].customer = s.customer;
+  });
+
+  var entries = Object.values(jobMap).filter(function(e){
+    if(!q) return true;
+    return e.drd.toLowerCase().includes(q) || (e.customer||'').toLowerCase().includes(q);
+  }).sort(function(a,b){ return a.drd.localeCompare(b.drd); });
+
+  if(!entries.length){
+    list.innerHTML = '<div class="es" style="color:var(--g300)">No jobs found'+(q?' matching "'+q+'"':'')+'.<br><span style="font-size:.72rem">Save a full quote first to see it here.</span></div>';
+    return;
+  }
+
+  list.innerHTML = '';
+  entries.forEach(function(e){
+    var row = document.createElement('div');
+    row.className = 'rpt-job-row' + (rptSelectedDRD===e.drd?' selected':'');
+    row.onclick = (function(entry){ return function(){
+      rptSelectedDRD = entry.drd;
+      document.querySelectorAll('.rpt-job-row').forEach(function(r){ r.classList.remove('selected'); });
+      row.classList.add('selected');
+      // Enable options section
+      var opts = document.getElementById('rptOptionsSection');
+      if(opts){ opts.style.opacity='1'; opts.style.pointerEvents='auto'; }
+      var btn = document.getElementById('rptGenerateBtn');
+      if(btn) btn.disabled = false;
+      // Grey out unavailable doc types
+      if(!entry.quote){ var el=document.getElementById('rchk-quote'); if(el){ el.style.opacity='.4'; el.style.pointerEvents='none'; }}
+      else { var el=document.getElementById('rchk-quote'); if(el){ el.style.opacity=''; el.style.pointerEvents=''; }}
+      if(!entry.pre){ var el=document.getElementById('rchk-pre'); if(el){ el.style.opacity='.4'; el.style.pointerEvents='none'; } rptChecks.pre=false; }
+      else { var el=document.getElementById('rchk-pre'); if(el){ el.style.opacity=''; el.style.pointerEvents=''; }}
+      if(!entry.post){ var el=document.getElementById('rchk-post'); if(el){ el.style.opacity='.4'; el.style.pointerEvents='none'; } rptChecks.post=false; }
+      else { var el=document.getElementById('rchk-post'); if(el){ el.style.opacity=''; el.style.pointerEvents=''; }}
+      showToast('Selected: '+entry.drd+(entry.customer?' — '+entry.customer:''));
+    };})(e);
+
+    row.innerHTML =
+      '<div class="rpt-job-info" style="flex:1"><strong>'+e.drd+'</strong><span>'+(e.customer||'No customer name')+'</span></div>'+
+      '<div class="rpt-doc-badges">'+
+        '<span class="rpt-badge '+(e.quote?'has':'missing')+'">Quote</span>'+
+        '<span class="rpt-badge '+(e.pre?'has':'missing')+'">Pre-Insp</span>'+
+        '<span class="rpt-badge '+(e.post?'has':'missing')+'">Post-Insp</span>'+
+      '</div>';
+    list.appendChild(row);
+  });
+}
+
+function rptGenerate(){
+  if(!rptSelectedDRD){ showToast('Select a job first'); return; }
+  var btn = document.getElementById('rptGenerateBtn');
+  if(btn){ btn.disabled=true; btn.textContent='⌛ Generating...'; }
+
+  setTimeout(function(){
+    try {
+      generateCombinedReport(rptSelectedDRD, rptSelectedFormat, rptChecks);
+    } catch(e) {
+      showToast('❌ Error: '+e.message);
+      console.error(e);
+    }
+    if(btn){ btn.disabled=false; btn.innerHTML='&#8659; Generate Report PDF'; }
+  }, 100);
+}
+
+function generateCombinedReport(drd, format, checks){
+  var logoSrc = document.querySelector('header img').src;
+  var jobs = JSON.parse(localStorage.getItem('drapes_saves')||'[]');
+  var insps = JSON.parse(localStorage.getItem('drapes_inspections')||'[]');
+
+  var jobSave = jobs.find(function(j){ return j.data&&j.data.drdNumber===drd; });
+  var preInsp = insps.find(function(s){ return s.drd===drd&&s.type==='pre'; });
+  var postInsp = insps.find(function(s){ return s.drd===drd&&s.type==='post'; });
+
+  var customer = (jobSave&&jobSave.data.customerName)||(preInsp&&preInsp.customer)||(postInsp&&postInsp.customer)||'Customer';
+  var address = (jobSave&&jobSave.data.siteAddress)||(preInsp&&preInsp.data&&preInsp.data.address)||'';
+  var date = new Date().toLocaleDateString('en-AU',{day:'2-digit',month:'long',year:'numeric'});
+
+  // ── Format label map ─────────────────────────────────────
+  var formatLabels={full:'Full Job Report',customer:'Customer Copy',insurance:'Insurance Submission',internal:'Internal Report'};
+  var isCustomer = (format==='customer');
+  var isInsurance = (format==='insurance');
+  var isInternal = (format==='internal');
+
+  // ── CSS ──────────────────────────────────────────────────
+  var css = '.page{max-width:820px;margin:20px auto;background:#fff;box-shadow:0 4px 28px rgba(0,0,0,.14);font-family:Arial,sans-serif;}.hdr{background:#2b2d7e;padding:18px 28px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;}.hdr img{height:70px;flex-shrink:0;}.hdr-contact{color:rgba(255,255,255,.85);margin-top:5px;}.hdr-phone{font-size:13px;font-weight:700;color:#fff;}.hdr-web{font-size:11px;color:rgba(255,255,255,.7);margin-top:1px;}.hdr-right{text-align:right;color:rgba(255,255,255,.8);}.hdr-right h2{color:#fff;font-size:15px;font-weight:700;margin-bottom:3px;}.hdr-right .badge{display:inline-block;background:rgba(255,255,255,.2);color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:1px;margin-bottom:4px;}.rb{height:5px;}.cust{background:#f0f1f8;padding:16px 28px;display:flex;gap:20px;border-bottom:3px solid #2b2d7e;flex-wrap:wrap;}.cust-col{flex:1;min-width:160px;}.lbl{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:#6264a0;font-weight:700;margin-bottom:4px;margin-top:8px;}.lbl:first-child{margin-top:0;}.cust p{margin:1px 0;font-size:14px;}.cust p strong{font-size:15px;color:#1e2060;}.section{padding:16px 28px;border-bottom:1px solid #e4e5f0;page-break-inside:avoid;}.section-title{background:#2b2d7e;color:#fff;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:7px 12px;border-radius:5px;margin-bottom:12px;}.section-title.green{background:#065f46;}.section-title.purple{background:#7c3aed;}.section-title.teal{background:#0f766e;}.section-title.amber{background:#92400e;}.section-title.blue{background:#1d4ed8;}.score-bar{display:flex;align-items:center;gap:8px;margin:5px 0;}.score-bar-track{flex:1;height:8px;background:#f0f0f0;border-radius:4px;overflow:hidden;}.score-bar-fill{height:100%;border-radius:4px;}.score-num{font-size:13px;font-weight:700;min-width:20px;}.score-lbl{font-size:11px;color:#555;}.chk-item{display:flex;align-items:baseline;gap:6px;padding:3px 0;font-size:12px;}.chk-icon{color:#0f766e;font-size:10px;flex-shrink:0;}.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;}.photo-grid img{width:100%;border-radius:5px;border:1px solid #ddd;}.note-box{background:#f8f8f8;border-left:3px solid #0f766e;padding:8px 12px;font-size:12px;line-height:1.6;border-radius:0 5px 5px 0;margin-top:8px;}.tbl{width:100%;border-collapse:collapse;}.tbl th{background:#2b2d7e;color:#fff;font-size:11px;text-transform:uppercase;letter-spacing:1px;padding:8px 10px;text-align:left;}.tbl td{padding:8px 10px;font-size:12px;border-bottom:1px solid #f0f0f0;}.tbl tr:nth-child(even) td{background:#f7f8fc;}.tots-box{background:#f8f9ff;padding:12px 28px;border-top:2px solid #e4e5f0;}.tot-row{display:flex;justify-content:space-between;padding:3px 0;font-size:13px;color:#555;}.tot-row.grand{font-size:17px;font-weight:800;color:#2b2d7e;padding-top:8px;margin-top:5px;border-top:2px solid #2b2d7e;}.page-break{page-break-before:always;}.foot{background:#2b2d7e;padding:10px 28px;text-align:center;color:rgba(255,255,255,.5);font-size:10px;letter-spacing:1.5px;}'+
+  '.terms-section{background:#f8f8f8;border-top:3px solid #2b2d7e;padding:18px 28px;page-break-inside:avoid;}.terms-section h4{font-size:11px;text-transform:uppercase;letter-spacing:2px;color:#2b2d7e;font-weight:700;margin-bottom:10px;}.terms-grid{columns:2;column-gap:20px;}.terms-clause{font-size:10px;color:#444;line-height:1.5;margin-bottom:4px;break-inside:avoid;}.terms-clause strong{color:#2b2d7e;}'+
+  '@media print{body{background:#fff;}.page{box-shadow:none;margin:0;max-width:100%;}}'
+
+  // ── Score bar helper ──────────────────────────────────────
+  function scoreBar(n){
+    n=parseInt(n)||0; var s=getScoreLabel(n);
+    return '<div class="score-bar"><div class="score-bar-track"><div class="score-bar-fill" style="width:'+n*10+'%;background:'+s.col+'"></div></div><span class="score-num" style="color:'+s.col+'">'+n+'</span><span class="score-lbl">'+s.label+'</span></div>';
+  }
+
+  // ── Checklist helper ──────────────────────────────────────
+  function renderChecks(items){
+    if(!items||!items.length) return '<p style="font-size:12px;color:#aaa">No issues noted.</p>';
+    return items.map(function(it){ return '<div class="chk-item"><span class="chk-icon">✔</span><span><strong>'+it.label+'</strong>'+(it.note?' — '+it.note:'')+'</span></div>'; }).join('');
+  }
+
+  // ── Photos helper ─────────────────────────────────────────
+  function renderPhotos(photos, prefix){
+    if(!checks.photos) return '';
+    var slots=Object.keys(photos||{}).filter(function(k){ return k.startsWith(prefix)&&photos[k]&&photos[k].dataUrl; });
+    if(!slots.length) return '';
+    return '<div class="photo-grid">'+slots.map(function(k){ return '<div><img src="'+photos[k].dataUrl+'"></div>'; }).join('')+'</div>';
+  }
+
+  // ── Build HTML sections ───────────────────────────────────
+  var sections = '';
+
+  // ── QUOTE SECTION ─────────────────────────────────────────
+  if(checks.quote && jobSave){
+    var d = jobSave.data;
+    var r = {cleanS:0,repS:0,lines:[]};
+    // Reconstruct totals from saved data (simplified — use stored items if available)
+    var cleanItems = (d.items||[]).filter(function(it){ return !isR(it.type); });
+    var repItems = (d.items||[]).filter(function(it){ return isR(it.type); });
+    // Build rows
+    var rowsHtml = '';
+    var n=1;
+    cleanItems.forEach(function(it){
+      var desc=(it.fields&&it.fields.d)||(getTL?getTL(it.type):it.type);
+      rowsHtml+='<tr><td>'+n+'</td><td><strong>'+desc+'</strong><div style="font-size:11px;color:#888">'+getTL(it.type)+'</div></td><td></td><td style="text-align:right">—</td></tr>';
+      n++;
+    });
+    repItems.forEach(function(it){
+      var desc=(it.fields&&it.fields.d)||(getTL?getTL(it.type):it.type);
+      rowsHtml+='<tr><td>'+n+'</td><td><strong style="color:#065f46">'+desc+'</strong><div style="font-size:11px;color:#888">Repair/Part</div></td><td></td><td style="text-align:right">—</td></tr>';
+      n++;
+    });
+    sections += '<div class="section"><div class="section-title blue">QUOTE — '+d.quoteNumber+'</div>'+
+      '<table class="tbl"><thead><tr><th>#</th><th>Description</th><th>Calculation</th><th>Amount</th></tr></thead><tbody>'+rowsHtml+'</tbody></table>'+
+      '<div class="tots-box"><div class="tot-row"><span>Customer</span><span>'+(d.customerName||'—')+'</span></div><div class="tot-row"><span>Quote Date</span><span>'+(d.quoteDate||'—')+'</span></div></div>'+
+      (d.customerNotes?'<div class="section" style="padding:12px 28px"><div class="note-box">'+d.customerNotes.replace(/\n/g,'<br>')+'</div></div>':'')+
+      '</div>';
+    if(checks.terms) sections += buildTermsHTML(d.quoteNumber, d.quoteDate);
+  }
+
+  // ── PRE-INSPECTION SECTION ────────────────────────────────
+  if(checks.pre && preInsp){
+    var d = preInsp.data;
+    sections += '<div class="section '+(checks.quote?'page-break':'')+'">'+
+      '<div class="section-title teal">PRE-INSPECTION (TAKE-DOWN) REPORT</div>'+
+      '<table style="width:100%;font-size:12px"><tr><td style="width:33%"><div class="lbl">Inspector</div>'+d.inspector+'</td><td style="width:33%"><div class="lbl">Date</div>'+d.date+'</td><td><div class="lbl">Mode</div>'+(d.mode==='item'?'Per Item Detail':'Global Job Report')+'</td></tr></table>'+
+      (d.jobNotes?'<div class="note-box" style="margin-top:10px">'+d.jobNotes+'</div>':'')+
+      '<div class="lbl" style="margin-top:12px">Curtain Condition</div>'+scoreBar(d.curtScore)+renderChecks(d.curtChecks)+
+      '<div class="lbl" style="margin-top:10px">Blind Condition</div>'+scoreBar(d.blindScore)+renderChecks(d.blindChecks)+
+      (d.hwChecks&&d.hwChecks.length?'<div class="lbl" style="margin-top:10px">Hardware Issues</div>'+renderChecks(d.hwChecks)+(d.hwNotes?'<div class="note-box">'+d.hwNotes+'</div>':''):'')+
+      renderPhotos(d.photos||{},'global_photo_')+
+      (!isCustomer&&d.preNotes?'<div class="lbl" style="margin-top:10px">Internal Notes</div><div class="note-box">'+d.preNotes+'</div>':'')+
+      (d.custNotes?'<div class="lbl" style="margin-top:10px">Notes</div><div class="note-box">'+d.custNotes+'</div>':'')+
+      '</div>';
+  }
+
+  // ── POST-INSPECTION SECTION ───────────────────────────────
+  if(checks.post && postInsp){
+    var d = postInsp.data;
+    var treats=[];
+    if(d.treatStandard) treats.push('Standard Dry Clean');
+    if(d.treatMould) treats.push('Mould Treatment');
+    if(d.treatSpot) treats.push('Spot Treatment');
+    if(d.treatHand) treats.push('Hand Clean');
+    if(d.treatRestoration) treats.push('Restoration Clean');
+    var outcomeMap={fully:'Fully Restored',mostly:'Mostly Restored',partial:'Partially Restored',unable:'Unable to Fully Restore',damaged:'Damaged in Process'};
+    sections += '<div class="section page-break">'+
+      '<div class="section-title purple">POST-INSPECTION (COMPLETION) REPORT</div>'+
+      '<table style="width:100%;font-size:12px"><tr><td style="width:33%"><div class="lbl">Technician</div>'+(d.techName||'—')+'</td><td style="width:33%"><div class="lbl">Completion Date</div>'+(d.completeDate||'—')+'</td><td><div class="lbl">Rehang</div>'+(d.rehangConfirmed?'✔ Confirmed':'Not confirmed')+'</td></tr></table>'+
+      '<div style="margin-top:12px"><table style="width:100%;font-size:12px"><tr>'+
+        '<td style="width:50%;vertical-align:top"><div class="lbl">Treatment Applied</div><div>'+(treats.join(', ')||'Not specified')+'</div><div class="lbl" style="margin-top:8px">Outcome</div><div style="font-weight:700;font-size:14px">'+(outcomeMap[d.outcome]||'—')+'</div>'+(d.notReturned?'<div class="lbl" style="margin-top:8px">Items Not Returned</div><div>'+d.notReturned+'</div>':'')+
+        '</td>'+
+        '<td style="vertical-align:top"><div class="lbl">Post-Clean Condition</div>'+scoreBar(d.postScore)+
+        (preInsp&&preInsp.data?'<div class="lbl" style="margin-top:8px">Pre-Clean Was</div>'+scoreBar(preInsp.data.curtScore):'')+'</td>'+
+      '</tr></table></div>'+
+      renderPhotos(d.photos||{},'global_photo_')+
+      (checks.internal&&d.preNotes?'<div class="lbl" style="margin-top:10px">Internal Notes</div><div class="note-box">'+d.preNotes+'</div>':'')+
+      (d.custNotes?'<div class="lbl" style="margin-top:10px">Customer Notes</div><div class="note-box">'+d.custNotes+'</div>':'')+
+      '</div>';
+  }
+
+  // No docs available
+  if(!sections){
+    showToast('No documents available for this job. Save a quote or inspection first.');
+    return;
+  }
+
+  // ── ASSEMBLE FULL HTML ────────────────────────────────────
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+formatLabels[format]+' — '+drd+'</title>'+
+    '<style>body{font-family:Arial,sans-serif;margin:0;background:#f0f1f8;}'+css+'</style></head><body>'+
+    '<div class="page">'+
+    '<div class="hdr">'+
+      '<div style="display:flex;flex-direction:column;align-items:flex-start">'+
+        '<img src="'+logoSrc+'" alt="Dr Drapes" style="height:70px">'+
+        '<div class="hdr-contact"><div class="hdr-phone">1300 652 866</div><div class="hdr-web">drdrapes.com.au</div></div>'+
+      '</div>'+
+      '<div class="hdr-right">'+
+        '<div class="badge">'+formatLabels[format].toUpperCase()+'</div>'+
+        '<h2>'+customer+'</h2>'+
+        '<div style="font-size:11px;color:rgba(255,255,255,.7)">'+drd+' · Generated '+date+'</div>'+
+        (address?'<div style="font-size:11px;color:rgba(255,255,255,.6);margin-top:2px">'+address+'</div>':'')+
+      '</div>'+
+    '</div>'+
+    '<div class="rb" style="background:'+(format==='insurance'?'#1d4ed8':format==='internal'?'#7c3aed':format==='customer'?'#0f766e':'#e0192e')+'"></div>'+
+    sections+
+    '<div class="foot">DR DRAPES CURTAIN CLINIC · '+formatLabels[format]+' · '+drd+' · Generated by DrapesQuotePro</div>'+
+    '</div><script>window.onload=function(){window.print();};<\/script></body></html>';
+
+  var blob=new Blob([html],{type:'text/html'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url;
+  a.download=format.charAt(0).toUpperCase()+format.slice(1)+'_Report_'+drd+'_'+new Date().toISOString().slice(0,10)+'.html';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('↓ Report generated: '+formatLabels[format]);
+}
+
+
+// ══════════════════════════════════════════════════════════════
+// ENQUIRIES TAB — Customer Quote Requests
+// ══════════════════════════════════════════════════════════════
+var enqCurrentFilter = 'all';
+var enqData = [];
+
+async function loadEnquiries(){
+  try {
+    var rows = await sbFetch('/enquiries?order=submitted_at.desc&limit=100', 'GET');
+    enqData = rows || [];
+    // Update badge count
+    var newCount = enqData.filter(function(e){ return e.status==='new'; }).length;
+    var badge = document.getElementById('enqBadge');
+    var btn = document.getElementById('enqBtn');
+    if(badge){ badge.textContent=newCount; badge.style.display=newCount?'inline':'none'; }
+    if(btn) btn.style.display = enqData.length ? 'flex' : 'none';
+    renderEnquiries();
+  } catch(e) {
+    console.warn('Enquiries load failed:', e);
+  }
+}
+
+function enqFilter(f){
+  enqCurrentFilter = f;
+  ['all','new','called','converted'].forEach(function(k){
+    var el = document.getElementById('enq-f-'+k);
+    if(el) el.style.background = k===f ? 'var(--navy)' : '';
+    if(el) el.style.color = k===f ? '#fff' : '';
+  });
+  renderEnquiries();
+}
+
+function renderEnquiries(){
+  var list = document.getElementById('enqList'); if(!list) return;
+  var filtered = enqData.filter(function(e){
+    return enqCurrentFilter==='all' || e.status===enqCurrentFilter;
+  });
+  if(!filtered.length){
+    list.innerHTML='<div class="es" style="color:var(--g300)">No '+(enqCurrentFilter==='all'?'':enqCurrentFilter+' ')+'enquiries found</div>';
+    return;
+  }
+  list.innerHTML = '';
+  filtered.forEach(function(e){
+    var d = e.data || {};
+    var card = document.createElement('div');
+    card.className = 'enq-card';
+    var dt = new Date(e.submitted_at).toLocaleDateString('en-AU',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+    var statusMap = {new:'New',called:'Called',converted:'Converted',declined:'Declined'};
+    card.innerHTML =
+      '<div class="enq-card-hdr">'+
+        '<div>'+
+          '<div class="enq-name">'+(e.customer_name||'Unknown')+'</div>'+
+          '<div class="enq-ref">'+(e.dq_number||'No DQ')+' &middot; '+dt+'</div>'+
+        '</div>'+
+        '<span class="enq-status '+(e.status||'new')+'">'+(statusMap[e.status||'new'])+'</span>'+
+      '</div>'+
+      '<div class="enq-card-body">'+
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">'+
+          '<div>&#128222; <a href="tel:'+e.customer_phone+'" style="color:var(--navy);text-decoration:none;font-weight:600">'+e.customer_phone+'</a></div>'+
+          '<div>&#128231; <a href="mailto:'+e.customer_email+'" style="color:var(--navy);text-decoration:none">'+e.customer_email+'</a></div>'+
+          '<div style="grid-column:1/-1">&#128205; '+(e.site_address||'—')+'</div>'+
+        '</div>'+
+        '<div style="margin-bottom:6px"><strong>Items:</strong> '+(e.items_description||'—')+'</div>'+
+        (d.conditions&&d.conditions.length?'<div style="margin-bottom:6px"><strong>Conditions:</strong> '+d.conditions.join(', ')+'</div>':'')+
+        (d.notes?'<div style="margin-bottom:6px"><strong>Notes:</strong> '+d.notes+'</div>':'')+
+        (d.claimRef?'<div style="margin-bottom:6px"><strong>Claim Ref:</strong> '+d.claimRef+'</div>':'')+
+        (d.photos&&d.photos.length?'<div style="margin-bottom:6px"><strong>Photos:</strong> '+d.photos.length+' submitted</div>':'')+
+        '<div class="enq-actions">'+
+          '<button class="bm" style="background:var(--teal);color:#fff" onclick="enqConvertToFQ(\''+e.id+'\')">&#9889; Convert to Fast Quote</button>'+
+          (e.status==='new'?'<button class="bm" onclick="enqUpdateStatus(\''+e.id+'\',\'called\')">&#128222; Mark Called</button>':'')+
+          (e.status!=='converted'?'<button class="bm" onclick="enqUpdateStatus(\''+e.id+'\',\'declined\')">Decline</button>':'')+
+        '</div>'+
+      '</div>';
+    list.appendChild(card);
+  });
+}
+
+async function enqUpdateStatus(id, status){
+  try {
+    await sbFetch('/enquiries?id=eq.'+id, 'PATCH', { status: status });
+    await loadEnquiries();
+    showToast('Status updated: '+status);
+  } catch(e) { showToast('Update failed'); }
+}
+
+function enqConvertToFQ(id){
+  var enq = enqData.find(function(e){ return e.id===id; });
+  if(!enq) return;
+  var d = enq.data || {};
+  // Switch to Fast Quote tab and pre-fill
+  switchTab('fast');
+  setTimeout(function(){
+    var sv = function(elId, val){ var el=document.getElementById(elId); if(el) el.value=val||''; };
+    sv('fq-name', enq.customer_name);
+    sv('fq-phone', enq.customer_phone);
+    sv('fq-email', enq.customer_email);
+    sv('fq-ref', enq.dq_number||'');
+    sv('fq-addr', enq.site_address);
+    // Pre-fill notes
+    var notes = [];
+    if(d.items&&d.items.length) notes.push('Items: '+d.items.join(', '));
+    if(d.rooms) notes.push('Rooms: '+d.rooms);
+    if(d.conditions&&d.conditions.length) notes.push('Conditions: '+d.conditions.join(', '));
+    if(d.notes) notes.push(d.notes);
+    if(d.claimRef) notes.push('Claim ref: '+d.claimRef);
+    sv('fq-notes', notes.join('\n'));
+    // Mark as converted
+    enqUpdateStatus(id, 'converted');
+    showToast('\u2705 Enquiry loaded into Fast Quote — '+enq.customer_name);
+  }, 400);
+}
+
 </script>
 </body>
 </html>

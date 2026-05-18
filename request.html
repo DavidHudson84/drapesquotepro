@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Get a Quote — Dr Drapes Curtain Clinic</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy:#2b2d7e; --teal:#0f766e; --red:#e0192e;
+    --g50:#f0f1f8; --g100:#e4e5f0; --g300:#9597be; --g700:#3a3c6e;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'Open Sans',sans-serif; background:#f0f1f8; color:#2b2d5e; min-height:100vh; }
+
+  /* ── Header ── */
+  header {
+    background:linear-gradient(135deg,#1a1c50,#2b2d7e);
+    padding:20px 24px;
+    display:flex; align-items:center; gap:16px;
+  }
+  header img { height:52px; }
+  .hdr-text h1 { font-family:'Montserrat',sans-serif; font-size:1.1rem; font-weight:800; color:#fff; }
+  .hdr-text h1 span { color:#ff6b7a; }
+  .hdr-text p { color:rgba(255,255,255,.55); font-size:.72rem; letter-spacing:2px; text-transform:uppercase; margin-top:2px; }
+  .hdr-bar { height:4px; background:linear-gradient(90deg,var(--red),#ff6b7a,var(--teal)); }
+
+  /* ── Main ── */
+  .main { max-width:640px; margin:0 auto; padding:24px 16px 60px; }
+
+  /* ── Hero card ── */
+  .hero {
+    background:#fff; border-radius:14px; padding:24px;
+    margin-bottom:20px;
+    box-shadow:0 4px 18px rgba(43,45,126,.1);
+    border-top:4px solid var(--teal);
+  }
+  .hero h2 { font-family:'Montserrat',sans-serif; font-size:1.25rem; font-weight:800; color:var(--navy); margin-bottom:6px; }
+  .hero p { font-size:.85rem; color:var(--g700); line-height:1.6; }
+  .hero-steps { display:flex; gap:8px; margin-top:14px; flex-wrap:wrap; }
+  .step-pill {
+    display:flex; align-items:center; gap:6px;
+    background:var(--g50); border-radius:20px; padding:5px 12px;
+    font-size:.75rem; font-family:'Montserrat',sans-serif; font-weight:700; color:var(--g700);
+  }
+  .step-pill span { color:var(--teal); font-size:.9rem; }
+
+  /* ── Form card ── */
+  .card {
+    background:#fff; border-radius:12px; padding:20px;
+    margin-bottom:16px;
+    box-shadow:0 2px 12px rgba(43,45,126,.07);
+  }
+  .card-title {
+    font-family:'Montserrat',sans-serif; font-size:.82rem; font-weight:800;
+    color:var(--navy); text-transform:uppercase; letter-spacing:1px;
+    padding-bottom:10px; margin-bottom:14px;
+    border-bottom:2px solid var(--g50);
+    display:flex; align-items:center; gap:8px;
+  }
+  .card-title .dot {
+    width:8px; height:8px; border-radius:50%; background:var(--teal); flex-shrink:0;
+  }
+
+  /* ── Form fields ── */
+  .f { margin-bottom:14px; }
+  .f label {
+    display:block; font-size:.72rem; font-weight:700; text-transform:uppercase;
+    letter-spacing:1.2px; color:var(--g300); margin-bottom:5px;
+    font-family:'Montserrat',sans-serif;
+  }
+  .f label .req { color:var(--red); margin-left:2px; }
+  .f input, .f select, .f textarea {
+    width:100%; border:1.5px solid var(--g100); border-radius:8px;
+    padding:10px 12px; font-size:.88rem; font-family:'Open Sans',sans-serif;
+    color:#2b2d5e; background:#fff; outline:none;
+    transition:border-color .15s;
+  }
+  .f input:focus, .f select:focus, .f textarea:focus { border-color:var(--teal); }
+  .f input.err, .f select.err, .f textarea.err { border-color:var(--red); }
+  .f textarea { resize:vertical; min-height:80px; }
+  .g2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  @media(max-width:480px){ .g2{grid-template-columns:1fr;} }
+
+  /* ── Checkbox chips ── */
+  .chip-group { display:flex; flex-wrap:wrap; gap:8px; }
+  .chip {
+    display:inline-flex; align-items:center; gap:6px;
+    padding:8px 14px; border-radius:20px;
+    border:1.5px solid var(--g100); cursor:pointer;
+    font-size:.82rem; font-family:'Montserrat',sans-serif; font-weight:600;
+    color:var(--g700); transition:all .15s; user-select:none;
+  }
+  .chip:hover { border-color:var(--teal); color:var(--teal); }
+  .chip.selected { border-color:var(--teal); background:rgba(15,118,110,.08); color:var(--teal); }
+  .chip input { display:none; }
+  .chip .ck { font-size:.9rem; }
+
+  /* ── Room counter ── */
+  .room-counter {
+    display:flex; align-items:center; gap:0;
+    border:1.5px solid var(--g100); border-radius:8px;
+    overflow:hidden; width:fit-content;
+  }
+  .rc-btn {
+    width:40px; height:40px; border:none; background:var(--g50);
+    font-size:1.2rem; cursor:pointer; color:var(--navy); font-weight:700;
+    transition:background .12s; flex-shrink:0;
+  }
+  .rc-btn:hover { background:var(--g100); }
+  .rc-val {
+    width:50px; text-align:center; font-size:1rem; font-weight:700;
+    color:var(--navy); font-family:'Montserrat',sans-serif;
+    border:none; border-left:1px solid var(--g100); border-right:1px solid var(--g100);
+    height:40px; padding:0;
+  }
+
+  /* ── Photo upload ── */
+  .photo-upload-area {
+    border:2px dashed var(--g100); border-radius:10px;
+    padding:20px; text-align:center; cursor:pointer;
+    transition:all .15s; background:var(--g50);
+  }
+  .photo-upload-area:hover, .photo-upload-area.drag-over {
+    border-color:var(--teal); background:rgba(15,118,110,.05);
+  }
+  .photo-upload-area p { font-size:.82rem; color:var(--g300); margin-top:6px; }
+  .photo-upload-area .icon { font-size:2rem; }
+  .photo-preview { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+  .photo-thumb {
+    position:relative; width:80px; height:80px;
+    border-radius:8px; overflow:hidden; border:1.5px solid var(--g100);
+  }
+  .photo-thumb img { width:100%; height:100%; object-fit:cover; }
+  .photo-thumb .rm {
+    position:absolute; top:2px; right:2px; width:20px; height:20px;
+    background:rgba(224,25,46,.9); color:#fff; border:none; border-radius:50%;
+    font-size:.75rem; cursor:pointer; display:flex; align-items:center; justify-content:center;
+    font-weight:700; line-height:1;
+  }
+  #photoInput { display:none; }
+
+  /* ── Submit button ── */
+  .submit-btn {
+    width:100%; padding:16px; border-radius:10px;
+    background:linear-gradient(135deg,var(--teal),#0e6660);
+    color:#fff; border:none; cursor:pointer;
+    font-family:'Montserrat',sans-serif; font-size:1rem; font-weight:800;
+    letter-spacing:.5px; display:flex; align-items:center; justify-content:center;
+    gap:10px; transition:all .2s; margin-top:8px;
+    box-shadow:0 4px 14px rgba(15,118,110,.3);
+  }
+  .submit-btn:hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(15,118,110,.4); }
+  .submit-btn:disabled { background:#ccc; cursor:not-allowed; transform:none; box-shadow:none; }
+
+  /* ── Success screen ── */
+  .success-screen {
+    display:none; text-align:center;
+    background:#fff; border-radius:14px; padding:40px 24px;
+    box-shadow:0 4px 18px rgba(43,45,126,.1);
+    border-top:4px solid var(--teal);
+  }
+  .success-icon { font-size:3.5rem; margin-bottom:16px; }
+  .success-screen h2 { font-family:'Montserrat',sans-serif; font-size:1.3rem; font-weight:800; color:var(--navy); margin-bottom:10px; }
+  .success-screen p { font-size:.88rem; color:var(--g700); line-height:1.7; margin-bottom:8px; }
+  .dq-ref { font-family:'Montserrat',sans-serif; font-size:1.1rem; font-weight:800; color:var(--teal); background:var(--g50); padding:10px 20px; border-radius:8px; display:inline-block; margin:12px 0; }
+
+  /* ── Error message ── */
+  .err-msg { color:var(--red); font-size:.78rem; margin-top:4px; display:none; }
+
+  /* ── Footer ── */
+  footer {
+    background:var(--navy); padding:16px 24px;
+    text-align:center; color:rgba(255,255,255,.5); font-size:.72rem; letter-spacing:1px;
+  }
+  footer strong { color:#fff; }
+  footer a { color:rgba(255,255,255,.6); text-decoration:none; }
+
+  /* ── Spinner ── */
+  @keyframes spin { to{transform:rotate(360deg)} }
+  .spinner { width:20px; height:20px; border:2px solid rgba(255,255,255,.4); border-top-color:#fff; border-radius:50%; animation:spin .6s linear infinite; }
+</style>
+</head>
+<body>
+
+<header>
+  <img src="data:image/png;base64,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WuhFRrMbp8XONkG+S7XeJUBWOOxO8g292TyuqktrCTyA66IJrb/H65fR3l33dr8Snx+uX0d5d93a/Eqza7GvJAwiM06outw8TfdbvEcqg5N6V6FBvEX0bk5/T7e7G5ubm1y84HN+Sd68Nj21VHZt+dXjB9uD+fLqefH65fR3l33dr8Snx+uX0d5d93a/EqzblrGPY0YOjblBnco6nuiQYHib7r5xeA/8rmevyoTnocqJbENrcaPdvcrb4WASNK1sAj39agcjFMixTiXi2P26I9Nw34aVcoTiUKUbYotOpcYUR0DZLgUknXmOp3U++P1y+jvLvu7X4lPj9cvo7y77u1+JUtvC0nDAiOQieKdT3W4eJvutV2gP/b7/AOeLb/8Asrd8XsZuORY/Dfsa203qzXBm529LiuVDrrRP9Go+QUCR+zfSvH4/XL6O8u+7tfiU+P1y+jvLvu7X4lVF1qhkftnzTqe63DxN91gDiywmL3L2F5em9gcptotTiiV+HR0DkKN/n71rrU/tL8mVbI0mbCVBkutJU7GU4lZZUR1TzJ6HR6bFQ/4/XL6O8u+7tfiVMrdIXLgR5TkV+Ip5tKyw8AHGyRvlVokbH11R76bu42PqsK9lWtwDUjH5g/Yle9KUrNcyUpSiJSlKIlKUoiUpSiJSlKIlKUoiUpSiJVe4bgTtk4rZJlCw16HOSDDSlZJCnClTxKfI8yR18xVhUqCF1W97Vt2VGUzg8QeEg+nIlY90iNz7ZKgPAFqSytlYPmFJIP8AGqY7PPpt4vjs64MuNnHbW3ZW0k7Tz94pSyPfpKAfrq761eP2C1WETha43cenS1zJHrlXM6vXMep6Dp4DoKESZXZZ6Rbb2degRi+IO7OeYMKJcR+HXxuy2zXMy0sQmWyxc2gSFyWAsOIb6eI5wdg68djrW8uuD4/c8steTSopM22N92wlOg2R4pKhrrykkp69N/VUlpSAsetbvUZTDyAwECMMHZ88uAG5KUpUrz0pSlESlKURKUpREpSlESlKURKUpREpSlESlKURKUpREpSlESlKURKUpREpSlESlKURKUpREpSlESlKURKUpREpSlESlKURKUpREpSlESlKURKUpREpSlESlKURKUpREpSlESlKURKUpREpSlESlKURKUpREpSlESlKURKUpREpSlESlKURf//Z" alt="Dr Drapes">
+  <div class="hdr-text">
+    <h1>Dr<span>Drapes</span></h1>
+    <p>Curtain Clinic</p>
+  </div>
+</header>
+<div class="hdr-bar"></div>
+
+<div class="main">
+
+  <!-- Hero -->
+  <div class="hero">
+    <h2>Request a Cleaning Quote</h2>
+    <p>Tell us about your curtains and blinds and we'll get back to you with a quote. We'll give you a call to confirm the details before we send anything through.</p>
+    <div class="hero-steps">
+      <div class="step-pill"><span>📋</span> Fill in your details</div>
+      <div class="step-pill"><span>📸</span> Add photos (optional)</div>
+      <div class="step-pill"><span>📞</span> We call to confirm</div>
+      <div class="step-pill"><span>💌</span> Quote sent to you</div>
+    </div>
+  </div>
+
+  <!-- Form -->
+  <form id="quoteForm" novalidate>
+
+    <!-- Contact Details -->
+    <div class="card">
+      <div class="card-title"><div class="dot"></div>Your Details</div>
+      <div class="g2">
+        <div class="f">
+          <label>First Name <span class="req">*</span></label>
+          <input type="text" id="firstName" placeholder="Jane" autocomplete="given-name">
+          <div class="err-msg" id="err-firstName">Please enter your first name</div>
+        </div>
+        <div class="f">
+          <label>Last Name <span class="req">*</span></label>
+          <input type="text" id="lastName" placeholder="Smith" autocomplete="family-name">
+          <div class="err-msg" id="err-lastName">Please enter your last name</div>
+        </div>
+      </div>
+      <div class="g2">
+        <div class="f">
+          <label>Phone <span class="req">*</span></label>
+          <input type="tel" id="phone" placeholder="0412 345 678" autocomplete="tel">
+          <div class="err-msg" id="err-phone">Please enter your phone number</div>
+        </div>
+        <div class="f">
+          <label>Email <span class="req">*</span></label>
+          <input type="email" id="email" placeholder="jane@example.com" autocomplete="email">
+          <div class="err-msg" id="err-email">Please enter a valid email</div>
+        </div>
+      </div>
+      <div class="f">
+        <label>Service Address <span class="req">*</span></label>
+        <input type="text" id="address" placeholder="12 Main St, Altona VIC 3018" autocomplete="street-address">
+        <div class="err-msg" id="err-address">Please enter your address</div>
+      </div>
+      <div class="f">
+        <label>Job Type</label>
+        <select id="jobType">
+          <option value="residential">Residential</option>
+          <option value="insurance">Insurance Claim</option>
+          <option value="rental">Rental / Property Management</option>
+          <option value="commercial">Commercial</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- What they have -->
+    <div class="card">
+      <div class="card-title"><div class="dot"></div>What Needs Cleaning?</div>
+      <div class="f">
+        <label>Item Types <span class="req">*</span></label>
+        <div class="chip-group" id="itemChips">
+          <label class="chip selected" onclick="toggleChip(this)">
+            <input type="checkbox" value="curtains" checked>
+            <span class="ck">✓</span> Curtains / Drapes
+          </label>
+          <label class="chip" onclick="toggleChip(this)">
+            <input type="checkbox" value="blinds">
+            <span class="ck">✓</span> Blinds
+          </label>
+          <label class="chip" onclick="toggleChip(this)">
+            <input type="checkbox" value="sheers">
+            <span class="ck">✓</span> Sheers
+          </label>
+          <label class="chip" onclick="toggleChip(this)">
+            <input type="checkbox" value="pelmets">
+            <span class="ck">✓</span> Pelmets / Valances
+          </label>
+          <label class="chip" onclick="toggleChip(this)">
+            <input type="checkbox" value="unsure">
+            <span class="ck">✓</span> Not Sure
+          </label>
+        </div>
+        <div class="err-msg" id="err-items">Please select at least one item type</div>
+      </div>
+
+      <div class="f" style="margin-top:4px">
+        <label>How many rooms?</label>
+        <div class="room-counter">
+          <button type="button" class="rc-btn" onclick="adjustRooms(-1)">−</button>
+          <input type="number" class="rc-val" id="roomCount" value="1" min="1" max="30" readonly>
+          <button type="button" class="rc-btn" onclick="adjustRooms(1)">+</button>
+        </div>
+      </div>
+
+      <div class="f" style="margin-top:4px">
+        <label>Any Special Conditions?</label>
+        <div class="chip-group">
+          <label class="chip" onclick="toggleChip(this)">
+            <input type="checkbox" value="mould" name="conditions">
+            <span class="ck">✓</span> Mould / Mildew
+          </label>
+          <label class="chip" onclick="toggleChip(this)">
+            <input type="checkbox" value="smoke" name="conditions">
+            <span class="ck">✓</span> Smoke Damage
+          </label>
+          <label class="chip" onclick="toggleChip(this)">
+            <input type="checkbox" value="flood" name="conditions">
+            <span class="ck">✓</span> Flood / Water Damage
+          </label>
+          <label class="chip" onclick="toggleChip(this)">
+            <input type="checkbox" value="pet" name="conditions">
+            <span class="ck">✓</span> Pet Odour / Hair
+          </label>
+          <label class="chip" onclick="toggleChip(this)">
+            <input type="checkbox" value="rehang">
+            <span class="ck">✓</span> Need Rehang
+          </label>
+          <label class="chip" onclick="toggleChip(this)">
+            <input type="checkbox" value="urgent">
+            <span class="ck">✓</span> Urgent
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notes -->
+    <div class="card">
+      <div class="card-title"><div class="dot"></div>Extra Info</div>
+      <div class="f">
+        <label>Insurance / Claim Reference</label>
+        <input type="text" id="claimRef" placeholder="e.g. IAG-2026-12345 (leave blank if not applicable)">
+      </div>
+      <div class="f">
+        <label>Notes for Us</label>
+        <textarea id="notes" placeholder="e.g. 3 large bay window curtains in lounge, smaller ones in 2 bedrooms. Some mould on the lining of the main pair..."></textarea>
+      </div>
+    </div>
+
+    <!-- Photos -->
+    <div class="card">
+      <div class="card-title"><div class="dot"></div>Photos <span style="font-size:.7rem;font-weight:400;text-transform:none;letter-spacing:0;color:var(--g300);font-family:'Open Sans',sans-serif">(optional but helpful — up to 6)</span></div>
+      <div class="photo-upload-area" id="uploadArea" onclick="document.getElementById('photoInput').click()" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropPhotos(event)">
+        <div class="icon">📷</div>
+        <p><strong>Tap to take a photo or upload</strong></p>
+        <p>JPG, PNG up to 10MB each · up to 6 photos</p>
+      </div>
+      <input type="file" id="photoInput" accept="image/*" multiple capture="environment" onchange="handlePhotos(this.files)">
+      <div class="photo-preview" id="photoPreview"></div>
+    </div>
+
+    <!-- Submit -->
+    <button type="submit" class="submit-btn" id="submitBtn">
+      <span id="submitText">Send My Quote Request</span>
+      <span id="submitSpinner" class="spinner" style="display:none"></span>
+    </button>
+    <p style="text-align:center;font-size:.75rem;color:var(--g300);margin-top:12px">We'll call you within one business day to confirm details before sending a quote.</p>
+
+  </form>
+
+  <!-- Success screen -->
+  <div class="success-screen" id="successScreen">
+    <div class="success-icon">✅</div>
+    <h2>Request Received!</h2>
+    <p>Thanks — we've got your request and will call you within one business day to confirm the details.</p>
+    <div class="dq-ref" id="successRef">DQ-1000</div>
+    <p>A confirmation has been sent to <strong id="successEmail"></strong></p>
+    <p style="margin-top:16px;font-size:.8rem;color:var(--g300)">Questions? Call us on <strong style="color:var(--navy)">1300 652 866</strong></p>
+  </div>
+
+</div>
+
+<footer>
+  <strong>DR DRAPES CURTAIN CLINIC</strong> &nbsp;·&nbsp;
+  Professional Curtain &amp; Blind Care &nbsp;·&nbsp;
+  <a href="tel:1300652866">1300 652 866</a> &nbsp;·&nbsp;
+  <a href="https://www.drdrapes.com.au">drdrapes.com.au</a>
+</footer>
+
+<script>
+const SUPABASE_URL = 'https://kspezkqanaqrhbirqmlc.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzcGV6a3FhbmFxcmhiaXJxbWxjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwOTU1MDksImV4cCI6MjA5NDY3MTUwOX0.toB3DTsKZ8Cydhxw4DTJjzmanF7tghHlXQNOzJ4xOiA';
+const RESEND_KEY = 'RESEND_API_KEY_HERE';
+const DR_DRAPES_EMAIL = 'drdrapes@hudsongroup.com.au';
+
+// ── Photos ──────────────────────────────────────────────────
+var photos = []; // array of { dataUrl, file }
+
+function toggleChip(el) {
+  el.classList.toggle('selected');
+  var cb = el.querySelector('input[type=checkbox]');
+  if (cb) cb.checked = el.classList.contains('selected');
+}
+
+function adjustRooms(delta) {
+  var el = document.getElementById('roomCount');
+  var v = parseInt(el.value) + delta;
+  el.value = Math.max(1, Math.min(30, v));
+}
+
+function dragOver(e) {
+  e.preventDefault();
+  document.getElementById('uploadArea').classList.add('drag-over');
+}
+function dragLeave(e) {
+  document.getElementById('uploadArea').classList.remove('drag-over');
+}
+function dropPhotos(e) {
+  e.preventDefault();
+  dragLeave(e);
+  handlePhotos(e.dataTransfer.files);
+}
+
+function handlePhotos(files) {
+  if (!files || !files.length) return;
+  var remaining = 6 - photos.length;
+  if (remaining <= 0) { alert('Maximum 6 photos allowed.'); return; }
+  var toAdd = Array.from(files).slice(0, remaining);
+  toAdd.forEach(function(file) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      // Compress to max 900px
+      var img = new Image();
+      img.onload = function() {
+        var canvas = document.createElement('canvas');
+        var maxW = 900;
+        var scale = Math.min(1, maxW / Math.max(img.width, img.height));
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        var dataUrl = canvas.toDataURL('image/jpeg', 0.75);
+        photos.push({ dataUrl: dataUrl, name: file.name });
+        renderPhotoPreviews();
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderPhotoPreviews() {
+  var container = document.getElementById('photoPreview');
+  container.innerHTML = '';
+  photos.forEach(function(p, i) {
+    var div = document.createElement('div');
+    div.className = 'photo-thumb';
+    div.innerHTML = '<img src="' + p.dataUrl + '"><button type="button" class="rm" onclick="removePhoto(' + i + ')">×</button>';
+    container.appendChild(div);
+  });
+  document.getElementById('uploadArea').style.display = photos.length >= 6 ? 'none' : '';
+}
+
+function removePhoto(i) {
+  photos.splice(i, 1);
+  renderPhotoPreviews();
+  document.getElementById('uploadArea').style.display = '';
+}
+
+// ── Validation ──────────────────────────────────────────────
+function validate() {
+  var ok = true;
+  [['firstName','first name'],['lastName','last name'],['phone','phone number'],['email','email'],['address','address']].forEach(function(pair) {
+    var el = document.getElementById(pair[0]);
+    var err = document.getElementById('err-' + pair[0]);
+    var v = el ? el.value.trim() : '';
+    var invalid = !v || (pair[0]==='email' && !/^[^@]+@[^@]+\.[^@]+$/.test(v));
+    if (el) el.classList.toggle('err', invalid);
+    if (err) err.style.display = invalid ? 'block' : 'none';
+    if (invalid) ok = false;
+  });
+  // At least one item chip
+  var chips = document.querySelectorAll('#itemChips .chip.selected');
+  var itemErr = document.getElementById('err-items');
+  if (!chips.length) { if(itemErr) itemErr.style.display='block'; ok=false; }
+  else { if(itemErr) itemErr.style.display='none'; }
+  return ok;
+}
+
+// ── Get next DQ number from Supabase ────────────────────────
+async function getNextDQNumber() {
+  try {
+    var r = await fetch(SUPABASE_URL + '/rest/v1/enquiries?select=dq_number&order=dq_number.desc&limit=1', {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+    });
+    var rows = await r.json();
+    if (rows && rows.length && rows[0].dq_number) {
+      var last = parseInt(rows[0].dq_number.replace('DQ-','')) || 999;
+      return 'DQ-' + (last + 1);
+    }
+  } catch(e) { console.warn('DQ fetch failed:', e); }
+  return 'DQ-1000';
+}
+
+// ── Send email via Resend ────────────────────────────────────
+async function sendEmails(data) {
+  if (!RESEND_KEY || RESEND_KEY === 'RESEND_API_KEY_HERE') {
+    console.warn('Resend key not set — skipping emails');
+    return;
+  }
+
+  var items = data.items.join(', ');
+  var conditions = data.conditions.length ? data.conditions.join(', ') : 'None noted';
+  var photoCount = data.photos ? data.photos.length : 0;
+
+  // Customer confirmation
+  var custHtml = `
+    <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto">
+      <div style="background:#2b2d7e;padding:20px 24px;border-radius:10px 10px 0 0">
+        <img src="https://davidhudson84.github.io/drapesquotepro/logo.png" height="50" alt="Dr Drapes" style="margin-bottom:8px;display:block">
+        <h2 style="color:#fff;font-size:16px;margin:0">Quote Request Received</h2>
+      </div>
+      <div style="background:#f0f1f8;padding:20px 24px">
+        <p style="color:#3a3c6e;font-size:14px;margin-bottom:16px">Hi ${data.firstName}, thanks for getting in touch! We've received your quote request and will call you within one business day to confirm the details.</p>
+        <div style="background:#fff;border-radius:8px;padding:16px;margin-bottom:16px;border-left:4px solid #0f766e">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#9597be;font-weight:700;margin-bottom:8px">Your Reference</div>
+          <div style="font-size:20px;font-weight:800;color:#0f766e;font-family:Montserrat,sans-serif">${data.dqNumber}</div>
+        </div>
+        <div style="background:#fff;border-radius:8px;padding:16px;font-size:13px;color:#555">
+          <div style="margin-bottom:6px"><strong>Name:</strong> ${data.firstName} ${data.lastName}</div>
+          <div style="margin-bottom:6px"><strong>Address:</strong> ${data.address}</div>
+          <div style="margin-bottom:6px"><strong>Items:</strong> ${items}</div>
+          <div style="margin-bottom:6px"><strong>Rooms:</strong> ${data.rooms}</div>
+          ${conditions !== 'None noted' ? '<div style="margin-bottom:6px"><strong>Conditions:</strong> ' + conditions + '</div>' : ''}
+          ${data.notes ? '<div style="margin-bottom:6px"><strong>Notes:</strong> ' + data.notes + '</div>' : ''}
+          ${photoCount ? '<div style="margin-bottom:6px"><strong>Photos attached:</strong> ' + photoCount + '</div>' : ''}
+        </div>
+        <p style="color:#9597be;font-size:12px;margin-top:16px">Questions? Call us on <strong style="color:#2b2d7e">1300 652 866</strong> or email <a href="mailto:drdrapes@hudsongroup.com.au" style="color:#0f766e">drdrapes@hudsongroup.com.au</a></p>
+      </div>
+      <div style="background:#2b2d7e;padding:12px 24px;border-radius:0 0 10px 10px;text-align:center">
+        <span style="color:rgba(255,255,255,.5);font-size:11px">DR DRAPES CURTAIN CLINIC · drdrapes.com.au</span>
+      </div>
+    </div>`;
+
+  // Staff notification
+  var staffHtml = `
+    <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto">
+      <div style="background:#1d4ed8;padding:16px 24px;border-radius:10px 10px 0 0">
+        <h2 style="color:#fff;font-size:15px;margin:0">🔔 New Quote Request — ${data.dqNumber}</h2>
+      </div>
+      <div style="background:#f0f1f8;padding:20px 24px">
+        <div style="background:#fff;border-radius:8px;padding:16px;font-size:13px;color:#333">
+          <div style="margin-bottom:8px;font-size:16px;font-weight:700;color:#2b2d7e">${data.firstName} ${data.lastName}</div>
+          <div style="margin-bottom:6px">📞 <a href="tel:${data.phone}" style="color:#1d4ed8">${data.phone}</a></div>
+          <div style="margin-bottom:6px">✉️ <a href="mailto:${data.email}" style="color:#1d4ed8">${data.email}</a></div>
+          <div style="margin-bottom:6px">📍 ${data.address}</div>
+          <hr style="border:none;border-top:1px solid #eee;margin:10px 0">
+          <div style="margin-bottom:6px"><strong>Job type:</strong> ${data.jobType}</div>
+          <div style="margin-bottom:6px"><strong>Items:</strong> ${items}</div>
+          <div style="margin-bottom:6px"><strong>Rooms:</strong> ${data.rooms}</div>
+          <div style="margin-bottom:6px"><strong>Conditions:</strong> ${conditions}</div>
+          ${data.claimRef ? '<div style="margin-bottom:6px"><strong>Claim ref:</strong> ' + data.claimRef + '</div>' : ''}
+          ${data.notes ? '<div style="margin-bottom:6px"><strong>Notes:</strong> ' + data.notes + '</div>' : ''}
+          ${photoCount ? '<div style="margin-bottom:6px"><strong>Photos:</strong> ' + photoCount + ' uploaded</div>' : ''}
+        </div>
+      </div>
+    </div>`;
+
+  var sends = [
+    fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + RESEND_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from: 'Dr Drapes <quotes@drdrapes.com.au>',
+        to: [data.email],
+        subject: 'Quote Request Received — ' + data.dqNumber,
+        html: custHtml
+      })
+    }),
+    fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + RESEND_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from: 'DrapesQuotePro <quotes@drdrapes.com.au>',
+        to: [DR_DRAPES_EMAIL],
+        subject: '🔔 New Quote Request — ' + data.dqNumber + ' — ' + data.firstName + ' ' + data.lastName,
+        html: staffHtml
+      })
+    })
+  ];
+
+  await Promise.allSettled(sends);
+}
+
+// ── Submit ───────────────────────────────────────────────────
+document.getElementById('quoteForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  if (!validate()) return;
+
+  var btn = document.getElementById('submitBtn');
+  var txt = document.getElementById('submitText');
+  var spn = document.getElementById('submitSpinner');
+  btn.disabled = true;
+  txt.textContent = 'Sending...';
+  spn.style.display = 'inline-block';
+
+  try {
+    // Gather data
+    var items = Array.from(document.querySelectorAll('#itemChips .chip.selected input')).map(function(cb){ return cb.value; });
+    var conditions = Array.from(document.querySelectorAll('[name=conditions]:checked')).map(function(cb){ return cb.value; });
+
+    var dqNumber = await getNextDQNumber();
+
+    var data = {
+      dqNumber: dqNumber,
+      firstName: document.getElementById('firstName').value.trim(),
+      lastName: document.getElementById('lastName').value.trim(),
+      phone: document.getElementById('phone').value.trim(),
+      email: document.getElementById('email').value.trim(),
+      address: document.getElementById('address').value.trim(),
+      jobType: document.getElementById('jobType').value,
+      items: items,
+      rooms: parseInt(document.getElementById('roomCount').value),
+      conditions: conditions,
+      claimRef: document.getElementById('claimRef').value.trim(),
+      notes: document.getElementById('notes').value.trim(),
+      photos: photos.map(function(p){ return { name: p.name, dataUrl: p.dataUrl }; })
+    };
+
+    // Save to Supabase
+    var r = await fetch(SUPABASE_URL + '/rest/v1/enquiries', {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({
+        customer_name: data.firstName + ' ' + data.lastName,
+        customer_phone: data.phone,
+        customer_email: data.email,
+        site_address: data.address,
+        items_description: items.join(', ') + ' — ' + data.rooms + ' room(s)' + (conditions.length ? ' — ' + conditions.join(', ') : ''),
+        notes: (data.claimRef ? 'Claim ref: ' + data.claimRef + '\n' : '') + (data.notes || ''),
+        status: 'new',
+        data: data
+      })
+    });
+
+    if (!r.ok) throw new Error('Save failed: ' + r.status);
+
+    // Send emails
+    await sendEmails(data);
+
+    // Show success
+    document.getElementById('quoteForm').style.display = 'none';
+    var s = document.getElementById('successScreen');
+    s.style.display = 'block';
+    document.getElementById('successRef').textContent = dqNumber;
+    document.getElementById('successEmail').textContent = data.email;
+
+  } catch(err) {
+    console.error(err);
+    alert('Sorry, something went wrong. Please call us on 1300 652 866 or try again.');
+    btn.disabled = false;
+    txt.textContent = 'Send My Quote Request';
+    spn.style.display = 'none';
+  }
+});
+</script>
+</body>
+</html>
