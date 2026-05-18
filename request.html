@@ -140,6 +140,56 @@
   }
   #photoInput { display:none; }
 
+  /* ── Item cards ── */
+  .item-card {
+    border:1.5px solid var(--g100); border-radius:10px;
+    margin-bottom:10px; overflow:hidden;
+    background:#fafbff;
+  }
+  .item-card-hdr {
+    display:flex; align-items:center; gap:10px;
+    padding:10px 12px; background:var(--g50);
+    border-bottom:1px solid var(--g100);
+  }
+  .item-num {
+    width:24px; height:24px; border-radius:50%;
+    background:var(--teal); color:#fff;
+    font-family:'Montserrat',sans-serif; font-size:.72rem; font-weight:800;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .item-type-sel {
+    flex:1; border:1.5px solid var(--g100); border-radius:7px;
+    padding:7px 10px; font-size:.84rem; font-family:'Open Sans',sans-serif;
+    background:#fff; outline:none; cursor:pointer;
+  }
+  .item-type-sel:focus { border-color:var(--teal); }
+  .item-remove {
+    width:28px; height:28px; border-radius:50%;
+    background:rgba(224,25,46,.1); color:var(--red);
+    border:none; cursor:pointer; font-size:1rem; font-weight:700;
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0; transition:background .12s;
+  }
+  .item-remove:hover { background:rgba(224,25,46,.2); }
+  .item-body { padding:12px; }
+  .item-meas { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px; }
+  @media(max-width:400px){ .item-meas{grid-template-columns:1fr;} }
+  .meas-input {
+    border:1.5px solid var(--g100); border-radius:7px;
+    padding:9px 11px; font-size:.88rem; font-family:'Open Sans',sans-serif;
+    width:100%; outline:none; transition:border-color .15s;
+  }
+  .meas-input:focus { border-color:var(--teal); }
+  .meas-hint { font-size:.7rem; color:var(--g300); margin-top:3px; }
+  .add-item-btn {
+    width:100%; padding:11px; border-radius:8px;
+    border:2px dashed var(--g100); background:transparent;
+    color:var(--teal); font-family:'Montserrat',sans-serif;
+    font-size:.84rem; font-weight:700; cursor:pointer;
+    transition:all .15s; margin-top:4px;
+  }
+  .add-item-btn:hover { border-color:var(--teal); background:rgba(15,118,110,.04); }
+
   /* ── Submit button ── */
   .submit-btn {
     width:100%; padding:16px; border-radius:10px;
@@ -252,70 +302,42 @@
       </div>
     </div>
 
-    <!-- What they have -->
+    <!-- Items with measurements -->
     <div class="card">
-      <div class="card-title"><div class="dot"></div>What Needs Cleaning?</div>
-      <div class="f">
-        <label>Item Types <span class="req">*</span></label>
-        <div class="chip-group" id="itemChips">
-          <label class="chip selected" onclick="toggleChip(this)">
-            <input type="checkbox" value="curtains" checked>
-            <span class="ck">✓</span> Curtains / Drapes
-          </label>
-          <label class="chip" onclick="toggleChip(this)">
-            <input type="checkbox" value="blinds">
-            <span class="ck">✓</span> Blinds
-          </label>
-          <label class="chip" onclick="toggleChip(this)">
-            <input type="checkbox" value="sheers">
-            <span class="ck">✓</span> Sheers
-          </label>
-          <label class="chip" onclick="toggleChip(this)">
-            <input type="checkbox" value="pelmets">
-            <span class="ck">✓</span> Pelmets / Valances
-          </label>
-          <label class="chip" onclick="toggleChip(this)">
-            <input type="checkbox" value="unsure">
-            <span class="ck">✓</span> Not Sure
-          </label>
-        </div>
-        <div class="err-msg" id="err-items">Please select at least one item type</div>
-      </div>
+      <div class="card-title"><div class="dot"></div>What Needs Cleaning? <span style="font-size:.7rem;font-weight:400;text-transform:none;letter-spacing:0;color:var(--g300);font-family:'Open Sans',sans-serif">(add each item with measurements if known)</span></div>
 
-      <div class="f" style="margin-top:4px">
-        <label>How many rooms?</label>
-        <div class="room-counter">
-          <button type="button" class="rc-btn" onclick="adjustRooms(-1)">−</button>
-          <input type="number" class="rc-val" id="roomCount" value="1" min="1" max="30" readonly>
-          <button type="button" class="rc-btn" onclick="adjustRooms(1)">+</button>
-        </div>
-      </div>
+      <div id="itemList"></div>
 
-      <div class="f" style="margin-top:4px">
+      <button type="button" class="add-item-btn" onclick="addItem()">
+        + Add Item
+      </button>
+      <div class="err-msg" id="err-items" style="margin-top:8px">Please add at least one item</div>
+
+      <div class="f" style="margin-top:16px;padding-top:14px;border-top:1px solid var(--g50)">
         <label>Any Special Conditions?</label>
         <div class="chip-group">
-          <label class="chip" onclick="toggleChip(this)">
+          <label class="chip" onclick="toggleChip(this,event)">
             <input type="checkbox" value="mould" name="conditions">
             <span class="ck">✓</span> Mould / Mildew
           </label>
-          <label class="chip" onclick="toggleChip(this)">
+          <label class="chip" onclick="toggleChip(this,event)">
             <input type="checkbox" value="smoke" name="conditions">
             <span class="ck">✓</span> Smoke Damage
           </label>
-          <label class="chip" onclick="toggleChip(this)">
+          <label class="chip" onclick="toggleChip(this,event)">
             <input type="checkbox" value="flood" name="conditions">
             <span class="ck">✓</span> Flood / Water Damage
           </label>
-          <label class="chip" onclick="toggleChip(this)">
+          <label class="chip" onclick="toggleChip(this,event)">
             <input type="checkbox" value="pet" name="conditions">
             <span class="ck">✓</span> Pet Odour / Hair
           </label>
-          <label class="chip" onclick="toggleChip(this)">
-            <input type="checkbox" value="rehang">
+          <label class="chip" onclick="toggleChip(this,event)">
+            <input type="checkbox" value="rehang" name="conditions">
             <span class="ck">✓</span> Need Rehang
           </label>
-          <label class="chip" onclick="toggleChip(this)">
-            <input type="checkbox" value="urgent">
+          <label class="chip" onclick="toggleChip(this,event)">
+            <input type="checkbox" value="urgent" name="conditions">
             <span class="ck">✓</span> Urgent
           </label>
         </div>
@@ -378,24 +400,95 @@
 <script>
 const SUPABASE_URL = 'https://kspezkqanaqrhbirqmlc.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzcGV6a3FhbmFxcmhiaXJxbWxjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwOTU1MDksImV4cCI6MjA5NDY3MTUwOX0.toB3DTsKZ8Cydhxw4DTJjzmanF7tghHlXQNOzJ4xOiA';
-const RESEND_KEY = 'RESEND_API_KEY_HERE';
+const RESEND_KEY = 're_LHeaQL24_Hk9kAmoRrfCoQzPfv5Bo93x5';
 const DR_DRAPES_EMAIL = 'drdrapes@hudsongroup.com.au';
 
-// ── Photos ──────────────────────────────────────────────────
-var photos = []; // array of { dataUrl, file }
+// ── Item builder ────────────────────────────────────────────
+var itemCounter = 0;
+var itemList = [];
 
-function toggleChip(el) {
+var ITEM_TYPES = [
+  { value: 'curtain',  label: 'Curtain / Drape',        meas: 'wh' },
+  { value: 'sheer',    label: 'Sheer Curtain',           meas: 'wh' },
+  { value: 'blind',    label: 'Blind (Roller / Roman)',  meas: 'wh' },
+  { value: 'venetian', label: 'Venetian Blind',          meas: 'wh' },
+  { value: 'pelmet',   label: 'Pelmet',                  meas: 'w'  },
+  { value: 'valance',  label: 'Valance / Swag',          meas: 'w'  },
+  { value: 'other',    label: 'Other',                   meas: 'none' }
+];
+
+function addItem() {
+  var id = ++itemCounter;
+  itemList.push(id);
+  var container = document.getElementById('itemList');
+  var div = document.createElement('div');
+  div.className = 'item-card';
+  div.id = 'item-' + id;
+  var typeOpts = ITEM_TYPES.map(function(t){
+    return '<option value="' + t.value + '">' + t.label + '</option>';
+  }).join('');
+  div.innerHTML =
+    '<div class="item-card-hdr">' +
+      '<div class="item-num">' + id + '</div>' +
+      '<select class="item-type-sel" id="itype-' + id + '" onchange="updateItemMeas(' + id + ')">' + typeOpts + '</select>' +
+      '<button type="button" class="item-remove" onclick="removeItem(' + id + ')">&#215;</button>' +
+    '</div>' +
+    '<div class="item-body">' +
+      '<div class="f" style="margin-bottom:10px">' +
+        '<label>Room / Location</label>' +
+        '<input type="text" class="meas-input" id="iloc-' + id + '" placeholder="e.g. Master Bedroom, Lounge">' +
+      '</div>' +
+      '<div id="imeas-' + id + '">' + getMeasHTML(id, 'curtain') + '</div>' +
+    '</div>';
+  container.appendChild(div);
+  document.getElementById('err-items').style.display = 'none';
+}
+
+function getMeasHTML(id, type) {
+  var t = ITEM_TYPES.find(function(x){ return x.value === type; }) || ITEM_TYPES[0];
+  if (t.meas === 'none') return '<p class="meas-hint" style="padding:4px 0">No measurements needed — describe in Notes.</p>';
+  var wHtml = '<div><label style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--g300);font-family:Montserrat,sans-serif">Width (mm or m)</label><input type="number" class="meas-input" id="iw-' + id + '" placeholder="e.g. 1200" min="0" step="any" inputmode="decimal"><div class="meas-hint">Type mm (1200) or metres (1.2) — we will sort it out</div></div>';
+  var hHtml = t.meas === 'wh' ? '<div><label style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--g300);font-family:Montserrat,sans-serif">Height / Drop (mm or m)</label><input type="number" class="meas-input" id="ih-' + id + '" placeholder="e.g. 2400" min="0" step="any" inputmode="decimal"><div class="meas-hint">Type mm (2400) or metres (2.4)</div></div>' : '';
+  return '<div class="item-meas">' + wHtml + hHtml + '</div>';
+}
+
+function updateItemMeas(id) {
+  var sel = document.getElementById('itype-' + id);
+  var measDiv = document.getElementById('imeas-' + id);
+  if (measDiv) measDiv.innerHTML = getMeasHTML(id, sel ? sel.value : 'curtain');
+}
+
+function removeItem(id) {
+  itemList = itemList.filter(function(i){ return i !== id; });
+  var el = document.getElementById('item-' + id);
+  if (el) el.remove();
+  itemList.forEach(function(i, idx) {
+    var num = document.querySelector('#item-' + i + ' .item-num');
+    if (num) num.textContent = idx + 1;
+  });
+}
+
+function getItems() {
+  return itemList.map(function(id) {
+    var type = document.getElementById('itype-' + id);
+    var loc  = document.getElementById('iloc-' + id);
+    var w    = document.getElementById('iw-' + id);
+    var h    = document.getElementById('ih-' + id);
+    var t = type ? type.value : '';
+    var tLabel = (ITEM_TYPES.find(function(x){ return x.value===t; })||{}).label || t;
+    return { type:t, label:tLabel, location:loc?loc.value.trim():'', width:w?w.value:'', height:h?h.value:'' };
+  }).filter(function(i){ return i.type; });
+}
+
+function toggleChip(el, e) {
+  if (e) e.preventDefault();
   el.classList.toggle('selected');
   var cb = el.querySelector('input[type=checkbox]');
   if (cb) cb.checked = el.classList.contains('selected');
 }
 
-function adjustRooms(delta) {
-  var el = document.getElementById('roomCount');
-  var v = parseInt(el.value) + delta;
-  el.value = Math.max(1, Math.min(30, v));
-}
-
+// ── Photos ──────────────────────────────────────────────────
+var photos = []; // array of { dataUrl, name }
 function dragOver(e) {
   e.preventDefault();
   document.getElementById('uploadArea').classList.add('drag-over');
@@ -466,10 +559,9 @@ function validate() {
     if (err) err.style.display = invalid ? 'block' : 'none';
     if (invalid) ok = false;
   });
-  // At least one item chip
-  var chips = document.querySelectorAll('#itemChips .chip.selected');
+  // At least one item
   var itemErr = document.getElementById('err-items');
-  if (!chips.length) { if(itemErr) itemErr.style.display='block'; ok=false; }
+  if (!itemList.length) { if(itemErr) itemErr.style.display='block'; ok=false; }
   else { if(itemErr) itemErr.style.display='none'; }
   return ok;
 }
@@ -492,92 +584,97 @@ async function getNextDQNumber() {
 // ── Send email via Resend ────────────────────────────────────
 async function sendEmails(data) {
   if (!RESEND_KEY || RESEND_KEY === 'RESEND_API_KEY_HERE') {
-    console.warn('Resend key not set — skipping emails');
+    console.warn('Resend key not set');
     return;
   }
 
-  var items = data.items.join(', ');
+  var items = data.items.map(function(i){
+    return i.label + (i.location?' — '+i.location:'') + (i.width?' W:'+i.width:'') + (i.height?' H:'+i.height:'');
+  }).join('<br>');
   var conditions = data.conditions.length ? data.conditions.join(', ') : 'None noted';
   var photoCount = data.photos ? data.photos.length : 0;
 
-  // Customer confirmation
-  var custHtml = `
-    <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto">
-      <div style="background:#2b2d7e;padding:20px 24px;border-radius:10px 10px 0 0">
-        <img src="https://davidhudson84.github.io/drapesquotepro/logo.png" height="50" alt="Dr Drapes" style="margin-bottom:8px;display:block">
-        <h2 style="color:#fff;font-size:16px;margin:0">Quote Request Received</h2>
-      </div>
-      <div style="background:#f0f1f8;padding:20px 24px">
-        <p style="color:#3a3c6e;font-size:14px;margin-bottom:16px">Hi ${data.firstName}, thanks for getting in touch! We've received your quote request and will call you within one business day to confirm the details.</p>
-        <div style="background:#fff;border-radius:8px;padding:16px;margin-bottom:16px;border-left:4px solid #0f766e">
-          <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#9597be;font-weight:700;margin-bottom:8px">Your Reference</div>
-          <div style="font-size:20px;font-weight:800;color:#0f766e;font-family:Montserrat,sans-serif">${data.dqNumber}</div>
-        </div>
-        <div style="background:#fff;border-radius:8px;padding:16px;font-size:13px;color:#555">
-          <div style="margin-bottom:6px"><strong>Name:</strong> ${data.firstName} ${data.lastName}</div>
-          <div style="margin-bottom:6px"><strong>Address:</strong> ${data.address}</div>
-          <div style="margin-bottom:6px"><strong>Items:</strong> ${items}</div>
-          <div style="margin-bottom:6px"><strong>Rooms:</strong> ${data.rooms}</div>
-          ${conditions !== 'None noted' ? '<div style="margin-bottom:6px"><strong>Conditions:</strong> ' + conditions + '</div>' : ''}
-          ${data.notes ? '<div style="margin-bottom:6px"><strong>Notes:</strong> ' + data.notes + '</div>' : ''}
-          ${photoCount ? '<div style="margin-bottom:6px"><strong>Photos attached:</strong> ' + photoCount + '</div>' : ''}
-        </div>
-        <p style="color:#9597be;font-size:12px;margin-top:16px">Questions? Call us on <strong style="color:#2b2d7e">1300 652 866</strong> or email <a href="mailto:drdrapes@hudsongroup.com.au" style="color:#0f766e">drdrapes@hudsongroup.com.au</a></p>
-      </div>
-      <div style="background:#2b2d7e;padding:12px 24px;border-radius:0 0 10px 10px;text-align:center">
-        <span style="color:rgba(255,255,255,.5);font-size:11px">DR DRAPES CURTAIN CLINIC · drdrapes.com.au</span>
-      </div>
-    </div>`;
-
-  // Staff notification
+  // Staff notification — goes to DR_DRAPES_EMAIL (verified account owner)
   var staffHtml = `
     <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto">
       <div style="background:#1d4ed8;padding:16px 24px;border-radius:10px 10px 0 0">
-        <h2 style="color:#fff;font-size:15px;margin:0">🔔 New Quote Request — ${data.dqNumber}</h2>
+        <h2 style="color:#fff;font-size:15px;margin:0">&#128276; New Quote Request — ${data.dqNumber}</h2>
       </div>
       <div style="background:#f0f1f8;padding:20px 24px">
         <div style="background:#fff;border-radius:8px;padding:16px;font-size:13px;color:#333">
           <div style="margin-bottom:8px;font-size:16px;font-weight:700;color:#2b2d7e">${data.firstName} ${data.lastName}</div>
-          <div style="margin-bottom:6px">📞 <a href="tel:${data.phone}" style="color:#1d4ed8">${data.phone}</a></div>
-          <div style="margin-bottom:6px">✉️ <a href="mailto:${data.email}" style="color:#1d4ed8">${data.email}</a></div>
-          <div style="margin-bottom:6px">📍 ${data.address}</div>
+          <div style="margin-bottom:6px">&#128222; ${data.phone}</div>
+          <div style="margin-bottom:6px">&#128231; ${data.email}</div>
+          <div style="margin-bottom:6px">&#128205; ${data.address}</div>
           <hr style="border:none;border-top:1px solid #eee;margin:10px 0">
           <div style="margin-bottom:6px"><strong>Job type:</strong> ${data.jobType}</div>
-          <div style="margin-bottom:6px"><strong>Items:</strong> ${items}</div>
-          <div style="margin-bottom:6px"><strong>Rooms:</strong> ${data.rooms}</div>
+          <div style="margin-bottom:8px"><strong>Items:</strong><br>${items}</div>
           <div style="margin-bottom:6px"><strong>Conditions:</strong> ${conditions}</div>
           ${data.claimRef ? '<div style="margin-bottom:6px"><strong>Claim ref:</strong> ' + data.claimRef + '</div>' : ''}
           ${data.notes ? '<div style="margin-bottom:6px"><strong>Notes:</strong> ' + data.notes + '</div>' : ''}
           ${photoCount ? '<div style="margin-bottom:6px"><strong>Photos:</strong> ' + photoCount + ' uploaded</div>' : ''}
+          <hr style="border:none;border-top:1px solid #eee;margin:10px 0">
+          <div style="font-size:11px;color:#888">Customer confirmation was also sent to: ${data.email}</div>
         </div>
       </div>
     </div>`;
 
-  var sends = [
-    fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + RESEND_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        from: 'Dr Drapes <quotes@drdrapes.com.au>',
-        to: [data.email],
-        subject: 'Quote Request Received — ' + data.dqNumber,
-        html: custHtml
-      })
-    }),
-    fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + RESEND_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        from: 'DrapesQuotePro <quotes@drdrapes.com.au>',
-        to: [DR_DRAPES_EMAIL],
-        subject: '🔔 New Quote Request — ' + data.dqNumber + ' — ' + data.firstName + ' ' + data.lastName,
-        html: staffHtml
-      })
-    })
-  ];
+  // Customer confirmation — also goes to DR_DRAPES_EMAIL while domain unverified
+  // Once hudsongroup.com.au DNS is verified this switches to data.email
+  var custHtml = `
+    <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto">
+      <div style="background:#2b2d7e;padding:20px 24px;border-radius:10px 10px 0 0">
+        <h2 style="color:#fff;font-size:16px;margin:0">Quote Request Received — ${data.dqNumber}</h2>
+      </div>
+      <div style="background:#f0f1f8;padding:20px 24px">
+        <p style="color:#3a3c6e;font-size:14px;margin-bottom:16px">Hi ${data.firstName}, thanks for your request! We will call you within one business day to confirm details.</p>
+        <div style="background:#fff;border-radius:8px;padding:14px;margin-bottom:14px;border-left:4px solid #0f766e;font-size:13px;color:#333">
+          <div><strong>Reference:</strong> <span style="color:#0f766e;font-weight:700;font-size:16px">${data.dqNumber}</span></div>
+          <div style="margin-top:6px"><strong>Items:</strong><br>${items}</div>
+          ${conditions !== 'None noted' ? '<div style="margin-top:6px"><strong>Conditions:</strong> ' + conditions + '</div>' : ''}
+        </div>
+        <p style="color:#9597be;font-size:12px">Questions? Call <strong style="color:#2b2d7e">1300 652 866</strong> or email <a href="mailto:drdrapes@hudsongroup.com.au" style="color:#0f766e">drdrapes@hudsongroup.com.au</a></p>
+      </div>
+      <div style="background:#2b2d7e;padding:10px 24px;border-radius:0 0 10px 10px;text-align:center">
+        <span style="color:rgba(255,255,255,.5);font-size:11px">DR DRAPES CURTAIN CLINIC &bull; drdrapes.com.au</span>
+      </div>
+    </div>`;
 
-  await Promise.allSettled(sends);
+  var sends = [];
+
+  // Staff notification — always send to DR_DRAPES_EMAIL
+  sends.push(fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + RESEND_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      from: 'DrapesQuotePro <onboarding@resend.dev>',
+      to: [DR_DRAPES_EMAIL],
+      subject: '&#128276; New Quote Request — ' + data.dqNumber + ' — ' + data.firstName + ' ' + data.lastName,
+      html: staffHtml
+    })
+  }));
+
+  // Customer confirmation — send to customer email
+  // Note: while hudsongroup.com.au DNS is unverified, Resend may restrict delivery
+  // to verified addresses only. Once DNS verified this works for all customers.
+  sends.push(fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + RESEND_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      from: 'Dr Drapes <onboarding@resend.dev>',
+      to: [data.email],
+      subject: 'Quote Request Received — ' + data.dqNumber,
+      html: custHtml
+    })
+  }));
+
+  var results = await Promise.allSettled(sends);
+  results.forEach(function(res, i) {
+    if (res.status === 'rejected') console.warn('Email ' + i + ' failed:', res.reason);
+    else res.value.json().then(function(j){ console.log('Email ' + i + ' result:', JSON.stringify(j)); });
+  });
 }
+
 
 // ── Submit ───────────────────────────────────────────────────
 document.getElementById('quoteForm').addEventListener('submit', async function(e) {
@@ -593,7 +690,7 @@ document.getElementById('quoteForm').addEventListener('submit', async function(e
 
   try {
     // Gather data
-    var items = Array.from(document.querySelectorAll('#itemChips .chip.selected input')).map(function(cb){ return cb.value; });
+    var items = getItems();
     var conditions = Array.from(document.querySelectorAll('[name=conditions]:checked')).map(function(cb){ return cb.value; });
 
     var dqNumber = await getNextDQNumber();
@@ -607,7 +704,6 @@ document.getElementById('quoteForm').addEventListener('submit', async function(e
       address: document.getElementById('address').value.trim(),
       jobType: document.getElementById('jobType').value,
       items: items,
-      rooms: parseInt(document.getElementById('roomCount').value),
       conditions: conditions,
       claimRef: document.getElementById('claimRef').value.trim(),
       notes: document.getElementById('notes').value.trim(),
@@ -628,7 +724,7 @@ document.getElementById('quoteForm').addEventListener('submit', async function(e
         customer_phone: data.phone,
         customer_email: data.email,
         site_address: data.address,
-        items_description: items.join(', ') + ' — ' + data.rooms + ' room(s)' + (conditions.length ? ' — ' + conditions.join(', ') : ''),
+        items_description: data.items.map(function(i){ return i.label + (i.location?' ('+i.location+')':'') + (i.width?' W:'+i.width:'') + (i.height?' H:'+i.height:''); }).join(', ') + (conditions.length ? ' | ' + conditions.join(', ') : ''),
         notes: (data.claimRef ? 'Claim ref: ' + data.claimRef + '\n' : '') + (data.notes || ''),
         status: 'new',
         data: data
@@ -654,6 +750,11 @@ document.getElementById('quoteForm').addEventListener('submit', async function(e
     txt.textContent = 'Send My Quote Request';
     spn.style.display = 'none';
   }
+});
+
+// Add first item on load
+window.addEventListener('DOMContentLoaded', function(){
+  addItem();
 });
 </script>
 </body>
