@@ -1238,11 +1238,12 @@ function setSyncStatus(s, msg) {
 
 // Core fetch wrapper
 async function sbFetch(path, method, body) {
+  var token = (typeof getStoredToken === 'function' && getStoredToken()) || SUPABASE_KEY;
   var opts = {
     method: method || 'GET',
     headers: {
       'apikey': SUPABASE_KEY,
-      'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'Authorization': 'Bearer ' + token,
       'Content-Type': 'application/json',
       'Prefer': method === 'POST' ? 'return=representation' : ''
     }
@@ -3458,8 +3459,31 @@ function enqConvertToFQ(id){
       });
     } else { addFQLine(); }
 
+    // Auto-create a job record in Supabase so it appears in Jobs tab
+    getNextDQNumber().then(function(dq){
+      var jobRecord = {
+        dq_number:      enq.dq_number || dq,
+        quote_number:   enq.dq_number || dq,
+        customer_name:  enq.customer_name,
+        customer_phone: enq.customer_phone,
+        customer_email: enq.customer_email,
+        site_address:   enq.site_address,
+        job_ref:        enq.dq_number||'',
+        status:         'quoted',
+        job_type:       'fast_quote',
+        created_by:     currentUserName||'',
+        data:           d
+      };
+      sbFetch('/jobs','POST', jobRecord).then(function(result){
+        showToast('\u2705 Job created: '+(enq.dq_number||dq)+' \u2014 add pricing then save');
+        jobsLoad(); // refresh jobs tab
+      }).catch(function(e){
+        console.error('Job create failed:', e);
+        showToast('\u2705 Loaded into Fast Quote \u2014 save to create job');
+      });
+    });
+
     enqUpdateStatus(id,'converted');
-    showToast('\u2705 Loaded \u2014 add pricing to each item');
   }, 400);
 }
 
