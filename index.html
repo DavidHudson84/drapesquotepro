@@ -1340,17 +1340,15 @@ async function sbDeleteInspection(id) {
 // ── SETTINGS (prices, terms, staff names, email template) ───
 async function sbSaveSettings(pricesObj) {
   setSyncStatus('syncing');
-  // Upsert each key
+  var token = (typeof getStoredToken === 'function' && getStoredToken()) || SUPABASE_KEY;
   var entries = Object.entries(pricesObj).map(function(kv) {
     return { key: kv[0], value: String(kv[1]) };
   });
-  await sbFetch('/settings?on_conflict=key', 'POST', entries);
-  // Use upsert header
   var opts = {
     method: 'POST',
     headers: {
       'apikey': SUPABASE_KEY,
-      'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'Authorization': 'Bearer ' + token,
       'Content-Type': 'application/json',
       'Prefer': 'resolution=merge-duplicates'
     },
@@ -3670,7 +3668,8 @@ async function jobsLoad() {
     if(btn) btn.style.display = (enqs&&enqs.length)?'flex':'none';
   } catch(e) {
     console.error('Jobs load failed:', e);
-    if(list) list.innerHTML = '<div class="jobs-empty"><div class="icon">&#9888;</div><h3>Could not load jobs</h3><p>Check your connection and try again</p></div>';
+    var msg = e.message || 'Unknown error';
+    if(list) list.innerHTML = '<div class="jobs-empty"><div class="icon">&#9888;</div><h3>Could not load jobs</h3><p style="font-size:.75rem;color:var(--red)">' + msg + '</p><button class="bm" style="margin-top:8px" onclick="jobsLoad()">Retry</button></div>';
   }
 }
 
