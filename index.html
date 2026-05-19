@@ -3718,7 +3718,7 @@ function buildJobCard(j) {
         '<span class="job-dq">'+(j.dq_number||'No DQ')+'</span>'+
         (j.drd_number?'<span class="job-drd">'+j.drd_number+'</span>':'')+
         '<span class="job-status-badge status-'+j.status+'">'+(statusLabels[j.status]||j.status)+'</span>'+
-        '<span style="font-size:.7rem;color:var(--g300);font-family:Montserrat,sans-serif">'+j.job_type.replace('_',' ')+'</span>'+
+        '<span style="font-size:.7rem;color:var(--g300);font-family:Montserrat,sans-serif">'+(j.job_type||'quote').replace('_',' ')+'</span>'+
       '</div>'+
       '<div class="job-name">'+(j.customer_name||'No customer')+'</div>'+
     '</div>'+
@@ -3797,7 +3797,7 @@ async function jobsUpdateStatus(sel, jobId, enqId) {
     // Update local data
     var job=jobsData.find(function(j){return j.id===jobId;});
     if(job) job.status=newStatus;
-    showToast('Status updated: '+newStatus.replace('_',' '));
+    showToast('Status updated: '+(newStatus||'').replace('_',' '));
   } catch(e) { showToast('Update failed'); }
 }
 
