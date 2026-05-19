@@ -27,10 +27,10 @@ header{background:var(--navy);position:sticky;top:0;z-index:200;box-shadow:0 3px
 .bh.o{background:transparent;border:1.5px solid rgba(255,255,255,0.4);color:#fff;}.bh.o:hover{background:rgba(255,255,255,.12);}
 .bh.s{background:var(--red);color:#fff;}.bh.s:hover{background:var(--red-dk);}
 .tab-nav{background:var(--navy-dk);border-bottom:3px solid var(--red);}
-.tab-nav-inner{max-width:1280px;margin:0 auto;display:flex;padding:0 16px;overflow-x:auto;}
-.tab-btn{padding:11px 18px;font-family:'Montserrat',sans-serif;font-size:0.77rem;font-weight:700;color:rgba(255,255,255,0.55);background:none;border:none;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-3px;transition:all .18s;white-space:nowrap;display:flex;align-items:center;gap:6px;}
+.tab-nav-inner{max-width:1280px;margin:0 auto;display:flex;padding:0 8px;flex-wrap:nowrap;overflow:visible;}
+.tab-btn{padding:14px 14px;font-family:'Montserrat',sans-serif;font-size:0.72rem;font-weight:700;color:rgba(255,255,255,0.55);background:none;border:none;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-3px;transition:all .18s;white-space:nowrap;display:flex;align-items:center;gap:5px;flex-shrink:1;}
 .tab-btn:hover{color:rgba(255,255,255,0.85);}.tab-btn.active{color:#fff;border-bottom-color:var(--red);}
-.tb-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.tb-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
 .tab-btn.active .tb-fast{background:var(--fast);}.tab-btn.active .tb-full{background:var(--red);}
 .tab-btn.active .tb-manage{background:var(--manage);}.tab-btn.active .tb-insp{background:var(--insp,#0f766e);}
 .tab-panel{display:none;}.tab-panel.active{display:block;}
@@ -446,6 +446,43 @@ header{background:var(--navy);position:sticky;top:0;z-index:200;box-shadow:0 3px
 @media(hover:none){.ba,.bh,.fq-btn,.btn-mg{min-height:44px;}.f input,.f select,.f textarea{font-size:16px;}}
 @media print{header,.tab-nav,.qp,.abs,.asl,.brm,.ovr,.mdr,.ba2,.tog,.manage-actions,.fq-actions{display:none!important;}body{background:#fff;}.ct{grid-template-columns:1fr;max-width:100%;padding:0;}.cb.col{display:block!important;}}
 </style>
+<style>
+#jobPage{position:fixed;inset:0;z-index:500;background:var(--g50);display:none;flex-direction:column;overflow:hidden;}
+#jobPage.open{display:flex;}
+.jp-header{background:linear-gradient(135deg,#1a1c50,#2b2d7e);padding:14px 18px;display:flex;align-items:center;gap:12px;flex-shrink:0;}
+.jp-back{background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;padding:7px 14px;cursor:pointer;font-family:Montserrat,sans-serif;font-size:.8rem;font-weight:700;display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.jp-back:hover{background:rgba(255,255,255,.25);}
+.jp-title{flex:1;min-width:0;}
+.jp-title h2{font-family:Montserrat,sans-serif;font-size:1rem;font-weight:800;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.jp-title p{font-size:.72rem;color:rgba(255,255,255,.6);margin-top:1px;}
+.jp-dq{font-family:Montserrat,sans-serif;font-size:.82rem;font-weight:800;color:#6ee7b7;flex-shrink:0;}
+.jp-status-bar{background:#fff;border-bottom:2px solid var(--g100);padding:10px 18px;display:flex;align-items:center;overflow-x:auto;flex-shrink:0;}
+.jp-status-step{display:flex;align-items:center;flex-shrink:0;}
+.jp-status-btn{padding:7px 14px;border:none;background:transparent;font-family:Montserrat,sans-serif;font-size:.72rem;font-weight:700;cursor:pointer;color:var(--g300);border-radius:20px;transition:all .15s;white-space:nowrap;}
+.jp-status-btn.done{color:var(--teal);}
+.jp-status-btn.active{background:var(--navy);color:#fff;}
+.jp-status-arrow{color:var(--g100);font-size:.8rem;margin:0 2px;flex-shrink:0;}
+.jp-body{flex:1;overflow-y:auto;padding:16px 18px;max-width:860px;margin:0 auto;width:100%;}
+.jp-section{background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(43,45,126,.07);margin-bottom:14px;overflow:hidden;}
+.jp-section-hdr{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;cursor:pointer;border-bottom:1px solid transparent;transition:border-color .15s;}
+.jp-section-hdr:hover{border-bottom-color:var(--g50);}
+.jp-section-hdr h3{font-family:Montserrat,sans-serif;font-size:.86rem;font-weight:800;color:var(--navy);display:flex;align-items:center;gap:8px;}
+.jp-badge{font-size:.65rem;font-weight:700;padding:2px 8px;border-radius:10px;font-family:Montserrat,sans-serif;}
+.jp-badge.done{background:rgba(5,150,105,.12);color:#065f46;}
+.jp-badge.pending{background:rgba(156,163,175,.15);color:var(--g400);}
+.jp-chevron{color:var(--g300);font-size:.8rem;transition:transform .2s;}
+.jp-chevron.open{transform:rotate(180deg);}
+.jp-section-body{padding:16px;display:none;}
+.jp-section-body.open{display:block;}
+.jp-detail{display:flex;gap:6px;align-items:baseline;margin-bottom:8px;font-size:.84rem;}
+.jp-detail strong{font-size:.7rem;font-weight:700;color:var(--g300);text-transform:uppercase;letter-spacing:.8px;font-family:Montserrat,sans-serif;min-width:90px;flex-shrink:0;}
+.accept-how{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+.accept-chip{padding:7px 14px;border-radius:20px;border:1.5px solid var(--g100);font-size:.78rem;font-family:Montserrat,sans-serif;font-weight:700;cursor:pointer;color:var(--g700);transition:all .15s;background:#fff;}
+.accept-chip.selected{border-color:var(--teal);background:rgba(15,118,110,.08);color:var(--teal);}
+.accept-terms{display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--g50);border-radius:8px;margin-bottom:12px;}
+.accept-terms input[type=checkbox]{width:18px;height:18px;accent-color:var(--teal);cursor:pointer;flex-shrink:0;}
+.accept-terms label{font-size:.82rem;color:var(--g700);cursor:pointer;font-family:Montserrat,sans-serif;font-weight:600;}
+</style>
 </head>
 <body>
 
@@ -483,13 +520,10 @@ header{background:var(--navy);position:sticky;top:0;z-index:200;box-shadow:0 3px
         <div class="user-avatar" id="userAvatar">?</div>
         <span id="userName">Staff</span>
       </div>
-      <button class="bh" onclick="switchTab('enquiries')" id="enqBtn" style="background:rgba(255,255,255,.15);color:#fff;position:relative;display:none">
+      <button class="bh" onclick="switchTab('enquiries')" id="enqBtn" style="background:rgba(255,255,255,.15);color:#fff;position:relative">
         &#128276; Enquiries
         <span id="enqBadge" style="position:absolute;top:-4px;right:-4px;background:var(--red);color:#fff;font-size:.6rem;font-weight:800;padding:2px 5px;border-radius:10px;font-family:Montserrat,sans-serif;display:none">0</span>
       </button>
-      <button class="bh o" onclick="saveJob()">&#128190; Save</button>
-      <button class="bh o" onclick="openSaved()">&#128194; Jobs</button>
-      <button class="bh s" onclick="downloadQuote()">&#8659; Download</button>
     </div>
   </div>
 </header>
@@ -773,9 +807,8 @@ header{background:var(--navy);position:sticky;top:0;z-index:200;box-shadow:0 3px
     <button class="fq-btn sec" onclick="fqExportCSV()">&#128190; Export CSV</button>
     <button class="fq-btn out" onclick="fqCopyEmail()">&#128231; Copy Email</button>
   </div>
-  <div class="fq-actions" style="grid-template-columns:1fr 1fr 1fr;margin-top:8px">
-    <button class="fq-btn" style="background:#64748b;color:#fff" onclick="saveFastQuote()">&#128190; Save Draft</button>
-    <button class="fq-btn" style="background:#059669;color:#fff;font-weight:800" onclick="fqConvertToJobAndSave()">&#128188; Save as Job</button>
+  <div class="fq-actions" style="grid-template-columns:1fr 1fr;margin-top:8px">
+    <button class="fq-btn" style="background:#059669;color:#fff" onclick="saveFastQuote()">&#128190; Save Fast Quote</button>
     <button class="fq-btn" style="background:transparent;color:var(--red);border:1.5px solid var(--red)" onclick="clearFastQuote()">&#8635; Clear / New Fast Quote</button>
   </div>
   <div style="font-size:.72rem;color:var(--g300);text-align:center;margin-top:8px;">Quote Page = printable HTML &middot; CSV = opens in Excel &middot; Copy Email = paste into any email</div>
@@ -1239,12 +1272,11 @@ function setSyncStatus(s, msg) {
 
 // Core fetch wrapper
 async function sbFetch(path, method, body) {
-  var token = (typeof getStoredToken === 'function' && getStoredToken()) || SUPABASE_KEY;
   var opts = {
     method: method || 'GET',
     headers: {
       'apikey': SUPABASE_KEY,
-      'Authorization': 'Bearer ' + token,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
       'Content-Type': 'application/json',
       'Prefer': method === 'POST' ? 'return=representation' : ''
     }
@@ -1340,15 +1372,17 @@ async function sbDeleteInspection(id) {
 // ── SETTINGS (prices, terms, staff names, email template) ───
 async function sbSaveSettings(pricesObj) {
   setSyncStatus('syncing');
-  var token = (typeof getStoredToken === 'function' && getStoredToken()) || SUPABASE_KEY;
+  // Upsert each key
   var entries = Object.entries(pricesObj).map(function(kv) {
     return { key: kv[0], value: String(kv[1]) };
   });
+  await sbFetch('/settings?on_conflict=key', 'POST', entries);
+  // Use upsert header
   var opts = {
     method: 'POST',
     headers: {
       'apikey': SUPABASE_KEY,
-      'Authorization': 'Bearer ' + token,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
       'Content-Type': 'application/json',
       'Prefer': 'resolution=merge-duplicates'
     },
@@ -1476,7 +1510,7 @@ function switchTab(name){
   if(panel){ panel.classList.add('active'); panel.style.display='block'; }
   if(btn) btn.classList.add('active');
   var ha=document.getElementById('headerActions');
-  if(ha) ha.style.display=name==='full'?'flex':'none';
+  if(ha) ha.style.display='flex';
   if(name==='jobs')     jobsLoad();
   if(name==='inspect')  { renderSavedInspections(); populateInspDRDDropdown(); }
   if(name==='reports')  rptInit();
@@ -2694,6 +2728,27 @@ function saveInspection(){
   renderSavedInspections();
   showToast('\u2705 Inspection saved: '+drd+' ('+inspType+')');
   sbSaveInspection(data).catch(function(e){ console.warn('Cloud inspection save failed:',e); });
+  inspSyncToJob(drd, inspType, data);
+}
+
+async function inspSyncToJob(drd, type, data) {
+  if(!drd) return;
+  try {
+    var rows = await sbFetch('/jobs?or=(dq_number.eq.'+encodeURIComponent(drd)+',drd_number.eq.'+encodeURIComponent(drd)+')', 'GET');
+    if(!rows||!rows.length) return;
+    var job=rows[0], d=job.data||{};
+    if(type==='pre') d.preInspection=data; else d.postInspection=data;
+    var ns=job.status;
+    if(type==='pre'&&['quoted','confirmed'].includes(ns)) ns='in_progress';
+    if(type==='post'&&ns==='in_progress') ns='complete';
+    await sbFetch('/jobs?id=eq.'+job.id,'PATCH',{status:ns,data:d,updated_at:new Date().toISOString()});
+    if(typeof jpCurrentJob!=='undefined'&&jpCurrentJob&&(jpCurrentJob.dq_number===drd||jpCurrentJob.drd_number===drd)){
+      jpCurrentJob.data=d; jpCurrentJob.status=ns;
+      if(typeof jpRenderStatusBar==='function') jpRenderStatusBar(ns);
+      if(typeof jpRenderInspSection==='function') jpRenderInspSection(type,jpCurrentJob);
+    }
+    showToast('✅ Inspection saved + synced to job '+drd);
+  } catch(e) { console.warn('inspSyncToJob failed:',e.message); }
 }
 
 // ── Render saved list ─────────────────────────────────────────
@@ -3332,7 +3387,7 @@ async function loadEnquiries(){
     var badge = document.getElementById('enqBadge');
     var btn = document.getElementById('enqBtn');
     if(badge){ badge.textContent=newCount; badge.style.display=newCount?'inline':'none'; }
-    if(btn) btn.style.display = enqData.length ? 'flex' : 'none';
+    if(btn) btn.style.display = 'flex'; // always show enquiries button
     renderEnquiries();
   } catch(e) {
     console.warn('Enquiries load failed:', e);
@@ -3439,63 +3494,27 @@ function enqConvertToFQ(id){
     if(sumEl) sumEl.innerHTML=lines.join('<br>');
 
     // Load items as FQ lines
-    // Clear existing lines
-    var fqContainer = document.getElementById('fqLines');
-    if(fqContainer){ fqContainer.innerHTML=''; fqCounter=0; }
+    var container=document.getElementById('fqLinesContainer')||document.getElementById('fqLines');
+    if(container){ container.innerHTML=''; fqLineCount=0; }
     if(items.length){
-      // Map enquiry item type to FQ select value
-      var typeMap={
-        curtain:'curtain-s', sheer:'sheer-s', velvet:'velvet-s',
-        blind:'roman', venetian:'venetian',
-        pelmet:'pelmet', valance:'valance', other:''
-      };
+      var typeMap={curtain:'curtain',sheer:'sheer',velvet:'velvet',blind:'roman',venetian:'venetian',pelmet:'pelmet',valance:'valance',other:'custom'};
       items.forEach(function(it){
         addFQLine();
-        var lid = fqCounter; // fqCounter is incremented by addFQLine
-        // Set the type dropdown
-        var sel = document.getElementById('fqs-'+lid);
-        if(sel){
-          var mapped = typeMap[it.type||''] || '';
-          sel.value = mapped;
-          onFQSel(lid); // trigger field update for the selected type
-        }
-        // Set description/room
-        var descEl = document.getElementById('fqd-'+lid);
-        if(descEl && it.location) descEl.value = it.location;
-        // Set measurements after fields render
-        setTimeout(function(l, item){ return function(){
-          var wEl = document.getElementById('fqw-'+l);
-          var hEl = document.getElementById('fqh-'+l);
-          var qEl = document.getElementById('fqq-'+l);
-          if(wEl && item.width)  wEl.value = item.width;
-          if(hEl && item.height) hEl.value = item.height;
-          if(qEl && item.width)  qEl.value = item.width;
-          recalcFQ();
-        };}(lid, it), 200);
+        var lid=fqLineCount;
+        var sel=document.getElementById('fqs-'+lid);
+        if(sel){ sel.value=typeMap[it.type||'']||'custom'; onFQTypeChange(lid); }
+        setTimeout(function(l,item){ return function(){
+          var wEl=document.getElementById('fqw-'+l)||document.getElementById('fqq-'+l);
+          var hEl=document.getElementById('fqh-'+l);
+          if(wEl&&item.width)  wEl.value=item.width;
+          if(hEl&&item.height) hEl.value=item.height;
+          calcFQTotals();
+        };}(lid,it),150);
       });
-    } else {
-      addFQLine();
-    }
+    } else { addFQLine(); }
 
-    // Create job from enquiry data immediately
-    var jobDQ = enq.dq_number || '';
-    (jobDQ ? Promise.resolve(jobDQ) : getNextDQNumber()).then(function(dq){
-      var jobRecord = {
-        dq_number: dq, quote_number: dq,
-        customer_name: enq.customer_name||'', customer_phone: enq.customer_phone||'',
-        customer_email: enq.customer_email||'', site_address: enq.site_address||'',
-        job_ref: dq, status: 'quoted', job_type: 'fast_quote',
-        created_by: currentUserName||'', data: d
-      };
-      sbFetch('/jobs','POST',jobRecord).then(function(){
-        showToast('✅ Job '+dq+' created — add pricing and save Fast Quote');
-        jobsLoad();
-      }).catch(function(e){
-        console.error('Job create failed:',e);
-        showToast('✅ Loaded into Fast Quote — use + Job button to save as job');
-      });
-    });;
     enqUpdateStatus(id,'converted');
+    showToast('\u2705 Loaded \u2014 add pricing to each item');
   }, 400);
 }
 
@@ -3665,11 +3684,10 @@ async function jobsLoad() {
     var badge = document.getElementById('enqBadge');
     var btn   = document.getElementById('enqBtn');
     if(badge){ badge.textContent=newCount; badge.style.display=newCount?'inline':'none'; }
-    if(btn) btn.style.display = (enqs&&enqs.length)?'flex':'none';
+    if(btn) btn.style.display = 'flex';
   } catch(e) {
     console.error('Jobs load failed:', e);
-    var msg = e.message || 'Unknown error';
-    if(list) list.innerHTML = '<div class="jobs-empty"><div class="icon">&#9888;</div><h3>Could not load jobs</h3><p style="font-size:.75rem;color:var(--red)">' + msg + '</p><button class="bm" style="margin-top:8px" onclick="jobsLoad()">Retry</button></div>';
+    if(list) list.innerHTML = '<div class="jobs-empty"><div class="icon">&#9888;</div><h3>Could not load jobs</h3><p>Check your connection and try again</p></div>';
   }
 }
 
@@ -3711,7 +3729,7 @@ function buildJobCard(j) {
 
   // Header
   var hdr=document.createElement('div'); hdr.className='job-card-hdr';
-  hdr.onclick=function(){ var body=document.getElementById('jbody-'+j.id); if(body) body.classList.toggle('open'); };
+  hdr.onclick=function(){ openJobPage(j); };
   hdr.innerHTML=
     '<div style="min-width:0;flex:1">'+
       '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'+
@@ -3797,7 +3815,7 @@ async function jobsUpdateStatus(sel, jobId, enqId) {
     // Update local data
     var job=jobsData.find(function(j){return j.id===jobId;});
     if(job) job.status=newStatus;
-    showToast('Status updated: '+(newStatus||'').replace('_',' '));
+    showToast('Status updated: '+newStatus.replace('_',' '));
   } catch(e) { showToast('Update failed'); }
 }
 
@@ -3905,82 +3923,336 @@ function fqConvertToJob(save) {
   });
 }
 
+</script>
+<div id="jobPage">
+  <div class="jp-header">
+    <button class="jp-back" onclick="closeJobPage()">&#8592; Jobs</button>
+    <div class="jp-title"><h2 id="jpCustomerName">Customer</h2><p id="jpAddress"></p></div>
+    <span class="jp-dq" id="jpDQNumber"></span>
+  </div>
+  <div class="jp-status-bar">
+    <div class="jp-status-step"><button class="jp-status-btn" data-status="quoted"      onclick="jpSetStatus('quoted')">&#128196; Quoted</button><span class="jp-status-arrow">&#8250;</span></div>
+    <div class="jp-status-step"><button class="jp-status-btn" data-status="confirmed"   onclick="jpSetStatus('confirmed')">&#10003; Confirmed</button><span class="jp-status-arrow">&#8250;</span></div>
+    <div class="jp-status-step"><button class="jp-status-btn" data-status="in_progress" onclick="jpSetStatus('in_progress')">&#128295; In Progress</button><span class="jp-status-arrow">&#8250;</span></div>
+    <div class="jp-status-step"><button class="jp-status-btn" data-status="complete"    onclick="jpSetStatus('complete')">&#9989; Complete</button><span class="jp-status-arrow">&#8250;</span></div>
+    <div class="jp-status-step"><button class="jp-status-btn" data-status="invoiced"    onclick="jpSetStatus('invoiced')">&#128176; Invoiced</button></div>
+  </div>
+  <div class="jp-body">
+    <div class="jp-section">
+      <div class="jp-section-hdr" onclick="jpToggleSection('jpCust')"><h3>&#128100; Customer Details</h3><span class="jp-chevron open" id="jpCustChev">&#9660;</span></div>
+      <div class="jp-section-body open" id="jpCust">
+        <div class="jp-detail"><strong>Name</strong><span id="jpDetailName">&#8212;</span></div>
+        <div class="jp-detail"><strong>Phone</strong><a id="jpDetailPhone" href="#" style="color:var(--navy)">&#8212;</a></div>
+        <div class="jp-detail"><strong>Email</strong><a id="jpDetailEmail" href="#" style="color:var(--navy)">&#8212;</a></div>
+        <div class="jp-detail"><strong>Address</strong><span id="jpDetailAddr">&#8212;</span></div>
+        <div class="jp-detail" id="jpDetailClaimRow" style="display:none"><strong>Claim Ref</strong><span id="jpDetailClaim"></span></div>
+      </div>
+    </div>
+    <div class="jp-section">
+      <div class="jp-section-hdr" onclick="jpToggleSection('jpQuote')"><h3>&#128196; Quote <span class="jp-badge pending" id="jpQuoteBadge">Pending</span></h3><span class="jp-chevron open" id="jpQuoteChev">&#9660;</span></div>
+      <div class="jp-section-body open" id="jpQuote">
+        <div id="jpQuoteContent"><p style="font-size:.82rem;color:var(--g300)">No quote saved yet.</p></div>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button id="jpOpenQuoteBtn" onclick="jpOpenQuote()" style="display:none;padding:9px 18px;border-radius:8px;border:none;cursor:pointer;background:var(--navy);color:#fff;font-family:Montserrat,sans-serif;font-size:.8rem;font-weight:700">&#9997; Edit Quote</button>
+          <button id="jpDownloadQuoteBtn" onclick="jpOpenQuote()" style="display:none;padding:9px 18px;border-radius:8px;border:none;cursor:pointer;background:var(--teal);color:#fff;font-family:Montserrat,sans-serif;font-size:.8rem;font-weight:700">&#8659; Download PDF</button>
+        </div>
+      </div>
+    </div>
+    <div class="jp-section">
+      <div class="jp-section-hdr" onclick="jpToggleSection('jpAccept')"><h3>&#10003; Acceptance <span class="jp-badge pending" id="jpAcceptBadge">Pending</span></h3><span class="jp-chevron" id="jpAcceptChev">&#9660;</span></div>
+      <div class="jp-section-body" id="jpAccept">
+        <p style="font-size:.78rem;color:var(--g400);margin-bottom:12px">Record how the customer accepted the quote.</p>
+        <div class="accept-how">
+          <div class="accept-chip" data-how="verbal" onclick="jpSelectHow(this)">&#128222; Verbal</div>
+          <div class="accept-chip" data-how="email"  onclick="jpSelectHow(this)">&#128231; Email</div>
+          <div class="accept-chip" data-how="text"   onclick="jpSelectHow(this)">&#128172; Text</div>
+          <div class="accept-chip" data-how="other"  onclick="jpSelectHow(this)">&#9679; Other</div>
+        </div>
+        <div class="accept-terms"><input type="checkbox" id="jpTermsTick"><label for="jpTermsTick">Customer has received and accepted our Terms of Trade</label></div>
+        <button onclick="jpConfirmAcceptance()" style="width:100%;padding:12px;border-radius:9px;border:none;cursor:pointer;background:#059669;color:#fff;font-family:Montserrat,sans-serif;font-size:.86rem;font-weight:800">&#10003; Confirm Acceptance &amp; Mark Confirmed</button>
+        <div id="jpAcceptedNote" style="display:none;margin-top:10px;padding:10px 14px;background:rgba(5,150,105,.08);border-radius:8px;font-size:.82rem;color:#065f46;font-family:Montserrat,sans-serif;font-weight:700"></div>
+      </div>
+    </div>
+    <div class="jp-section">
+      <div class="jp-section-hdr" onclick="jpToggleSection('jpPre')"><h3>&#128255; Pre-Inspection <span class="jp-badge pending" id="jpPreBadge">Not started</span></h3><span class="jp-chevron" id="jpPreChev">&#9660;</span></div>
+      <div class="jp-section-body" id="jpPre"><div id="jpPreContent"></div></div>
+    </div>
+    <div class="jp-section">
+      <div class="jp-section-hdr" onclick="jpToggleSection('jpPost')"><h3>&#128203; Post-Inspection <span class="jp-badge pending" id="jpPostBadge">Not started</span></h3><span class="jp-chevron" id="jpPostChev">&#9660;</span></div>
+      <div class="jp-section-body" id="jpPost"><div id="jpPostContent"></div></div>
+    </div>
+    <div class="jp-section">
+      <div class="jp-section-hdr" onclick="jpToggleSection('jpNotes')"><h3>&#128221; Internal Notes</h3><span class="jp-chevron" id="jpNotesChev">&#9660;</span></div>
+      <div class="jp-section-body" id="jpNotes">
+        <textarea id="jpInternalNotes" rows="4" placeholder="Internal notes, staff handover..." style="width:100%;border:1.5px solid var(--g100);border-radius:8px;padding:10px;font-family:Open Sans,sans-serif;font-size:.84rem;resize:vertical;outline:none"></textarea>
+        <button onclick="jpSaveNotes()" style="margin-top:8px;padding:9px 18px;border-radius:8px;border:none;cursor:pointer;background:var(--navy);color:#fff;font-family:Montserrat,sans-serif;font-size:.8rem;font-weight:700">Save Notes</button>
+      </div>
+    </div>
+    <div style="height:30px"></div>
+  </div>
+</div>
+<script>
+var jpCurrentJob=null,jpAcceptHow='';
+var JP_STATUSES=['quoted','confirmed','in_progress','complete','invoiced'];
+var JP_LABELS={quoted:'Quoted',confirmed:'Confirmed',in_progress:'In Progress',complete:'Complete',invoiced:'Invoiced'};
 
-async function fqConvertToJobAndSave() {
-  // First save the FQ as a draft
-  saveFastQuote();
+function openJobPage(job){
+  jpCurrentJob=job; jpAcceptHow=(job.data&&job.data.acceptHow)||'';
+  document.getElementById('jpCustomerName').textContent=job.customer_name||'No name';
+  document.getElementById('jpAddress').textContent=job.site_address||'';
+  document.getElementById('jpDQNumber').textContent=job.dq_number||'';
+  jpRenderStatusBar(job.status||'quoted');
+  var phone=job.customer_phone||'',email=job.customer_email||'';
+  document.getElementById('jpDetailName').textContent=job.customer_name||'\u2014';
+  document.getElementById('jpDetailPhone').textContent=phone||'\u2014';
+  document.getElementById('jpDetailPhone').href=phone?'tel:'+phone:'#';
+  document.getElementById('jpDetailEmail').textContent=email||'\u2014';
+  document.getElementById('jpDetailEmail').href=email?'mailto:'+email:'#';
+  document.getElementById('jpDetailAddr').textContent=job.site_address||'\u2014';
+  var d=job.data||{},claim=d.claimRef||d.claimNumber||'';
+  document.getElementById('jpDetailClaimRow').style.display=claim?'':'none';
+  document.getElementById('jpDetailClaim').textContent=claim;
+  jpRenderQuoteSection(job);
+  jpRenderAcceptance(job);
+  jpRenderInspSection('pre',job);
+  jpRenderInspSection('post',job);
+  document.getElementById('jpInternalNotes').value=d.internalNotes||'';
+  document.getElementById('jobPage').classList.add('open');
+  document.body.style.overflow='hidden';
+}
 
-  // Gather FQ data
-  var name  = document.getElementById('fq-name')  ? document.getElementById('fq-name').value.trim()  : '';
-  var phone = document.getElementById('fq-phone') ? document.getElementById('fq-phone').value.trim() : '';
-  var email = document.getElementById('fq-email') ? document.getElementById('fq-email').value.trim() : '';
-  var ref   = document.getElementById('fq-ref')   ? document.getElementById('fq-ref').value.trim()   : '';
-  var addr  = document.getElementById('fqAddress')? document.getElementById('fqAddress').value.trim(): '';
+function closeJobPage(){
+  document.getElementById('jobPage').classList.remove('open');
+  document.body.style.overflow='';
+  jobsLoad();
+}
 
-  if(!name){ showToast('Add a customer name first'); return; }
+function jpRenderStatusBar(cur){
+  document.querySelectorAll('.jp-status-btn').forEach(function(btn){
+    var s=btn.dataset.status,idx=JP_STATUSES.indexOf(s),ci=JP_STATUSES.indexOf(cur);
+    btn.classList.remove('active','done');
+    if(s===cur)btn.classList.add('active');
+    else if(idx<ci)btn.classList.add('done');
+  });
+}
 
-  // Get or assign DQ number
-  var dq = ref && ref.startsWith('DQ-') ? ref : await getNextDQNumber();
+async function jpSetStatus(ns){
+  if(!jpCurrentJob)return;
+  if(!confirm('Move to "'+JP_LABELS[ns]+'"?'))return;
+  try{
+    await sbFetch('/jobs?id=eq.'+jpCurrentJob.id,'PATCH',{status:ns,updated_at:new Date().toISOString()});
+    jpCurrentJob.status=ns; jpRenderStatusBar(ns);
+    if(ns==='confirmed')jpToggleSection('jpAccept',true);
+    showToast('Status: '+JP_LABELS[ns]);
+  }catch(e){showToast('\u274c '+e.message);}
+}
 
-  // Update the ref field with DQ number
-  var refEl = document.getElementById('fq-ref');
-  if(refEl && !ref.startsWith('DQ-')) refEl.value = dq;
+function jpToggleSection(id,forceOpen){
+  var body=document.getElementById(id),chev=document.getElementById(id+'Chev');
+  if(!body)return;
+  if(forceOpen||!body.classList.contains('open')){body.classList.add('open');if(chev)chev.classList.add('open');}
+  else{body.classList.remove('open');if(chev)chev.classList.remove('open');}
+}
 
-  // Collect line items from FQ
-  var lines = [];
-  var fqContainer = document.getElementById('fqLines');
-  if(fqContainer){
-    fqContainer.querySelectorAll('.li').forEach(function(row){
-      var id = row.id.replace('fql-','');
-      var sel  = document.getElementById('fqs-'+id);
-      var desc = document.getElementById('fqd-'+id);
-      var w    = document.getElementById('fqw-'+id);
-      var h    = document.getElementById('fqh-'+id);
-      var q    = document.getElementById('fqq-'+id);
-      if(sel && sel.value){
-        lines.push({
-          type: sel.value,
-          label: sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].text : sel.value,
-          location: desc ? desc.value : '',
-          width: w ? w.value : (q ? q.value : ''),
-          height: h ? h.value : ''
-        });
+function jpRenderQuoteSection(job){
+  var d=job.data||{};
+  var badge=document.getElementById('jpQuoteBadge');
+  var content=document.getElementById('jpQuoteContent');
+  var openBtn=document.getElementById('jpOpenQuoteBtn');
+  var dlBtn=document.getElementById('jpDownloadQuoteBtn');
+  var lines=d.lines||[],items=d.items||[];
+  var hasQ=lines.length>0||items.length>0||job.job_type==='fast_quote'||job.job_type==='full_quote';
+  if(!hasQ){
+    badge.textContent='Pending'; badge.className='jp-badge pending';
+    content.innerHTML='<p style="font-size:.82rem;color:var(--g300)">No quote saved yet. Use Fast Quote or Full Quote tab, then Save as Job.</p>';
+    if(openBtn)openBtn.style.display='none'; if(dlBtn)dlBtn.style.display='none'; return;
+  }
+  badge.textContent=(job.job_type||'quote').replace('_',' '); badge.className='jp-badge done';
+  if(openBtn)openBtn.style.display='inline-flex'; if(dlBtn)dlBtn.style.display='inline-flex';
+  var html='';
+  if(job.job_type==='fast_quote'&&lines.length){
+    var getFQOpts=typeof getFQOptions==='function'?getFQOptions():[];
+    var sub=0;
+    html+='<table style="width:100%;border-collapse:collapse;margin-bottom:12px"><thead><tr style="background:var(--g50)"><th style="padding:6px 8px;font-size:.7rem;text-align:left;color:var(--g300);font-family:Montserrat,sans-serif;text-transform:uppercase">Item</th><th style="padding:6px 8px;font-size:.7rem;text-align:left;color:var(--g300);font-family:Montserrat,sans-serif;text-transform:uppercase">Room</th><th style="padding:6px 8px;font-size:.7rem;text-align:right;color:var(--g300);font-family:Montserrat,sans-serif;text-transform:uppercase">Qty/Size</th><th style="padding:6px 8px;font-size:.7rem;text-align:right;color:var(--g300);font-family:Montserrat,sans-serif;text-transform:uppercase">Rate</th><th style="padding:6px 8px;font-size:.7rem;text-align:right;color:var(--g300);font-family:Montserrat,sans-serif;text-transform:uppercase">Amount</th></tr></thead><tbody>';
+    lines.forEach(function(l){
+      var opt=getFQOpts.find(function(o){return o.value===l.type;})||{};
+      var label=opt.label||l.type||'Item';
+      var price=parseFloat(l.price)||0;
+      var qtyStr='',lineAmt=price;
+      if(l.isBlind){
+        var wm=l.wRaw>=100?(l.wRaw/1000).toFixed(3):l.wRaw;
+        var hm=l.hRaw>=100?(l.hRaw/1000).toFixed(3):l.hRaw;
+        var sqm=wm&&hm?+(parseFloat(wm)*parseFloat(hm)).toFixed(4):0;
+        qtyStr=(wm?wm+'m':'')+( hm?' x '+hm+'m':'')+( sqm?' = '+sqm+'m\u00b2':'');
+        lineAmt=sqm?price*sqm:price;
+      } else {
+        var qty=parseInt(l.qty)||1;
+        qtyStr=qty+' panel'+(qty>1?'s':'');
+        lineAmt=price*qty;
       }
+      sub+=lineAmt;
+      html+='<tr style="border-bottom:1px solid var(--g50)"><td style="padding:6px 8px;font-size:.8rem;font-weight:600;color:var(--navy)">'+label+'</td><td style="padding:6px 8px;font-size:.78rem;color:var(--g400)">'+(l.desc||'')+'</td><td style="padding:6px 8px;font-size:.78rem;color:var(--g700);text-align:right">'+qtyStr+'</td><td style="padding:6px 8px;font-size:.78rem;text-align:right">$'+price.toFixed(2)+'</td><td style="padding:6px 8px;font-size:.8rem;font-weight:700;color:var(--navy);text-align:right">$'+lineAmt.toFixed(2)+'</td></tr>';
     });
+    html+='</tbody></table>';
+    var extras=[];
+    if(d.fuelOn&&parseFloat(d.fuelAmt)>0) extras.push({n:'Fuel Surcharge',v:parseFloat(d.fuelAmt)});
+    if(parseFloat(d.transportCost)>0) extras.push({n:'Transport',v:parseFloat(d.transportCost)});
+    if(parseFloat(d.rehangCost)>0) extras.push({n:'Rehang',v:parseFloat(d.rehangCost)});
+    if(parseFloat(d.calloutFee)>0) extras.push({n:'Callout',v:parseFloat(d.calloutFee)});
+    extras.forEach(function(e){sub+=e.v; html+='<div style="display:flex;justify-content:space-between;font-size:.8rem;padding:3px 4px;color:var(--g700)"><span>'+e.n+'</span><span>$'+e.v.toFixed(2)+'</span></div>';});
+    var dv=parseFloat(d.discVal)||0,discAmt=0;
+    if(dv>0){discAmt=d.discType==='percent'?sub*(dv/100):dv; sub-=discAmt; html+='<div style="display:flex;justify-content:space-between;font-size:.8rem;padding:3px 4px;color:var(--red)"><span>Discount'+(d.discType==='percent'?' ('+dv+'%)':'')+'</span><span>-$'+discAmt.toFixed(2)+'</span></div>';}
+    var gst=sub*0.1,grand=sub+gst;
+    html+='<div style="background:var(--navy);border-radius:8px;padding:12px 14px;margin-top:10px"><div style="display:flex;justify-content:space-between;font-size:.78rem;color:rgba(255,255,255,.6);margin-bottom:4px"><span>Subtotal (ex GST)</span><span>$'+sub.toFixed(2)+'</span></div><div style="display:flex;justify-content:space-between;font-size:.78rem;color:rgba(255,255,255,.6);margin-bottom:6px"><span>GST (10%)</span><span>$'+gst.toFixed(2)+'</span></div><div style="display:flex;justify-content:space-between;font-size:1rem;font-weight:800;color:#fff"><span>TOTAL (inc GST)</span><span>$'+grand.toFixed(2)+'</span></div></div>';
+  } else if(items.length){
+    html+='<table style="width:100%;border-collapse:collapse;margin-bottom:10px"><thead><tr style="background:var(--g50)"><th style="padding:6px 8px;font-size:.7rem;text-align:left;color:var(--g300);font-family:Montserrat,sans-serif;text-transform:uppercase">Item</th><th style="padding:6px 8px;font-size:.7rem;text-align:left;color:var(--g300);font-family:Montserrat,sans-serif;text-transform:uppercase">Room</th><th style="padding:6px 8px;font-size:.7rem;text-align:right;color:var(--g300);font-family:Montserrat,sans-serif;text-transform:uppercase">Size</th></tr></thead><tbody>';
+    items.forEach(function(it){var lbl=it.label||it.type||'Item',loc=it.location||(it.fields&&it.fields.d)||'',meas=(it.width?'W:'+it.width+' ':'')+( it.height?'H:'+it.height:''); html+='<tr style="border-bottom:1px solid var(--g50)"><td style="padding:6px 8px;font-size:.8rem;font-weight:600;color:var(--navy)">'+lbl+'</td><td style="padding:6px 8px;font-size:.78rem;color:var(--g400)">'+loc+'</td><td style="padding:6px 8px;font-size:.78rem;color:var(--teal);text-align:right">'+meas+'</td></tr>';});
+    html+='</tbody></table>';
+    var t=d.total||d.grandTotal||'';
+    if(t)html+='<div style="background:var(--navy);border-radius:8px;padding:12px 14px;display:flex;justify-content:space-between;font-size:1rem;font-weight:800;color:#fff"><span>TOTAL (inc GST)</span><span>'+t+'</span></div>';
+  } else {
+    html='<p style="font-size:.82rem;color:var(--g300)">Job created from enquiry. Open Fast Quote to add pricing.</p>';
   }
+  content.innerHTML=html;
+}
 
-  // Get FQ totals
-  var total = document.getElementById('fq-total') ? document.getElementById('fq-total').textContent : '';
+function jpOpenQuote(){
+  if(!jpCurrentJob)return;
+  closeJobPage();
+  switchTab(jpCurrentJob.job_type==='fast_quote'?'fast':'full');
+}
 
-  var jobRecord = {
-    dq_number:      dq,
-    quote_number:   dq,
-    customer_name:  name,
-    customer_phone: phone,
-    customer_email: email,
-    site_address:   addr,
-    job_ref:        dq,
-    status:         'quoted',
-    job_type:       'fast_quote',
-    created_by:     currentUserName || '',
-    data: {
-      dqNumber: dq,
-      name: name, phone: phone, email: email, addr: addr,
-      ref: dq, items: lines, total: total,
-      savedAt: new Date().toISOString()
-    }
-  };
+function jpOpenInspection(type,dq){
+  closeJobPage();
+  setTimeout(function(){
+    switchTab('inspect');
+    setTimeout(function(){
+      var preBtn=document.getElementById('typePreBtn'),postBtn=document.getElementById('typePostBtn');
+      if(type==='pre'&&preBtn) preBtn.click();
+      if(type==='post'&&postBtn) postBtn.click();
+      var sel=document.getElementById('insp-drd-select'),txt=document.getElementById('insp-drd');
+      if(sel){ for(var i=0;i<sel.options.length;i++){if(sel.options[i].value===dq){sel.selectedIndex=i;break;}} }
+      if(txt) txt.value=dq;
+      if(typeof inspLinkQuote==='function') inspLinkQuote();
+    },200);
+  },300);
+}
 
-  try {
-    await sbFetch('/jobs', 'POST', jobRecord);
-    showToast('✅ Job ' + dq + ' created — find it in the Jobs tab');
-    jobsLoad();
-    // Switch to Jobs tab after short delay so user sees it
-    setTimeout(function(){ switchTab('jobs'); }, 1200);
-  } catch(e) {
-    console.error('Job create failed:', e);
-    showToast('❌ Could not create job — check connection');
+function jpRenderAcceptance(job){
+  var d=job.data||{},badge=document.getElementById('jpAcceptBadge'),note=document.getElementById('jpAcceptedNote');
+  if(d.acceptHow){
+    jpAcceptHow=d.acceptHow; badge.textContent='Confirmed \u2014 '+d.acceptHow; badge.className='jp-badge done';
+    note.style.display=''; note.textContent='\u2705 Accepted via '+d.acceptHow+(d.acceptDate?' on '+d.acceptDate:'')+( d.termsConfirmed?' \u00b7 Terms confirmed':'');
+    document.querySelectorAll('.accept-chip').forEach(function(c){c.classList.toggle('selected',c.dataset.how===d.acceptHow);});
+    if(d.termsConfirmed)document.getElementById('jpTermsTick').checked=true;
+  } else { badge.textContent='Pending'; badge.className='jp-badge pending'; note.style.display='none'; }
+}
+
+function jpSelectHow(el){
+  document.querySelectorAll('.accept-chip').forEach(function(c){c.classList.remove('selected');});
+  el.classList.add('selected'); jpAcceptHow=el.dataset.how;
+}
+
+async function jpConfirmAcceptance(){
+  if(!jpAcceptHow){showToast('Select how customer accepted first');return;}
+  var d=jpCurrentJob.data||{};
+  d.acceptHow=jpAcceptHow; d.acceptDate=new Date().toLocaleDateString('en-AU'); d.termsConfirmed=document.getElementById('jpTermsTick').checked;
+  jpCurrentJob.data=d;
+  try{
+    await sbFetch('/jobs?id=eq.'+jpCurrentJob.id,'PATCH',{status:'confirmed',data:d,updated_at:new Date().toISOString()});
+    jpCurrentJob.status='confirmed'; jpRenderStatusBar('confirmed'); jpRenderAcceptance(jpCurrentJob);
+    showToast('\u2705 Job confirmed!');
+  }catch(e){showToast('\u274c '+e.message);}
+}
+
+function jpRenderInspSection(type,job){
+  var isPost=type==='post',d=job.data||{};
+  var insp=isPost?d.postInspection:d.preInspection;
+  var badge=document.getElementById(isPost?'jpPostBadge':'jpPreBadge');
+  var content=document.getElementById(isPost?'jpPostContent':'jpPreContent');
+  if(!content)return;
+  if(insp&&insp.savedAt){
+    badge.textContent='Done \u2014 '+(insp.date||''); badge.className='jp-badge done';
+    content.innerHTML=jpInspFullSummary(insp,type,job);
+  } else {
+    badge.textContent='Not started'; badge.className='jp-badge pending';
+    content.innerHTML=jpInspStartPrompt(type,job);
   }
+}
+
+function jpInspStartPrompt(type,job){
+  var isPost=type==='post',label=isPost?'Post-Inspection':'Pre-Inspection';
+  var dq=job.dq_number||job.drd_number||'';
+  return '<div style="text-align:center;padding:24px 0">'+
+    '<div style="font-size:2.5rem;margin-bottom:12px">'+(isPost?'&#128203;':'&#128255;')+'</div>'+
+    '<p style="font-size:.84rem;color:var(--g400);margin-bottom:16px">No '+label.toLowerCase()+' saved yet.</p>'+
+    '<button style="padding:12px 24px;border:none;border-radius:9px;background:#059669;color:#fff;cursor:pointer;font-family:Montserrat,sans-serif;font-size:.86rem;font-weight:800" onclick="jpOpenInspection(\''+type+'\',\''+dq+'\')">&#128255; Start '+label+'</button>'+
+    '<p style="font-size:.72rem;color:var(--g300);margin-top:10px">Opens the full Inspections tab with this job pre-linked</p>'+
+  '</div>';
+}
+
+function jpInspFullSummary(insp,type,job){
+  var isPost=type==='post',ac=isPost?'#7c3aed':'#0f766e';
+  var dq=job.dq_number||job.drd_number||'';
+  var outMap={fully:'Fully Restored',mostly:'Mostly Restored',partial:'Partially Restored',unable:'Unable to Fully Restore'};
+  var html='<div style="background:var(--g50);border-radius:8px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">'+
+    '<div><div style="font-weight:700;font-size:.86rem;color:var(--navy)">'+(isPost?'Post':'Pre')+'-Inspection</div>'+
+    '<div style="font-size:.78rem;color:var(--g400);margin-top:2px">'+(insp.inspector||'')+( insp.date?' &middot; '+insp.date:'')+( insp.mode?' &middot; '+(insp.mode==='item'?'Per Item':'Global'):'')+'</div></div>'+
+    '<div style="display:flex;gap:8px">'+
+      '<button onclick="jpOpenInspection(\''+type+'\',\''+dq+'\')" style="padding:6px 12px;border:1.5px solid var(--g100);border-radius:7px;background:#fff;cursor:pointer;font-family:Montserrat,sans-serif;font-size:.75rem;font-weight:700">&#9997; Edit</button>'+
+      '<button onclick="jpDownloadInspPDF(\''+type+'\')" style="padding:6px 12px;border:none;border-radius:7px;background:'+ac+';color:#fff;cursor:pointer;font-family:Montserrat,sans-serif;font-size:.75rem;font-weight:700">&#8659; PDF</button>'+
+    '</div></div>';
+  if(!isPost){ if(insp.curtScore)html+=jpScoreBar('Curtains',insp.curtScore,ac); if(insp.blindScore)html+=jpScoreBar('Blinds',insp.blindScore,ac); }
+  else { if(insp.postScore)html+=jpScoreBar('Post-Clean',insp.postScore,ac); if(insp.outcome)html+='<div style="font-size:.88rem;font-weight:700;color:'+ac+';margin:4px 0 12px">'+(outMap[insp.outcome]||insp.outcome)+'</div>'; }
+  function rChecks(chks,lbl){ if(!chks||!chks.length)return ''; return '<div style="margin-bottom:10px"><div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--g400);font-family:Montserrat,sans-serif;margin-bottom:6px">'+lbl+'</div>'+chks.map(function(ch){return '<div style="font-size:.8rem;padding:3px 0;color:#555">&#10004; '+ch.label+(ch.note?' \u2014 '+ch.note:'')+'</div>';}).join('')+'</div>'; }
+  if(insp.mode!=='item'){ html+=rChecks(insp.curtChecks,'Curtain Conditions'); html+=rChecks(insp.blindChecks,'Blind Conditions'); html+=rChecks(insp.hwChecks,'Hardware Issues'); }
+  if(insp.mode==='item'&&insp.items&&insp.items.length){
+    html+='<div style="margin-bottom:12px"><div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--g400);font-family:Montserrat,sans-serif;margin-bottom:8px">Items ('+insp.items.length+')</div>';
+    insp.items.forEach(function(it){ html+='<div style="background:var(--g50);border-radius:7px;padding:9px 12px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center"><div><span style="font-size:.82rem;font-weight:600;color:var(--navy)">'+(it.desc||it.type||'Item')+'</span>'+(it.notes?'<div style="font-size:.76rem;color:#555;margin-top:2px">'+it.notes+'</div>':'')+( it.checks&&it.checks.length?'<div style="font-size:.75rem;color:var(--g400);margin-top:2px">'+it.checks.length+' condition'+(it.checks.length>1?'s':'')+' noted</div>':'')+'</div>'+(it.score?'<span style="font-size:.9rem;font-weight:800;color:'+ac+'">'+it.score+'/10</span>':'')+'</div>'; });
+    html+='</div>';
+  }
+  if(isPost){ var treats=[]; if(insp.treatStandard)treats.push('Standard'); if(insp.treatMould)treats.push('Mould Treatment'); if(insp.treatSpot)treats.push('Spot Treatment'); if(insp.treatHand)treats.push('Hand Clean'); if(insp.treatRestoration)treats.push('Restoration'); if(treats.length)html+='<div style="margin-bottom:10px"><div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--g400);font-family:Montserrat,sans-serif;margin-bottom:4px">Treatment</div><div style="font-size:.84rem;color:#555">'+treats.join(', ')+'</div></div>'; if(insp.completeDate)html+='<div style="margin-bottom:8px"><div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--g400);font-family:Montserrat,sans-serif;margin-bottom:2px">Completion Date</div><div style="font-size:.84rem;color:#555">'+insp.completeDate+'</div></div>'; }
+  if(insp.custNotes)html+='<div style="margin-bottom:8px"><div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--g400);font-family:Montserrat,sans-serif;margin-bottom:4px">Customer Notes</div><div style="background:var(--g50);border-radius:7px;padding:10px 12px;font-size:.82rem;color:#555;line-height:1.6">'+insp.custNotes+'</div></div>';
+  if(insp.jobNotes)html+='<div style="margin-bottom:8px"><div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--g400);font-family:Montserrat,sans-serif;margin-bottom:4px">Job Notes</div><div style="background:var(--g50);border-radius:7px;padding:10px 12px;font-size:.82rem;color:#555;line-height:1.6">'+insp.jobNotes+'</div></div>';
+  var photos=insp.photos||{},pk=Object.keys(photos);
+  if(pk.length){ html+='<div><div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--g400);font-family:Montserrat,sans-serif;margin-bottom:8px">Photos ('+pk.length+')</div><div class="photo-grid">'; pk.slice(0,9).forEach(function(k){if(photos[k]&&photos[k].dataUrl)html+='<div class="photo-thumb"><img src="'+photos[k].dataUrl+'"></div>';}); html+='</div></div>'; }
+  return html;
+}
+
+function jpScoreBar(label,score,color){
+  var n=parseInt(score)||0;
+  return '<div style="margin-bottom:10px"><div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--g400);font-family:Montserrat,sans-serif;margin-bottom:4px">'+label+'</div><div style="display:flex;align-items:center;gap:10px"><div style="flex:1;height:8px;background:var(--g100);border-radius:4px;overflow:hidden"><div style="height:100%;width:'+n*10+'%;background:'+color+';border-radius:4px"></div></div><span style="font-size:1rem;font-weight:800;color:'+color+';min-width:32px">'+n+'/10</span></div></div>';
+}
+
+async function jpSaveNotes(){
+  if(!jpCurrentJob)return;
+  var d=jpCurrentJob.data||{};
+  d.internalNotes=document.getElementById('jpInternalNotes').value;
+  try{await sbFetch('/jobs?id=eq.'+jpCurrentJob.id,'PATCH',{data:d,updated_at:new Date().toISOString()});showToast('Notes saved');}
+  catch(e){showToast('\u274c '+e.message);}
+}
+
+function jpDownloadInspPDF(type){
+  if(!jpCurrentJob)return;
+  var d=jpCurrentJob.data||{},insp=type==='post'?d.postInspection:d.preInspection;
+  if(!insp){showToast('Save the inspection first');return;}
+  var isPost=type==='post',ac=isPost?'#7c3aed':'#0f766e';
+  var logo=document.querySelector('header img').src;
+  var outMap={fully:'Fully Restored',mostly:'Mostly Restored',partial:'Partially Restored',unable:'Unable to Fully Restore'};
+  var photoHtml='';
+  var photos=insp.photos||{},pk=Object.keys(photos);
+  if(pk.length){var imgs=Object.values(photos).map(function(p){return '<div><img src="'+p.dataUrl+'" style="width:100%;border-radius:5px;border:1px solid #ddd"></div>';}).join(''); photoHtml='<div style="margin-top:14px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:2px;color:#9597be;font-weight:700;margin-bottom:8px">Photos</div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">'+imgs+'</div></div>';}
+  var css='body{font-family:Arial,sans-serif;margin:0;background:#f0f1f8;}.p{max-width:820px;margin:20px auto;background:#fff;box-shadow:0 4px 28px rgba(0,0,0,.14);}.h{background:#2b2d7e;padding:18px 28px;display:flex;justify-content:space-between;align-items:center;}.h img{height:60px;}.hr{text-align:right;color:#fff;}.hr h2{font-size:16px;margin:0;}.hr p{font-size:11px;opacity:.7;margin:3px 0 0;}.rb{height:4px;background:'+ac+';}.b{padding:24px 28px;}.row{display:flex;gap:20px;margin-bottom:10px;}.col{flex:1;}.lbl{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:#9597be;font-weight:700;margin-bottom:3px;}.val{font-size:14px;color:#333;}.sb{display:flex;align-items:center;gap:10px;margin:10px 0;}.st{flex:1;height:10px;background:#f0f0f0;border-radius:5px;overflow:hidden;}.sf{height:100%;border-radius:5px;background:'+ac+';}.sn{font-size:18px;font-weight:800;color:'+ac+';}.nb{background:#f8f8f8;border-left:3px solid '+ac+';padding:10px 14px;font-size:12px;line-height:1.7;border-radius:0 5px 5px 0;margin-top:8px;}.ft{background:#2b2d7e;padding:10px 28px;text-align:center;color:rgba(255,255,255,.5);font-size:10px;letter-spacing:1.5px;}@media print{body{background:#fff;}.p{box-shadow:none;margin:0;}}';
+  var checks='',items='';
+  if(!isPost){ if(insp.curtChecks&&insp.curtChecks.length)checks+='<div class="lbl" style="margin-top:12px">Curtain Conditions</div>'+insp.curtChecks.map(function(ch){return '<div style="font-size:12px;padding:2px 0">&#10004; '+ch.label+(ch.note?' - '+ch.note:'')+'</div>';}).join(''); if(insp.blindChecks&&insp.blindChecks.length)checks+='<div class="lbl" style="margin-top:12px">Blind Conditions</div>'+insp.blindChecks.map(function(ch){return '<div style="font-size:12px;padding:2px 0">&#10004; '+ch.label+(ch.note?' - '+ch.note:'')+'</div>';}).join(''); }
+  if(insp.mode==='item'&&insp.items&&insp.items.length){
+    items='<div class="lbl" style="margin-top:12px">Items</div>';
+    insp.items.forEach(function(it){items+='<div style="background:#f8f8f8;border-radius:5px;padding:8px 10px;margin-top:4px;display:flex;justify-content:space-between"><span style="font-size:13px;font-weight:600">'+(it.desc||it.type)+'</span>'+(it.score?'<span style="font-size:13px;font-weight:800;color:'+ac+'">'+it.score+'/10</span>':'')+'</div>';});
+  }
+  var html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+(isPost?'Post':'Pre')+'-Inspection</title><style>'+css+'</style></head><body><div class="p"><div class="h"><img src="'+logo+'" alt="Dr Drapes"><div class="hr"><h2>'+(isPost?'Post-Inspection':'Pre-Inspection')+' Report</h2><p>'+jpCurrentJob.dq_number+' &middot; '+jpCurrentJob.customer_name+'</p></div></div><div class="rb"></div><div class="b"><div class="row"><div class="col"><div class="lbl">Customer</div><div class="val">'+(jpCurrentJob.customer_name||'\u2014')+'</div></div><div class="col"><div class="lbl">Address</div><div class="val">'+(jpCurrentJob.site_address||'\u2014')+'</div></div></div><div class="row"><div class="col"><div class="lbl">Inspector</div><div class="val">'+(insp.inspector||'\u2014')+'</div></div><div class="col"><div class="lbl">Date</div><div class="val">'+(insp.date||'\u2014')+'</div></div></div>'+(isPost&&insp.outcome?'<div style="margin:12px 0"><div class="lbl">Outcome</div><div style="font-size:16px;font-weight:700;color:'+ac+'">'+(outMap[insp.outcome]||insp.outcome)+'</div></div>':'')+'<div class="lbl" style="margin:12px 0 6px">'+(isPost?'Post-Clean Score':'Condition Score')+'</div><div class="sb"><div class="st"><div class="sf" style="width:'+( parseInt(isPost?insp.postScore:insp.curtScore)||7)*10+'%"></div></div><span class="sn">'+(isPost?insp.postScore:insp.curtScore||7)+'/10</span></div>'+checks+items+(insp.custNotes?'<div class="lbl" style="margin-top:12px">Notes</div><div class="nb">'+insp.custNotes.replace(/\n/g,'<br>')+'</div>':'')+photoHtml+'</div><div class="ft">DR DRAPES CURTAIN CLINIC &middot; '+(isPost?'POST':'PRE')+'-INSPECTION &middot; '+jpCurrentJob.dq_number+'</div></div></body></html>';
+  var blob=new Blob([html],{type:'text/html'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url; a.download=(isPost?'Post':'Pre')+'_Inspection_'+jpCurrentJob.dq_number+'.html'; a.click();
+  URL.revokeObjectURL(url); showToast('\u2193 PDF downloaded');
 }
 
 </script>
