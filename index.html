@@ -3923,6 +3923,64 @@ function fqConvertToJob(save) {
   });
 }
 
+function loadFQFromData(d) {
+  if(!d) return;
+  clearFastQuote(true);
+  // Support multiple field name formats from different save paths
+  var name  = d.name||d.customerName||'';
+  var phone = d.phone||d.customerPhone||'';
+  var email = d.email||d.customerEmail||'';
+  var ref   = d.ref||d.dqNumber||d.quote_number||'';
+  var addr  = d.address||d.addr||d.siteAddress||'';
+  sv('fq-name',    name);
+  sv('fq-phone',   phone);
+  sv('fq-email',   email);
+  sv('fq-ref',     ref);
+  sv('fqAddrFormat', d.addrFormat||'none'); toggleFQAddrFormat();
+  sv('fqAddress',  addr);
+  sv('fqSuburb',   d.suburb||'');
+  sv('fqState',    d.state||'VIC');
+  sv('fqFuelAmt',  d.fuelAmt||30);
+  if(d.fuelOn!==undefined && d.fuelOn!==fqFuelOn)   toggleFQFuel();
+  if(d.isAO!==undefined   && d.isAO!==fqIsAO)       toggleFQAO();
+  sv('fqClaimNumber',  d.claimNumber||'');
+  sv('fqInsurerName',  d.insurerName||'');
+  sv('fqTransportCost',d.transportCost||0);
+  sv('fqRehangCost',   d.rehangCost||0);
+  sv('fqCalloutFee',   d.calloutFee||0);
+  sv('fqStorageCost',  d.storageCost||0);
+  sv('fqOtherCost',    d.otherCost||0);
+  sv('fqOtherCostDesc',d.otherCostDesc||'');
+  sv('fq-disc-type',   d.discType||'none');
+  sv('fq-disc-val',    d.discVal||0);
+  var lines = d.lines||[];
+  if(lines.length){
+    lines.forEach(function(l){
+      addFQLine();
+      var id = fqCounter;
+      var sel = document.getElementById('fqs-'+id);
+      if(sel){ sel.value = l.type||''; onFQSel(id); }
+      setTimeout(function(lid, line){ return function(){
+        sv('fqd-'+lid, line.desc||line.location||'');
+        if(line.isBlind){
+          sv('fqw-'+lid, line.wRaw||line.width||'');
+          sv('fqh-'+lid, line.hRaw||line.height||'');
+        } else {
+          sv('fqq-'+lid, line.qty||'1');
+        }
+        sv('fqp-'+lid, line.price||'');
+        recalcFQ();
+      }; }(id, l), 80);
+    });
+    setTimeout(recalcFQ, 300);
+    showToast('\u2705 Quote loaded — edit and use Save as Job when done');
+  } else {
+    // No lines saved — customer details are loaded, items need to be added
+    addFQLine();
+    showToast('\u2705 Customer details loaded — add your items and pricing');
+  }
+}
+
 </script>
 <div id="jobPage">
   <div class="jp-header">
@@ -4118,8 +4176,35 @@ function jpRenderQuoteSection(job){
 
 function jpOpenQuote(){
   if(!jpCurrentJob)return;
+  var job=jpCurrentJob;
+  var d=job.data||{};
   closeJobPage();
-  switchTab(jpCurrentJob.job_type==='fast_quote'?'fast':'full');
+  if(job.job_type==='fast_quote'){
+    switchTab('fast');
+    // Load the quote data into the FQ form after the tab renders
+    setTimeout(function(){
+      if(typeof loadFQFromData==='function') loadFQFromData(d);
+    },350);
+  } else {
+    switchTab('full');
+    // Load Full Quote fields
+    setTimeout(function(){
+      var sv2=function(id,v){ var el=document.getElementById(id); if(el&&v!==undefined) el.value=v||''; };
+      sv2('drdNumber',    d.drdNumber||d.dqNumber||'');
+      sv2('quoteNumber',  d.quoteNumber||d.dqNumber||'');
+      sv2('quoteDate',    d.quoteDate||'');
+      sv2('customerName', d.customerName||d.name||'');
+      sv2('customerPhone',d.customerPhone||d.phone||'');
+      sv2('customerEmail',d.customerEmail||d.email||'');
+      sv2('siteAddress',  d.siteAddress||d.address||'');
+      sv2('claimNumber',  d.claimNumber||'');
+      sv2('insurerName',  d.insurerName||'');
+      sv2('customerNotes',d.customerNotes||'');
+      sv2('internalNotes',d.internalNotes||'');
+      if(typeof recalc==='function') recalc();
+      showToast('\u2705 Quote loaded — edit and Save Job when done');
+    },350);
+  }
 }
 
 function jpOpenInspection(type,dq){
