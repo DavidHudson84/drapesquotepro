@@ -76,6 +76,32 @@
   .add-room-btn:hover { background: rgba(43,45,126,.06); }
 
   .submit { width: 100%; background: var(--navy-mid); color: #fff; font-weight: 700; font-size: 16px; padding: 14px; border: none; border-radius: var(--r-sm); cursor: pointer; margin-top: 8px; }
+
+  /* Header callout */
+  .callout { background: #eef0fc; border-left: 4px solid var(--navy-mid); border-radius: var(--r-sm); padding: 14px 16px; margin: 0 0 22px; }
+  .callout strong { display: block; font-family: 'Montserrat', sans-serif; color: var(--navy-dark); font-size: 14px; margin-bottom: 4px; }
+  .callout p { color: var(--ink); font-size: 13.5px; margin: 0; line-height: 1.5; }
+  .callout em { color: var(--navy-mid); font-style: normal; font-weight: 700; }
+
+  /* Item mould tick */
+  .item-mould { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 13.5px; font-weight: 600; color: var(--navy-mid); cursor: pointer; }
+  .item-mould input { width: auto; margin: 0; }
+
+  /* Observation tick chips */
+  .obs-ticks { display: flex; flex-wrap: wrap; gap: 8px; }
+  .obs-tick { padding: 8px 14px; border-radius: 999px; background: #eef0f6; color: var(--navy-mid); font-size: 13px; font-weight: 600; cursor: pointer; border: 1.5px solid transparent; user-select: none; }
+  .obs-tick:hover { background: #e3e6f1; }
+  .obs-tick.active { background: var(--navy-mid); color: #fff; }
+
+  /* Rating slider */
+  .rating-field { background: #fafbfd; border: 1px solid var(--line); border-radius: var(--r-sm); padding: 14px; }
+  .rating-row { display: flex; align-items: center; gap: 14px; margin-top: 6px; }
+  .rating-row input[type=range] { flex: 1; }
+  .rating-val { font-family: 'Montserrat', sans-serif; font-weight: 800; font-size: 22px; color: var(--navy-dark); min-width: 44px; text-align: center; }
+  .rating-hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .rating-skip { display: flex; align-items: center; gap: 8px; font-size: 12.5px; margin-top: 8px; font-weight: 400; cursor: pointer; color: var(--muted); }
+  .rating-skip input { width: auto; margin: 0; }
+  .rating-field.skipped .rating-row, .rating-field.skipped .rating-hint { opacity: 0.35; pointer-events: none; }
   .submit:hover { filter: brightness(1.1); }
   .submit:disabled { opacity: .55; cursor: default; }
   .err { background: #fee2e2; color: #991b1b; border-radius: var(--r-sm); padding: 11px 14px; font-size: 14px; margin-bottom: 16px; display: none; }
@@ -96,6 +122,11 @@
       <h1>Request a Quote</h1>
       <p class="sub">Tell us what you'd like cleaned and we'll be in touch. Fill in as much or as little as you like.</p>
 
+      <div class="callout">
+        <strong>How to use this form</strong>
+        <p>You can add rooms and items with measurements below, <em>or</em> just write the details in the notes box at the bottom — whichever is easier. The more detail you give us, the more accurate we can be with your quote.</p>
+      </div>
+
       <div class="err" id="err"></div>
 
       <div id="form">
@@ -105,7 +136,7 @@
           <div class="field"><label>Phone</label><input id="f-phone" autocomplete="tel" inputmode="tel" /></div>
           <div class="field"><label>Email</label><input id="f-email" autocomplete="email" inputmode="email" /></div>
         </div>
-        <div class="field"><label>Address <span class="opt">(optional)</span></label><input id="f-address" autocomplete="street-address" /></div>
+        <div class="field"><label>Address or suburb <span class="opt">(suburb alone is fine)</span></label><input id="f-address" autocomplete="street-address" placeholder="e.g. 12 Smith St, Williamstown — or just Williamstown" /></div>
 
         <div class="section-label">About the job <span style="text-transform:none;font-weight:400">(all optional — fill in what you can)</span></div>
         <div class="row">
@@ -178,6 +209,23 @@
         <div id="rooms"></div>
         <button class="add-room-btn" id="add-room" type="button">+ Add a room</button>
 
+        <div class="section-label">More information <span style="text-transform:none;font-weight:400">(optional — extra context for your quote)</span></div>
+
+        <div class="field">
+          <label>Anything you'd like us to know about? <span class="opt">(tick any that apply)</span></label>
+          <div class="obs-ticks" id="obs-ticks"></div>
+        </div>
+
+        <div class="field rating-field">
+          <label>In your opinion, please give a condition rating <span class="opt">(optional)</span></label>
+          <div class="rating-row">
+            <input type="range" min="1" max="10" value="5" id="f-rating" />
+            <span class="rating-val" id="f-rating-val">5</span>
+          </div>
+          <div class="rating-hint">1 = very poor, may need restoration · 10 = light freshen-up only</div>
+          <label class="rating-skip"><input type="checkbox" id="f-rating-skip" /> I'd rather not say</label>
+        </div>
+
         <div class="field" style="margin-top:14px"><label>Anything else worth telling us? <span class="opt">(optional)</span></label>
           <textarea id="f-desc" placeholder="Describe anything that doesn't fit above — water damage, mould, urgent timing, special access, etc."></textarea>
         </div>
@@ -234,17 +282,43 @@
     { v: 'curtain', l: 'Curtains' }, { v: 'sheer', l: 'Sheer curtains' },
     { v: 'velvet', l: 'Velvet / heavy curtains' }, { v: 'roller-block', l: 'Roller blinds (blockout)' },
     { v: 'roller-sun', l: 'Roller blinds (sunscreen)' }, { v: 'roman', l: 'Roman blinds' },
-    { v: 'venetian', l: 'Venetian blinds' }, { v: 'unsure', l: 'Not sure / other' },
+    { v: 'pelmet', l: 'Pelmets' }, { v: 'swags', l: 'Swags & tails' },
+    { v: 'valance', l: 'Valance' }, { v: 'unsure', l: 'Not sure / other' },
   ];
   const CURTAIN_TYPES = ['curtain', 'sheer', 'velvet'];
   let rooms = [];
   let nextId = 1;
-  function newItem() { return { id: nextId++, type: 'curtain', width: '', height: '', heightMode: 'measured', tier: 'short', note: '' }; }
+  function newItem() { return { id: nextId++, type: 'curtain', width: '', height: '', heightMode: 'measured', tier: 'short', note: '', mould: false }; }
   function newRoom() { return { id: nextId++, name: '', collapsed: false, items: [newItem()], photos: [] }; }
   document.getElementById('add-room').addEventListener('click', () => {
     rooms.forEach((r) => r.collapsed = true);
     rooms.push(newRoom()); renderRooms();
   });
+
+  // ---------- Observation ticks (More info) ----------
+  const OBS_OPTIONS = [
+    ['mould', 'Mould'], ['smoke', 'Smoke damage'], ['water', 'Water marks / stains'],
+    ['sun', 'Sun damage / fading'], ['pet_hair', 'Pet hair'], ['heavily_stained', 'Heavily stained'],
+    ['fraying', 'Fraying / wear'], ['other', 'Other (see notes)'],
+  ];
+  const obsState = {};
+  function renderObs() {
+    const w = document.getElementById('obs-ticks');
+    if (!w) return;
+    w.innerHTML = OBS_OPTIONS.map(([k, l]) =>
+      `<span class="obs-tick ${obsState[k] ? 'active' : ''}" data-obs="${k}">${l}</span>`).join('');
+    w.querySelectorAll('[data-obs]').forEach((el) =>
+      el.addEventListener('click', () => { obsState[el.dataset.obs] = !obsState[el.dataset.obs]; renderObs(); }));
+  }
+  renderObs();
+
+  // ---------- Rating slider ----------
+  const ratingEl = document.getElementById('f-rating');
+  const ratingValEl = document.getElementById('f-rating-val');
+  const ratingSkipEl = document.getElementById('f-rating-skip');
+  const ratingField = document.querySelector('.rating-field');
+  if (ratingEl) ratingEl.addEventListener('input', (e) => { ratingValEl.textContent = e.target.value; });
+  if (ratingSkipEl) ratingSkipEl.addEventListener('change', (e) => { ratingField.classList.toggle('skipped', e.target.checked); });
   function renderRooms() {
     const wrap = document.getElementById('rooms');
     if (!rooms.length) { wrap.innerHTML = ''; return; }
@@ -306,7 +380,8 @@
               <span class="tier ${it.tier === 'tall' ? 'active' : ''}" data-itier="${it.id}-tall">Over 3.8m</span>
             </div>` : ''}
         ` : ''}
-        <div class="item-note"><input data-inote="${it.id}" value="${escapeAttr(it.note)}" placeholder="Notes (mould, water damage, special instructions…)" /></div>
+        <div class="item-note"><input data-inote="${it.id}" value="${escapeAttr(it.note)}" placeholder="Notes (water damage, special instructions…)" /></div>
+        <label class="item-mould"><input type="checkbox" data-imould="${it.id}" ${it.mould ? 'checked' : ''} /> Mould treatment needed</label>
       </div>`;
   }
   function escapeHtml(s) { return String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
@@ -348,6 +423,7 @@
     document.querySelectorAll('[data-iwidth]').forEach((i) => i.addEventListener('input', (e) => { const f = findItem(i.dataset.iwidth); if (f) f.item.width = e.target.value; }));
     document.querySelectorAll('[data-iheight]').forEach((i) => i.addEventListener('input', (e) => { const f = findItem(i.dataset.iheight); if (f) f.item.height = e.target.value; }));
     document.querySelectorAll('[data-inote]').forEach((i) => i.addEventListener('input', (e) => { const f = findItem(i.dataset.inote); if (f) f.item.note = e.target.value; }));
+    document.querySelectorAll('[data-imould]').forEach((i) => i.addEventListener('change', (e) => { const f = findItem(i.dataset.imould); if (f) f.item.mould = e.target.checked; }));
     document.querySelectorAll('[data-imode]').forEach((b) =>
       b.addEventListener('click', () => {
         const [id, mode] = b.dataset.imode.split('-'); const f = findItem(id); if (!f) return;
@@ -392,10 +468,10 @@
 
     const cleanRooms = rooms.map((r) => ({
       name: (r.name || '').trim(),
-      items: r.items.filter((it) => it.width || it.height || it.note || (CURTAIN_TYPES.includes(it.type) && it.heightMode === 'tier')).map((it) => ({
+      items: r.items.filter((it) => it.width || it.height || it.note || it.mould || (CURTAIN_TYPES.includes(it.type) && it.heightMode === 'tier')).map((it) => ({
         type: it.type, width: it.width, height: it.height,
         heightMode: it.heightMode, tier: CURTAIN_TYPES.includes(it.type) && it.heightMode === 'tier' ? it.tier : null,
-        note: it.note,
+        note: it.note, mould: !!it.mould,
       })),
       photos: r.photos.map((p) => ({ name: p.name, dataUrl: p.dataUrl })),
     })).filter((r) => r.name || r.items.length || r.photos.length);
@@ -403,6 +479,9 @@
     const btn = document.getElementById('submit');
     btn.disabled = true; btn.textContent = 'Sending…';
     try {
+      const ratingSkipped = ratingSkipEl && ratingSkipEl.checked;
+      const observation_ticks = Object.keys(obsState).filter((k) => obsState[k]);
+
       const payload = {
         honeypot: $('#f-website').value,
         customer_name: name, customer_phone: phone, customer_email: email,
@@ -410,6 +489,8 @@
         property_type: $('#f-property').value,
         contact_time: $('#f-time').value, contact_method: $('#f-method').value,
         description: $('#f-desc').value.trim(),
+        observation_ticks,
+        customer_rating: ratingSkipped ? null : Number(ratingEl.value),
         rooms: cleanRooms,
         photos: overallPhotos.map((p) => ({ name: p.name, dataUrl: p.dataUrl })),
       };

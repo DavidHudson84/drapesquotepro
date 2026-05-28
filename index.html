@@ -429,6 +429,26 @@
     .qb-line .line-amt { font-family: 'Montserrat'; font-weight: 800; color: var(--navy-dark); font-size: 15px; white-space: nowrap; text-align: right; min-width: 84px; }
     .qb-line .line-basis { font-size: 11px; color: var(--muted); text-align: right; margin-top: 2px; }
     .cm-tag { display: block; font-size: 10.5px; color: #b45309; font-style: italic; margin-top: 3px; font-weight: 600; }
+
+    /* Enquiry-source panel in quote builder */
+    .es-panel { background: #fafbfd; border: 1px solid var(--line); border-left: 4px solid var(--teal); border-radius: var(--r-sm); padding: 0; margin-bottom: 16px; }
+    .es-panel summary { padding: 11px 16px; cursor: pointer; font-weight: 700; color: var(--navy-dark); font-size: 13.5px; list-style: none; }
+    .es-panel summary::-webkit-details-marker { display: none; }
+    .es-panel summary:before { content: '▸ '; color: var(--teal); font-weight: 800; }
+    .es-panel[open] summary:before { content: '▾ '; }
+    .es-panel .es-body { padding: 4px 16px 16px; }
+    .es-panel .es-fields { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12.5px; color: var(--muted); margin-bottom: 8px; }
+    .es-panel .es-fields strong { color: var(--navy-mid); }
+    .es-panel .es-rating { font-size: 13.5px; color: var(--ink); margin-bottom: 6px; }
+    .es-panel .es-obs { font-size: 13.5px; color: var(--ink); margin-bottom: 6px; }
+    .es-panel .es-obs strong { color: var(--navy-mid); }
+    .es-panel .es-desc { background: #fff; border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; font-size: 13.5px; color: var(--ink); white-space: pre-wrap; margin: 8px 0; }
+    .es-panel .es-room { border-top: 1px solid var(--line); padding-top: 8px; margin-top: 8px; }
+    .es-panel .es-room-name { font-family: 'Montserrat'; font-weight: 700; color: var(--navy-mid); font-size: 13.5px; margin-bottom: 4px; }
+    .es-panel .es-items { list-style: disc; padding-left: 20px; margin: 4px 0; }
+    .es-panel .es-items li { font-size: 13px; color: var(--ink); padding: 1px 0; }
+    .es-panel .es-photos { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .es-panel .es-thumb, .es-panel img.es-thumb { width: 80px; height: 80px; border-radius: 6px; object-fit: cover; border: 1px solid var(--line); background: #eef0f6; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #999; }
     .qb-mould { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--navy-mid); white-space: nowrap; padding-bottom: 9px; }
     .qb-mould input { width: auto; }
     .qb-rate-wrap { position: relative; }
@@ -843,7 +863,8 @@
         const TYPE_MAP = {
           curtain: 'curtain', sheer: 'sheer', velvet: 'velvet',
           'roller-block': 'roller-block', 'roller-sun': 'roller-sun',
-          roman: 'roman', venetian: 'venetian', unsure: '',
+          roman: 'roman', pelmet: 'pelmet', swags: 'swags-tails',
+          valance: 'valance', unsure: '',
         };
         // Tier → numeric metre value used by curtain rate-tier logic.
         const TIER_M = { short: 2.4, medium: 3.0, tall: 4.0 };
@@ -857,14 +878,13 @@
               ? '(customer tier estimate)'
               : (it.width || it.height) ? '(customer-measured)' : '';
             const itemNote = [note, tag].filter(Boolean).join(' · ');
-            // For tier-only height, use the tier's representative metre value.
             const drop = it.heightMode === 'tier' ? (TIER_M[it.tier || 'short']) : (it.height || '');
             return {
-              cat: cat || 'curtain', // default if unsure; staff change on the line
+              cat: cat || 'curtain',
               item_note: itemNote,
               width: it.width || '',
               drop: drop,
-              mould: false,
+              mould: !!it.mould,
               customer_measured: !!(it.width || it.height) && it.heightMode !== 'tier',
               customer_tier: it.heightMode === 'tier' ? (it.tier || 'short') : null,
             };
@@ -882,7 +902,9 @@
             contact_time: enq.data?.contact_time || '',
             contact_method: enq.data?.contact_method || '',
             description: enq.data?.description || '',
-            rooms: enqRooms,            // preserve full original (read-only)
+            observation_ticks: enq.data?.observation_ticks || [],
+            customer_rating: enq.data?.customer_rating ?? null,
+            rooms: enqRooms,
             photos: enq.data?.photos || [],
           },
           quote: quoteRooms.length ? { rooms: quoteRooms } : {},
@@ -1434,9 +1456,19 @@
           const TYPE_LABEL = {
             curtain: 'Curtains', sheer: 'Sheer curtains', velvet: 'Velvet / heavy curtains',
             'roller-block': 'Roller blinds (blockout)', 'roller-sun': 'Roller blinds (sunscreen)',
-            roman: 'Roman blinds', venetian: 'Venetian blinds', unsure: 'Not sure / other',
+            roman: 'Roman blinds', pelmet: 'Pelmets', swags: 'Swags & tails',
+            valance: 'Valance', unsure: 'Not sure / other',
           };
           const TIER_LABEL = { short: 'under 2.4m', medium: '2.4–3.8m', tall: 'over 3.8m' };
+          const OBS_LABEL = {
+            mould: 'Mould', smoke: 'Smoke damage', water: 'Water marks / stains',
+            sun: 'Sun damage / fading', pet_hair: 'Pet hair', heavily_stained: 'Heavily stained',
+            fraying: 'Fraying / wear', other: 'Other',
+          };
+          const obsHtml = (d.observation_ticks || []).length
+            ? `<div style="margin-top:8px;font-size:13px"><strong style="color:var(--navy-mid)">Customer flagged:</strong> ${(d.observation_ticks || []).map((k) => escapeHtml(OBS_LABEL[k] || k)).join(', ')}</div>` : '';
+          const ratingHtml = (d.customer_rating != null)
+            ? `<div style="margin-top:4px;font-size:13px"><strong style="color:var(--navy-mid)">Customer rating:</strong> ${d.customer_rating}/10</div>` : '';
           const roomsHtml = enqRooms.length ? `<div class="enq-rooms">${enqRooms.map((r, ri) => {
             const items = (r.items || []).map((it) => {
               const dims = [];
@@ -1465,6 +1497,8 @@
                 <div class="e-when">${escapeHtml(when)}</div>
               </div>
               ${fields.length ? `<div class="e-fields">${fields.join('')}</div>` : ''}
+              ${ratingHtml}
+              ${obsHtml}
               ${d.description ? `<div class="e-desc">${escapeHtml(d.description)}</div>` : ''}
               ${roomsHtml}
               ${overallPhotos.length ? `<div class="room-photos-label" style="margin-top:14px;font-size:12px;color:var(--muted);font-weight:600">Overall photos</div><div class="e-photos" data-photos='${escapeAttr(JSON.stringify(overallPhotos))}'>${overallPhotos.map(() => '<div style="width:80px;height:80px;border-radius:6px;background:#eef0f6;display:flex;align-items:center;justify-content:center;font-size:10px;color:#999">photo</div>').join('')}</div>` : ''}
@@ -1560,6 +1594,7 @@
 
       init(job) {
         this.jobId = job.id;
+        this.enquirySource = job.data?.enquiry_source || null;
         const existing = job.data?.quote || {};
         this.q = {
           type: existing.type || 'fast_quote',
@@ -1597,6 +1632,95 @@
         return Object.keys(byRoom).map((name) => ({ name, items: byRoom[name], repairs: [] }));
       },
 
+      // Read-only panel showing the original customer enquiry (when a job
+      // was converted from one) — description, customer observations, rating,
+      // and all photos. Photos load via signed URLs once the panel renders.
+      enquirySourceHtml() {
+        const es = this.enquirySource;
+        if (!es) return '';
+        const TYPE_LABEL = {
+          curtain: 'Curtains', sheer: 'Sheer curtains', velvet: 'Velvet / heavy curtains',
+          'roller-block': 'Roller blinds (blockout)', 'roller-sun': 'Roller blinds (sunscreen)',
+          roman: 'Roman blinds', pelmet: 'Pelmets', swags: 'Swags & tails',
+          valance: 'Valance', unsure: 'Not sure / other',
+        };
+        const TIER_LABEL = { short: 'under 2.4m', medium: '2.4–3.8m', tall: 'over 3.8m' };
+        const OBS_LABEL = {
+          mould: 'Mould', smoke: 'Smoke damage', water: 'Water marks / stains',
+          sun: 'Sun damage / fading', pet_hair: 'Pet hair', heavily_stained: 'Heavily stained',
+          fraying: 'Fraying / wear', other: 'Other',
+        };
+        const fields = [];
+        if (es.property_type) fields.push(`<span><strong>Property:</strong> ${escapeHtml(es.property_type)}</span>`);
+        if (es.contact_time) fields.push(`<span><strong>Best time:</strong> ${escapeHtml(es.contact_time)}</span>`);
+        if (es.contact_method) fields.push(`<span><strong>Prefers:</strong> ${escapeHtml(es.contact_method)}</span>`);
+
+        const obs = (es.observation_ticks || []).map((k) => OBS_LABEL[k] || k);
+        const rating = (es.customer_rating != null) ? es.customer_rating : null;
+
+        const roomsHtml = (es.rooms || []).map((r, ri) => {
+          const items = (r.items || []).map((it) => {
+            const dims = [];
+            if (it.width) dims.push(`W ${escapeHtml(it.width)}`);
+            if (it.heightMode === 'tier' && it.tier) dims.push(`H ${TIER_LABEL[it.tier] || it.tier} (est)`);
+            else if (it.height) dims.push(`H ${escapeHtml(it.height)}`);
+            const extras = [];
+            if (it.mould) extras.push('mould treatment');
+            if (it.note) extras.push(it.note);
+            return `<li><strong>${escapeHtml(TYPE_LABEL[it.type] || it.type)}</strong>${dims.length ? ' — ' + dims.join(' × ') : ''}${extras.length ? ' <span style="color:var(--muted)">(' + extras.join('; ') + ')</span>' : ''}</li>`;
+          }).join('');
+          const ph = (r.photos || []);
+          return `
+            <div class="es-room">
+              <div class="es-room-name">${escapeHtml(r.name || 'Room ' + (ri + 1))}</div>
+              ${items ? `<ul class="es-items">${items}</ul>` : ''}
+              ${ph.length ? `<div class="es-photos" data-espaths='${escapeAttr(JSON.stringify(ph))}'>${ph.map((_, i) => `<div class="es-thumb" data-esi="${ri}-${i}">photo</div>`).join('')}</div>` : ''}
+            </div>`;
+        }).join('');
+        const overall = (es.photos || []);
+        const overallHtml = overall.length ? `
+          <div class="es-room">
+            <div class="es-room-name">Overall photos</div>
+            <div class="es-photos" data-espaths='${escapeAttr(JSON.stringify(overall))}'>${overall.map((_, i) => `<div class="es-thumb" data-esi="overall-${i}">photo</div>`).join('')}</div>
+          </div>` : '';
+
+        const submitted = es.submitted_at ? new Date(es.submitted_at).toLocaleString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+        return `
+          <details class="es-panel" open>
+            <summary>📋 Customer enquiry${submitted ? ' · submitted ' + escapeHtml(submitted) : ''}</summary>
+            <div class="es-body">
+              ${fields.length ? `<div class="es-fields">${fields.join('')}</div>` : ''}
+              ${rating != null ? `<div class="es-rating">Customer's condition rating: <strong>${rating}/10</strong></div>` : ''}
+              ${obs.length ? `<div class="es-obs"><strong>Customer observations:</strong> ${obs.map(escapeHtml).join(', ')}</div>` : ''}
+              ${es.description ? `<div class="es-desc">${escapeHtml(es.description)}</div>` : ''}
+              ${roomsHtml}
+              ${overallHtml}
+            </div>
+          </details>`;
+      },
+
+      // Load signed URLs for the enquiry-source photo thumbnails.
+      async loadEnquirySourcePhotos() {
+        if (!this.enquirySource) return;
+        document.querySelectorAll('.es-photos[data-espaths]').forEach(async (wrap) => {
+          let photos = [];
+          try { photos = JSON.parse(wrap.dataset.espaths); } catch (_) { return; }
+          const thumbs = wrap.querySelectorAll('.es-thumb');
+          photos.forEach(async (p, i) => {
+            try {
+              const url = await db.photoUrl(p.path || p);
+              if (thumbs[i]) {
+                const img = document.createElement('img');
+                img.src = url; img.className = 'es-thumb';
+                img.style.cursor = 'pointer';
+                img.addEventListener('click', () => window.open(url, '_blank'));
+                thumbs[i].replaceWith(img);
+              }
+            } catch (_) {}
+          });
+        });
+      },
+
       render() {
         const mount = $('#qb-mount');
         if (!mount) return;
@@ -1607,6 +1731,7 @@
         const jobRepairs = q.repairs.map((r, i) => this.repairRowHtml(r, i, null)).join('');
 
         mount.innerHTML = `
+          ${this.enquirySourceHtml()}
           <div class="qb-insurer">
             <div class="field"><label>Insurer (optional)</label><input id="qb-insurer" value="${escapeAttr(q.insurer_name)}" placeholder="e.g. AAMI" /></div>
             <div class="field"><label>Claim number (optional)</label><input id="qb-claim" value="${escapeAttr(q.claim_number)}" placeholder="CLM-…" /></div>
@@ -1654,6 +1779,7 @@
           <div id="qb-emaillog">${this.emailLogHtml()}</div>
         `;
         this.wire();
+        this.loadEnquirySourcePhotos();
       },
 
       totalsHtml(t) {
