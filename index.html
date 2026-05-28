@@ -428,6 +428,89 @@
     .email-log .log-row { font-size: 12.5px; color: var(--muted); padding: 3px 0; }
     .email-log .log-row strong { color: var(--navy-mid); }
 
+    /* ============================================================
+       ACCEPTANCE
+       ============================================================ */
+    .acc-chips { display: flex; gap: 8px; flex-wrap: wrap; margin: 6px 0 16px; }
+    .acc-chip {
+      padding: 9px 16px; border-radius: 999px; font-size: 13.5px; font-weight: 600;
+      background: #eef0f6; color: var(--navy-mid); cursor: pointer; border: 1.5px solid transparent;
+      transition: all .12s;
+    }
+    .acc-chip:hover { background: #e3e6f1; }
+    .acc-chip.active { background: var(--navy-mid); color: #fff; }
+    .acc-terms { display: flex; align-items: center; gap: 9px; font-size: 14px; color: var(--ink); margin-bottom: 16px; }
+    .acc-terms input { width: auto; }
+    .acc-confirmed-banner {
+      background: #d1fae5; border: 1px solid #6ee7b7; border-radius: var(--r-sm);
+      padding: 12px 16px; font-size: 14px; color: #065f46; margin-bottom: 16px;
+    }
+    .acc-confirmed-banner strong { color: #064e3b; }
+    .acc-blocked { color: var(--muted); font-size: 13.5px; font-style: italic; margin-bottom: 12px; }
+    .btn-confirm { background: var(--teal); color: #fff; font-weight: 700; padding: 11px 22px; border-radius: var(--r-sm); }
+    .btn-confirm:hover { filter: brightness(1.08); }
+    .btn-confirm:disabled { opacity: .5; cursor: default; }
+
+    .jobcard-box {
+      background: #1a1c50; color: #e8eaf5; border-radius: var(--r-sm);
+      padding: 16px 18px; font-family: 'Courier New', monospace; font-size: 12.5px;
+      white-space: pre-wrap; line-height: 1.5; margin: 12px 0; max-height: 360px; overflow-y: auto;
+    }
+    .jobcard-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    .btn-copy { background: var(--navy-mid); color: #fff; font-weight: 700; padding: 10px 18px; border-radius: var(--r-sm); }
+    .btn-copy:hover { filter: brightness(1.1); }
+
+    /* ============================================================
+       INSPECTION FORMS
+       ============================================================ */
+    .insp-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; }
+    .insp-row .field { margin: 0; }
+    .insp-row select, .insp-row input { width: 100%; padding: 10px 12px; border: 1.5px solid var(--line); border-radius: var(--r-sm); }
+    .insp-row select:focus, .insp-row input:focus { outline: none; border-color: var(--navy-mid); box-shadow: 0 0 0 3px rgba(43,45,126,.12); }
+
+    .check-group { margin-bottom: 16px; }
+    .check-group h4 { font-family: 'Montserrat'; font-size: 13px; font-weight: 700; color: var(--navy-mid); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 8px; }
+    .check-items { display: flex; flex-direction: column; gap: 6px; }
+    .check-item { display: flex; align-items: center; gap: 10px; }
+    .check-item label { display: flex; align-items: center; gap: 8px; font-size: 14px; min-width: 150px; cursor: pointer; }
+    .check-item input[type=checkbox] { width: auto; }
+    .check-item .note-in { flex: 1; padding: 7px 10px; border: 1.5px solid var(--line); border-radius: 6px; font-size: 13px; }
+    .check-item .note-in:focus { outline: none; border-color: var(--navy-mid); }
+    .check-item.checked label { font-weight: 700; color: var(--navy-dark); }
+
+    .score-wrap { margin-bottom: 16px; }
+    .score-wrap label { font-size: 13px; font-weight: 700; color: var(--navy-mid); display: block; margin-bottom: 6px; }
+    .score-row { display: flex; align-items: center; gap: 14px; }
+    .score-row input[type=range] { flex: 1; }
+    .score-val { font-family: 'Montserrat'; font-weight: 800; font-size: 22px; color: var(--navy-dark); min-width: 48px; text-align: center; }
+
+    .insp-notes .field { margin-bottom: 12px; }
+    .insp-notes textarea { width: 100%; padding: 11px 13px; border: 1.5px solid var(--line); border-radius: var(--r-sm); font-size: 14px; resize: vertical; }
+    .insp-notes textarea:focus { outline: none; border-color: var(--navy-mid); box-shadow: 0 0 0 3px rgba(43,45,126,.12); }
+
+    .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; margin: 10px 0; }
+    .photo-thumb { position: relative; aspect-ratio: 1; border-radius: var(--r-sm); overflow: hidden; background: #eef0f6; border: 1px solid var(--line); }
+    .photo-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .photo-thumb .ph-del { position: absolute; top: 4px; right: 4px; background: rgba(224,25,46,.92); color: #fff; border-radius: 5px; padding: 2px 7px; font-size: 13px; font-weight: 700; cursor: pointer; }
+    .photo-thumb.uploading { display: flex; align-items: center; justify-content: center; font-size: 11px; color: var(--muted); }
+    .photo-add {
+      aspect-ratio: 1; border: 2px dashed #c5c9dc; border-radius: var(--r-sm);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 4px; color: var(--navy-mid); font-size: 13px; font-weight: 600; cursor: pointer; background: #fafbfd;
+    }
+    .photo-add:hover { border-color: var(--navy-mid); background: #f3f4f8; }
+    .photo-add .plus { font-size: 24px; }
+    .photo-count { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+
+    .treatments { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+    .treat-chip { padding: 9px 15px; border-radius: 999px; font-size: 13.5px; font-weight: 600; background: #eef0f6; color: var(--navy-mid); cursor: pointer; border: 1.5px solid transparent; }
+    .treat-chip.active { background: var(--teal); color: #fff; }
+    .outcome-sel select { width: 100%; padding: 10px 12px; border: 1.5px solid var(--line); border-radius: var(--r-sm); }
+
+    .btn-insp-save { background: var(--green); color: #fff; font-weight: 700; padding: 11px 22px; border-radius: var(--r-sm); }
+    .btn-insp-save:hover { filter: brightness(1.08); }
+    .insp-saved-banner { background: #d1fae5; border: 1px solid #6ee7b7; border-radius: var(--r-sm); padding: 10px 14px; font-size: 13.5px; color: #065f46; margin-bottom: 14px; }
+
     .qb-insurer { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 4px; }
     .qb-insurer .field { margin: 0; }
 
@@ -705,6 +788,32 @@
         });
         return db.saveJob(jobId, { status_history: history }, { status: newStatus });
       },
+
+      // ---------- PHOTOS (Supabase Storage: job-photos bucket) ----------
+      // Path: {company_id}/{job_id}/{phase}/{filename}
+      async uploadPhoto(jobId, phase, file) {
+        const cid = session.profile.company_id;
+        const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const key = `${Date.now()}_${safe}`;
+        const path = `${cid}/${jobId}/${phase}/${key}`;
+        const { error } = await sb.storage.from('job-photos').upload(path, file, {
+          cacheControl: '3600', upsert: false,
+        });
+        if (error) throw error;
+        return { key, path, name: file.name };
+      },
+
+      async photoUrl(path) {
+        // Private bucket → signed URL (valid 1 hour) for display/download.
+        const { data, error } = await sb.storage.from('job-photos').createSignedUrl(path, 3600);
+        if (error) throw error;
+        return data.signedUrl;
+      },
+
+      async deletePhoto(path) {
+        const { error } = await sb.storage.from('job-photos').remove([path]);
+        if (error) throw error;
+      },
     };
 
     /* ============================================================
@@ -930,9 +1039,9 @@
 
           ${section('customer', 'Customer Details', true, customerDetailsHtml(job))}
           ${section('quote', 'Quote', true, `<div id="qb-mount"></div>`)}
-          ${section('acceptance', 'Acceptance', false, `<div class="placeholder-note">Acceptance &amp; technician card come after the quote builder.</div>`)}
-          ${section('pre', 'Pre-Inspection', false, `<div class="placeholder-note">Pre-inspection form slots in here.</div>`)}
-          ${section('post', 'Post-Inspection', false, `<div class="placeholder-note">Post-inspection form slots in here.</div>`)}
+          ${section('acceptance', 'Acceptance & Job Card', false, `<div id="acc-mount"></div>`)}
+          ${section('pre', 'Pre-Inspection', false, `<div id="pre-mount"></div>`)}
+          ${section('post', 'Post-Inspection', false, `<div id="post-mount"></div>`)}
           ${d.enquiry_source ? section('enquiry', 'Original Enquiry', false, `<div class="placeholder-note">Read-only original enquiry view.</div>`) : ''}
           ${section('notes', 'Internal Notes', false, internalNotesHtml(job))}
         `;
@@ -942,6 +1051,11 @@
 
         // initialise the quote builder for this job
         quoteBuilder.init(job);
+        // initialise acceptance + job card
+        acceptance.init(job, main);
+        // initialise inspection forms (pre + post)
+        inspection.init('pre', job, main);
+        inspection.init('post', job, main);
 
         // collapsible sections
         document.querySelectorAll('.job-section .sec-head').forEach((h) =>
@@ -1783,6 +1897,923 @@
     function clip(s, n) { s = String(s || ''); return s.length > n ? s.slice(0, n - 1) + '…' : s; }
 
     /* ============================================================
+       PHOTO FETCH + RESIZE (for embedding in inspection report PDFs)
+       Loads a signed URL, draws to a canvas at reduced size, returns
+       a JPEG data URL. Keeps the PDF a sensible size for emailing.
+       ============================================================ */
+    async function fetchPhotoForPdf(path, maxPx = 600) {
+      const url = await db.photoUrl(path);
+      const img = await new Promise((res, rej) => {
+        const im = new Image();
+        im.crossOrigin = 'anonymous';
+        im.onload = () => res(im);
+        im.onerror = rej;
+        im.src = url;
+      });
+      const scale = Math.min(1, maxPx / Math.max(img.width, img.height));
+      const w = Math.round(img.width * scale), h = Math.round(img.height * scale);
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      return { dataUrl: canvas.toDataURL('image/jpeg', 0.72), w, h };
+    }
+
+    /* ============================================================
+       INSPECTION REPORT PDF  (pre | post | combined)
+       Branded like the quote PDF; embeds reduced-size photos.
+       ============================================================ */
+    const inspectionPdf = {
+      // phase: 'pre' | 'post' | 'combined'
+      async build(job, phase) {
+        const d = job.data || {};
+        const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+        const PW = 210, M = 16, CW = PW - M * 2;
+        const blue = BRAND.blue, pink = BRAND.pink, grey = [110, 110, 120], ink = [40, 40, 55];
+        let y = 16;
+        const line = (x1, y1, x2, y2, col = [220, 222, 232], w = 0.3) => { doc.setDrawColor(...col); doc.setLineWidth(w); doc.line(x1, y1, x2, y2); };
+        const ensure = (need) => { if (y + need > 272) { doc.addPage(); y = 20; } };
+
+        // header
+        try { const lw = 52, lh = lw / BRAND.logoAspect; doc.addImage(BRAND.logo, 'PNG', M, y, lw, lh); var logoBottom = y + lh; } catch (_) { var logoBottom = y; }
+        const title = phase === 'combined' ? 'INSPECTION REPORT' : (phase === 'pre' ? 'PRE-INSPECTION' : 'POST-INSPECTION');
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(18); doc.setTextColor(...blue);
+        doc.text(title, PW - M, y + 6, { align: 'right' });
+        doc.setFontSize(11); doc.setTextColor(...ink);
+        doc.text(job.quote_number || '', PW - M, y + 13, { align: 'right' });
+        doc.setFontSize(9); doc.setTextColor(...grey); doc.setFont('helvetica', 'normal');
+        doc.text(fmtDate(new Date()), PW - M, y + 18, { align: 'right' });
+
+        let cy = logoBottom + 6;
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(...blue);
+        doc.text('1300 652 866   ·   drdrapes@hudsongroup.com.au', M, cy);
+        y = cy + 5; line(M, y, PW - M, y, pink, 0.8); y += 9;
+
+        // customer
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(...blue);
+        doc.text('CUSTOMER', M, y);
+        doc.setFont('helvetica', 'normal'); doc.setTextColor(...ink);
+        doc.text(job.customer_name || '', M, y + 5);
+        cy = y + 5;
+        if (job.site_address) { cy += 4.5; doc.setFontSize(9); doc.setTextColor(...grey); doc.text(clip(job.site_address, 70), M, cy); }
+        const dd = job.data?.quote || {};
+        if (dd.insurer_name || dd.claim_number) { cy += 4.5; doc.text('Insurance: ' + [dd.insurer_name, dd.claim_number].filter(Boolean).join(' / '), M, cy); }
+        y = cy + 9;
+
+        // sections
+        if (phase === 'pre' || phase === 'combined') { y = await this.preSection(doc, d.pre_inspection, y, { PW, M, CW, blue, pink, grey, ink, line, ensure: () => { if (y > 250) { doc.addPage(); y = 20; } }, getY: () => y, setY: (v) => { y = v; } }); }
+        if (phase === 'combined') { if (y > 240) { doc.addPage(); y = 20; } else { y += 6; } }
+        if (phase === 'post' || phase === 'combined') { y = await this.postSection(doc, d.post_inspection, y, { PW, M, CW, blue, pink, grey, ink, line }); }
+
+        // footers
+        const pages = doc.getNumberOfPages();
+        for (let p = 1; p <= pages; p++) {
+          doc.setPage(p);
+          doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(...grey);
+          doc.text('Dr Drapes Curtain Clinic  ·  1300 652 866  ·  drdrapes.com.au', M, 290);
+          doc.text(`Page ${p} of ${pages}`, PW - M, 290, { align: 'right' });
+        }
+        return doc;
+      },
+
+      async preSection(doc, pre, y, ctx) {
+        const { PW, M, CW, blue, grey, ink, line } = ctx;
+        if (!pre || !pre.saved_at) {
+          doc.setFont('helvetica', 'italic'); doc.setFontSize(10); doc.setTextColor(...grey);
+          doc.text('No pre-inspection recorded.', M, y); return y + 8;
+        }
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(13); doc.setTextColor(...blue);
+        doc.text('Pre-Inspection', M, y); y += 6;
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); doc.setTextColor(...ink);
+        doc.text(`Inspector: ${pre.inspector || ''}    Date: ${pre.date || ''}`, M, y); y += 7;
+
+        y = this.checksBlock(doc, 'Curtains', pre.curt_checks, pre.curt_na, pre.curt_score, y, ctx);
+        y = this.checksBlock(doc, 'Blinds', pre.blind_checks, pre.blind_na, pre.blind_score, y, ctx);
+        y = this.checksBlock(doc, 'Hardware', pre.hw_checks, false, null, y, ctx);
+
+        if (pre.cust_notes) y = this.notesBlock(doc, 'Notes', pre.cust_notes, y, ctx);
+        y = await this.photoBlock(doc, pre.photos, y, ctx);
+        return y;
+      },
+
+      async postSection(doc, post, y, ctx) {
+        const { PW, M, CW, blue, grey, ink, line } = ctx;
+        if (!post || !post.saved_at) {
+          doc.setFont('helvetica', 'italic'); doc.setFontSize(10); doc.setTextColor(...grey);
+          doc.text('No post-inspection recorded.', M, y); return y + 8;
+        }
+        if (y > 250) { doc.addPage(); y = 20; }
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(13); doc.setTextColor(...blue);
+        doc.text('Post-Inspection', M, y); y += 6;
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); doc.setTextColor(...ink);
+        doc.text(`Inspector: ${post.inspector || ''}    Date: ${post.date || ''}`, M, y); y += 6;
+
+        const outcomeLabel = (OUTCOMES.find(([v]) => v === post.outcome) || [null, post.outcome])[1];
+        doc.setFont('helvetica', 'bold'); doc.text(`Outcome: ${outcomeLabel || ''}`, M, y);
+        if (post.post_score != null) doc.text(`Condition score: ${post.post_score}/10`, M + 80, y);
+        y += 6;
+
+        const treats = TREATMENTS.filter(([k]) => post.treatments?.[k]).map(([, l]) => l);
+        if (treats.length) { doc.setFont('helvetica', 'normal'); doc.text('Treatments: ' + treats.join(', '), M, y); y += 6; }
+
+        y = this.checksBlock(doc, 'Post-clean findings', post.post_checks, false, null, y, ctx);
+        if (post.cust_notes) y = this.notesBlock(doc, 'Notes', post.cust_notes, y, ctx);
+        y = await this.photoBlock(doc, post.photos, y, ctx);
+        return y;
+      },
+
+      checksBlock(doc, title, checks, na, score, y, ctx) {
+        const { M, PW, ink, grey, blue, line } = ctx;
+        if (y > 258) { doc.addPage(); y = 20; }
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(...blue);
+        let head = title;
+        if (na) head += '  —  N/A (none on this job)';
+        else if (score != null) head += `  —  condition ${score}/10`;
+        doc.text(head, M, y); y += 5;
+        if (na) return y + 2;
+        const list = checks || [];
+        if (!list.length) {
+          doc.setFont('helvetica', 'italic'); doc.setFontSize(9); doc.setTextColor(...grey);
+          doc.text('No issues noted.', M + 2, y); return y + 6;
+        }
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); doc.setTextColor(...ink);
+        list.forEach((c) => {
+          if (y > 280) { doc.addPage(); y = 20; }
+          const label = c.id === 'other' ? c.label : c.label;
+          let txt = '•  ' + label + (c.note ? ' — ' + c.note : '');
+          const lines = doc.splitTextToSize(txt, PW - M * 2 - 4);
+          doc.text(lines, M + 2, y); y += lines.length * 4.6;
+        });
+        return y + 3;
+      },
+
+      notesBlock(doc, title, text, y, ctx) {
+        const { M, PW, blue, ink } = ctx;
+        if (y > 260) { doc.addPage(); y = 20; }
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(...blue);
+        doc.text(title, M, y); y += 5;
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); doc.setTextColor(...ink);
+        const lines = doc.splitTextToSize(text, PW - M * 2);
+        doc.text(lines, M, y); return y + lines.length * 4.6 + 4;
+      },
+
+      async photoBlock(doc, photos, y, ctx) {
+        const { M, PW, blue, grey } = ctx;
+        if (!photos || !photos.length) return y;
+        if (y > 240) { doc.addPage(); y = 20; }
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(...blue);
+        doc.text('Photos', M, y); y += 5;
+        // grid: 3 per row, reduced size
+        const cols = 3, gap = 4;
+        const cellW = (PW - M * 2 - gap * (cols - 1)) / cols;
+        let col = 0, rowH = 0, rowY = y;
+        for (const p of photos) {
+          let pic;
+          try { pic = await fetchPhotoForPdf(p.path, 600); } catch (_) { continue; }
+          const ar = pic.h / pic.w;
+          const imgH = cellW * ar;
+          if (col === 0) {
+            if (rowY + imgH > 280) { doc.addPage(); rowY = 20; }
+          }
+          const x = M + col * (cellW + gap);
+          try { doc.addImage(pic.dataUrl, 'JPEG', x, rowY, cellW, imgH); } catch (_) {}
+          rowH = Math.max(rowH, imgH);
+          col++;
+          if (col >= cols) { col = 0; rowY += rowH + gap; rowH = 0; }
+        }
+        if (col !== 0) rowY += rowH + gap;
+        return rowY + 4;
+      },
+
+      async download(job, phase) {
+        const doc = await this.build(job, phase);
+        const suffix = phase === 'combined' ? 'Inspection' : (phase === 'pre' ? 'Pre-Inspection' : 'Post-Inspection');
+        doc.save(`${job.quote_number || 'Report'}_${suffix}.pdf`);
+      },
+
+      async base64(job, phase) {
+        const doc = await this.build(job, phase);
+        return doc.output('datauristring').split(',')[1];
+      },
+    };
+
+    /* ============================================================
+       INSPECTION FORMS (global mode — pre & post)
+       Checklists, 1–10 score, notes, photos to Supabase Storage.
+       Pre saving advances job → In Progress; post → Complete.
+       ============================================================ */
+    const INSPECT_CHECKS = {
+      curtains: [
+        ['mould', 'Mould'], ['smoke', 'Smoke'], ['pet_hair', 'Pet hair'],
+        ['fading', 'Fading'], ['fraying', 'Fraying'], ['shrinkage', 'Shrinkage risk'],
+        ['water', 'Water damage'], ['chalky_backing', 'Chalky backing'],
+        ['backing_sticking', 'Backing sticking together'], ['water_marks', 'Water marks/stains'],
+        ['heavily_stained', 'Heavily stained'],
+      ],
+      blinds: [
+        ['mould', 'Mould'], ['mechanism', 'Mechanism damage'],
+        ['slat', 'Slat damage'], ['cord', 'Cord/chain issues'],
+        ['sun_fading', 'Sun damage/fading'], ['water_stains', 'Water stains'],
+        ['heavily_stained', 'Heavily stained'],
+      ],
+      hardware: [
+        ['track', 'Track damage'], ['bracket', 'Bracket issues'], ['motor', 'Motor faults'],
+        ['parts_missing', 'Parts missing'],
+      ],
+      post_findings: [
+        ['remaining_staining', 'Any remaining staining'],
+        ['pre_existing', 'Pre-existing damage'],
+        ['repairs_required', 'Repairs or alterations required'],
+        ['shrinking', 'Signs of shrinking'],
+        ['colour_fastness', 'Colour fastness or fading'],
+      ],
+    };
+    const TREATMENTS = [['standard', 'Standard Clean'], ['mould', 'Mould Treatment'], ['spot', 'Spot Treatment'], ['hand', 'Hand Clean'], ['restoration', 'Restoration Clean']];
+    const OUTCOMES = [['fully', 'Fully Restored'], ['mostly', 'Mostly Restored'], ['partial', 'Partially Restored'], ['unable', 'Unable to Restore']];
+
+    const inspection = {
+      // one working state per phase
+      state: { pre: null, post: null },
+      mainEl: null,
+
+      init(phase, job, main) {
+        this.mainEl = main;
+        const saved = job.data?.[phase === 'pre' ? 'pre_inspection' : 'post_inspection'] || {};
+        const staffNames = (session.settings['staff-names'] || '').split(',').map((s) => s.trim()).filter(Boolean);
+        this.state[phase] = {
+          jobId: job.id,
+          inspector: saved.inspector || (staffNames[0] || session.profile.name),
+          date: saved.date || new Date().toISOString().slice(0, 10),
+          curt_checks: saved.curt_checks || [],
+          blind_checks: saved.blind_checks || [],
+          hw_checks: saved.hw_checks || [],
+          curt_na: !!saved.curt_na,
+          blind_na: !!saved.blind_na,
+          post_checks: saved.post_checks || [],
+          curt_score: saved.curt_score ?? 5,
+          blind_score: saved.blind_score ?? 5,
+          post_score: saved.post_score ?? 5,
+          outcome: saved.outcome || 'fully',
+          treatments: saved.treatments || {},
+          cust_notes: saved.cust_notes || '',
+          job_notes: saved.job_notes || '',
+          photos: saved.photos || [],
+          saved_at: saved.saved_at,
+          staffNames,
+        };
+        this.render(phase);
+      },
+
+      render(phase) {
+        const mount = $(`#${phase}-mount`);
+        if (!mount) return;
+        const s = this.state[phase];
+        const isPre = phase === 'pre';
+
+        const checkLabel = (val) => val ? new Date(val).toLocaleString('en-AU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
+        const staffOpts = (s.staffNames.length ? s.staffNames : [session.profile.name])
+          .map((n) => `<option value="${escapeAttr(n)}" ${s.inspector === n ? 'selected' : ''}>${escapeHtml(n)}</option>`).join('');
+
+        let html = '';
+        if (s.saved_at) html += `<div class="insp-saved-banner">✓ Saved ${escapeHtml(checkLabel(s.saved_at))} by ${escapeHtml(s.inspector)}</div>`;
+
+        html += `
+          <div class="insp-row">
+            <div class="field"><label>Inspector</label><select id="${phase}-inspector">${staffOpts}</select></div>
+            <div class="field"><label>Date</label><input id="${phase}-date" type="date" value="${escapeAttr(s.date)}" /></div>
+          </div>`;
+
+        if (isPre) {
+          html += this.checklistHtml(phase, 'curtains', 'Curtains', s.curt_checks, 'curt_na', s.curt_na);
+          html += this.checklistHtml(phase, 'blinds', 'Blinds', s.blind_checks, 'blind_na', s.blind_na);
+          html += this.checklistHtml(phase, 'hardware', 'Hardware', s.hw_checks);
+          if (!s.curt_na) html += this.scoreHtml(phase, 'curt_score', 'Curtains condition (1–10)', s.curt_score);
+          if (!s.blind_na) html += this.scoreHtml(phase, 'blind_score', 'Blinds condition (1–10)', s.blind_score);
+        } else {
+          // post: outcome + treatments + findings + single score
+          html += `<div class="field outcome-sel" style="margin-bottom:16px"><label style="font-size:13px;font-weight:700;color:var(--navy-mid);display:block;margin-bottom:6px">Outcome</label>
+            <select id="post-outcome">${OUTCOMES.map(([v, l]) => `<option value="${v}" ${s.outcome === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>`;
+          html += `<div><label style="font-size:13px;font-weight:700;color:var(--navy-mid);display:block;margin-bottom:6px">Treatments applied</label>
+            <div class="treatments">${TREATMENTS.map(([k, l]) => `<span class="treat-chip ${s.treatments[k] ? 'active' : ''}" data-treat="${k}">${l}</span>`).join('')}</div></div>`;
+          html += this.checklistHtml(phase, 'post_findings', 'Post-clean findings', s.post_checks);
+          html += this.scoreHtml(phase, 'post_score', 'Post-clean condition (1–10)', s.post_score);
+        }
+
+        // notes
+        html += `<div class="insp-notes">
+          <div class="field"><label>Customer notes (appear on report)</label><textarea id="${phase}-cust" rows="2">${escapeHtml(s.cust_notes)}</textarea></div>
+          <div class="field"><label>Job notes (internal only)</label><textarea id="${phase}-job" rows="2">${escapeHtml(s.job_notes)}</textarea></div>
+        </div>`;
+
+        // photos
+        html += `<div><label style="font-size:13px;font-weight:700;color:var(--navy-mid);display:block;margin-bottom:6px">Photos</label>
+          <div class="photo-count">${s.photos.length} photo${s.photos.length === 1 ? '' : 's'}</div>
+          <div class="photo-grid" id="${phase}-photos"></div>
+          <input type="file" id="${phase}-fileinput" accept="image/*" multiple style="display:none" />
+        </div>`;
+
+        html += `<div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn btn-insp-save" id="${phase}-save">Save ${isPre ? 'Pre' : 'Post'}-Inspection</button>
+          <button class="btn btn-secondary" id="${phase}-report">Download Report</button>
+          <button class="btn btn-email" id="${phase}-email">Email Report</button>
+          ${!isPre ? '<button class="btn btn-secondary" id="combined-report">Download Combined (Pre+Post)</button><button class="btn btn-email" id="combined-email">Email Combined</button>' : ''}
+        </div>`;
+
+        mount.innerHTML = html;
+        this.renderPhotos(phase);
+        this.wire(phase);
+      },
+
+      checklistHtml(phase, group, title, checks, naKey, naOn) {
+        const hasNa = !!naKey;
+        const naToggle = hasNa
+          ? `<label class="acc-terms" style="margin:0 0 8px"><input type="checkbox" class="na-cb" data-na="${naKey}" ${naOn ? 'checked' : ''}/> N/A — none on this job</label>`
+          : '';
+        if (hasNa && naOn) {
+          // collapsed: just the N/A toggle, conditions hidden
+          return `<div class="check-group"><h4>${title}</h4>${naToggle}</div>`;
+        }
+        const items = INSPECT_CHECKS[group].map(([id, label]) => {
+          const existing = checks.find((c) => c.id === id);
+          const on = !!existing;
+          return `
+            <div class="check-item ${on ? 'checked' : ''}" data-group="${group}" data-id="${id}">
+              <label><input type="checkbox" class="chk" ${on ? 'checked' : ''}/> ${label}</label>
+              <input class="note-in" placeholder="note (optional)" value="${escapeAttr(existing?.note || '')}" ${on ? '' : 'disabled'} />
+            </div>`;
+        }).join('');
+        const other = checks.find((c) => c.id === 'other');
+        const otherRow = `
+          <div class="check-item ${other ? 'checked' : ''}" data-group="${group}" data-id="other" data-other="1">
+            <label style="min-width:60px">Other:</label>
+            <input class="other-cond" placeholder="describe condition" value="${escapeAttr(other?.label || '')}" style="flex:1;padding:7px 10px;border:1.5px solid var(--line);border-radius:6px;font-size:13px" />
+            <input class="note-in" placeholder="note (optional)" value="${escapeAttr(other?.note || '')}" style="flex:1" />
+          </div>`;
+        return `<div class="check-group"><h4>${title}</h4>${naToggle}<div class="check-items">${items}${otherRow}</div></div>`;
+      },
+
+      scoreHtml(phase, key, label, val) {
+        return `<div class="score-wrap"><label>${label}</label>
+          <div class="score-row"><input type="range" min="1" max="10" value="${val}" id="${phase}-${key}" /><span class="score-val" id="${phase}-${key}-v">${val}</span></div></div>`;
+      },
+
+      async renderPhotos(phase) {
+        const grid = $(`#${phase}-photos`);
+        if (!grid) return;
+        const s = this.state[phase];
+        grid.innerHTML = s.photos.map((p, i) =>
+          `<div class="photo-thumb" data-i="${i}"><div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:11px;color:#888">loading…</div><span class="ph-del" data-delphoto="${i}">×</span></div>`
+        ).join('') + `<div class="photo-add" id="${phase}-addphoto"><span class="plus">+</span>Add photo</div>`;
+
+        // load signed URLs for thumbnails
+        s.photos.forEach(async (p, i) => {
+          try {
+            const url = await db.photoUrl(p.path);
+            const el = grid.querySelector(`.photo-thumb[data-i="${i}"]`);
+            if (el) el.querySelector('div').outerHTML = `<img src="${url}" alt="${escapeAttr(p.name || '')}" />`;
+          } catch (_) { /* leave placeholder */ }
+        });
+
+        // wire add + delete
+        const add = $(`#${phase}-addphoto`);
+        if (add) add.addEventListener('click', () => $(`#${phase}-fileinput`).click());
+        grid.querySelectorAll('[data-delphoto]').forEach((b) =>
+          b.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const i = +b.dataset.delphoto;
+            const p = s.photos[i];
+            if (!confirm('Remove this photo?')) return;
+            try { await db.deletePhoto(p.path); } catch (_) { /* may already be gone */ }
+            s.photos.splice(i, 1);
+            // persist the removal immediately
+            await this.persist(phase, { silent: true });
+            this.renderPhotos(phase);
+          }));
+      },
+
+      wire(phase) {
+        const s = this.state[phase];
+        $(`#${phase}-inspector`).addEventListener('change', (e) => { s.inspector = e.target.value; });
+        $(`#${phase}-date`).addEventListener('change', (e) => { s.date = e.target.value; });
+        $(`#${phase}-cust`).addEventListener('input', (e) => { s.cust_notes = e.target.value; });
+        $(`#${phase}-job`).addEventListener('input', (e) => { s.job_notes = e.target.value; });
+
+        // N/A toggles (curtains/blinds) — re-render to collapse/expand the group
+        document.querySelectorAll(`#${phase}-mount .na-cb`).forEach((cb) =>
+          cb.addEventListener('change', (e) => {
+            s[cb.dataset.na] = e.target.checked;
+            this.render(phase);
+          }));
+
+        // checklists
+        const groupArr = (group) =>
+          group === 'curtains' ? 'curt_checks'
+          : group === 'blinds' ? 'blind_checks'
+          : group === 'hardware' ? 'hw_checks'
+          : 'post_checks'; // post_findings
+        document.querySelectorAll(`#${phase}-mount .check-item`).forEach((row) => {
+          const group = row.dataset.group, id = row.dataset.id;
+          const arrKey = groupArr(group);
+
+          // "Other" row: driven by the free-text condition input, no checkbox
+          if (row.dataset.other) {
+            const cond = row.querySelector('.other-cond');
+            const note = row.querySelector('.note-in');
+            const sync = () => {
+              const arr = s[arrKey];
+              const text = cond.value.trim();
+              const idx = arr.findIndex((c) => c.id === 'other');
+              if (text) {
+                const obj = { id: 'other', label: text, note: note.value };
+                if (idx >= 0) arr[idx] = obj; else arr.push(obj);
+                row.classList.add('checked');
+              } else {
+                if (idx >= 0) arr.splice(idx, 1);
+                row.classList.remove('checked');
+              }
+            };
+            cond.addEventListener('input', sync);
+            note.addEventListener('input', sync);
+            return;
+          }
+
+          const cb = row.querySelector('.chk'), note = row.querySelector('.note-in');
+          const label = (INSPECT_CHECKS[group].find(([i]) => i === id) || [null, id])[1];
+          cb.addEventListener('change', (e) => {
+            const arr = s[arrKey];
+            if (e.target.checked) {
+              if (!arr.find((c) => c.id === id)) arr.push({ id, label, note: note.value });
+              note.disabled = false; row.classList.add('checked');
+            } else {
+              const idx = arr.findIndex((c) => c.id === id);
+              if (idx >= 0) arr.splice(idx, 1);
+              note.disabled = true; note.value = ''; row.classList.remove('checked');
+            }
+          });
+          note.addEventListener('input', (e) => {
+            const item = s[arrKey].find((c) => c.id === id);
+            if (item) item.note = e.target.value;
+          });
+        });
+
+        // scores
+        ['curt_score', 'blind_score', 'post_score'].forEach((k) => {
+          const el = $(`#${phase}-${k}`);
+          if (el) el.addEventListener('input', (e) => { s[k] = +e.target.value; $(`#${phase}-${k}-v`).textContent = e.target.value; });
+        });
+
+        // treatments (post)
+        document.querySelectorAll(`#${phase}-mount .treat-chip`).forEach((c) =>
+          c.addEventListener('click', () => {
+            const k = c.dataset.treat;
+            s.treatments[k] = !s.treatments[k];
+            c.classList.toggle('active', s.treatments[k]);
+          }));
+
+        // outcome (post)
+        const oc = $('#post-outcome');
+        if (oc && phase === 'post') oc.addEventListener('change', (e) => { s.outcome = e.target.value; });
+
+        // photo file input
+        const fi = $(`#${phase}-fileinput`);
+        if (fi) fi.addEventListener('change', async (e) => {
+          const files = Array.from(e.target.files || []);
+          if (!files.length) return;
+          const room = 8 - s.photos.length;
+          if (room <= 0) { ui.toast('Max 8 photos per inspection'); return; }
+          const toUpload = files.slice(0, room);
+          ui.toast(`Uploading ${toUpload.length} photo${toUpload.length === 1 ? '' : 's'}…`);
+          for (const f of toUpload) {
+            try {
+              const meta = await db.uploadPhoto(s.jobId, phase, f);
+              s.photos.push(meta);
+            } catch (err) {
+              ui.toast('Upload failed: ' + (err.message || 'error'));
+              console.error(err);
+            }
+          }
+          await this.persist(phase, { silent: true });
+          this.renderPhotos(phase);
+          fi.value = '';
+        });
+
+        // save
+        $(`#${phase}-save`).addEventListener('click', () => this.save(phase));
+
+        // report download
+        const rpt = $(`#${phase}-report`);
+        if (rpt) rpt.addEventListener('click', async () => {
+          rpt.disabled = true; rpt.textContent = 'Generating…';
+          try { const job = await db.getJob(this.state[phase].jobId); await inspectionPdf.download(job, phase); }
+          catch (err) { ui.toast('Report failed: ' + (err.message || 'error')); console.error(err); }
+          finally { rpt.disabled = false; rpt.textContent = 'Download Report'; }
+        });
+        // report email
+        const rem = $(`#${phase}-email`);
+        if (rem) rem.addEventListener('click', async () => {
+          rem.disabled = true; rem.textContent = 'Preparing…';
+          try { const job = await db.getJob(this.state[phase].jobId); inspectionEmail.open(job, phase); }
+          catch (err) { ui.toast('Could not prepare: ' + (err.message || 'error')); console.error(err); }
+          finally { rem.disabled = false; rem.textContent = 'Email Report'; }
+        });
+        // combined (post form only)
+        const cr = $('#combined-report');
+        if (cr) cr.addEventListener('click', async () => {
+          cr.disabled = true; cr.textContent = 'Generating…';
+          try { const job = await db.getJob(this.state[phase].jobId); await inspectionPdf.download(job, 'combined'); }
+          catch (err) { ui.toast('Report failed: ' + (err.message || 'error')); console.error(err); }
+          finally { cr.disabled = false; cr.textContent = 'Download Combined (Pre+Post)'; }
+        });
+        const ce = $('#combined-email');
+        if (ce) ce.addEventListener('click', async () => {
+          ce.disabled = true; ce.textContent = 'Preparing…';
+          try { const job = await db.getJob(this.state[phase].jobId); inspectionEmail.open(job, 'combined'); }
+          catch (err) { ui.toast('Could not prepare: ' + (err.message || 'error')); console.error(err); }
+          finally { ce.disabled = false; ce.textContent = 'Email Combined'; }
+        });
+      },
+
+      // Build the data object for this phase from state.
+      payload(phase) {
+        const s = this.state[phase];
+        if (phase === 'pre') {
+          return {
+            inspector: s.inspector, date: s.date, mode: 'global',
+            curt_checks: s.curt_checks, blind_checks: s.blind_checks, hw_checks: s.hw_checks,
+            curt_na: s.curt_na, blind_na: s.blind_na,
+            curt_score: s.curt_score, blind_score: s.blind_score,
+            cust_notes: s.cust_notes, job_notes: s.job_notes,
+            photos: s.photos, saved_at: s.saved_at,
+          };
+        }
+        return {
+          inspector: s.inspector, date: s.date, mode: 'global',
+          post_score: s.post_score, outcome: s.outcome, treatments: s.treatments,
+          post_checks: s.post_checks,
+          cust_notes: s.cust_notes, job_notes: s.job_notes,
+          photos: s.photos, saved_at: s.saved_at,
+        };
+      },
+
+      // Persist without changing status (used after photo add/remove).
+      async persist(phase, { silent } = {}) {
+        const key = phase === 'pre' ? 'pre_inspection' : 'post_inspection';
+        await db.saveJob(this.state[phase].jobId, { [key]: this.payload(phase) });
+        if (!silent) ui.toast('Saved');
+      },
+
+      async save(phase) {
+        const btn = $(`#${phase}-save`);
+        btn.disabled = true; btn.textContent = 'Saving…';
+        try {
+          const s = this.state[phase];
+          s.saved_at = new Date().toISOString();
+          const key = phase === 'pre' ? 'pre_inspection' : 'post_inspection';
+          await db.saveJob(s.jobId, { [key]: this.payload(phase) });
+          // advance status forward only
+          const order = ['quoted', 'confirmed', 'in_progress', 'complete', 'invoiced'];
+          const fresh = await db.getJob(s.jobId);
+          const target = phase === 'pre' ? 'in_progress' : 'complete';
+          if (order.indexOf(fresh.status) < order.indexOf(target)) {
+            await db.advanceStatus(s.jobId, target);
+          }
+          ui.toast(`${phase === 'pre' ? 'Pre' : 'Post'}-inspection saved`);
+          router.jobPage(this.mainEl); // refresh status bar + banners
+        } catch (err) {
+          ui.toast('Save failed: ' + (err.message || 'error'));
+          console.error(err);
+          btn.disabled = false; btn.textContent = `Save ${phase === 'pre' ? 'Pre' : 'Post'}-Inspection`;
+        }
+      },
+    };
+
+    /* ============================================================
+       ACCEPTANCE & TECHNICIAN JOB CARD
+       Record how the customer accepted, optional terms tick, confirm
+       (requires a saved quote with a total) → advances job to Confirmed
+       and generates the plain-text job card for pasting into Fergus.
+       ============================================================ */
+    const acceptance = {
+      jobId: null, main: null,
+      draft: { how: 'verbal', terms_confirmed: false },
+
+      init(job, main) {
+        this.jobId = job.id; this.main = main;
+        const a = job.data?.acceptance || {};
+        this.draft = { how: a.how || 'verbal', terms_confirmed: !!a.terms_confirmed };
+        this.render(job);
+      },
+
+      render(job) {
+        const mount = $('#acc-mount');
+        if (!mount) return;
+        const a = job.data?.acceptance || {};
+        const q = job.data?.quote || {};
+        const hasQuote = q.total != null && Number(q.total) > 0;
+        const isConfirmed = !!a.confirmed_at;
+
+        const chips = ['verbal', 'email', 'text', 'other'].map((h) =>
+          `<span class="acc-chip ${this.draft.how === h ? 'active' : ''}" data-how="${h}">${h.charAt(0).toUpperCase() + h.slice(1)}</span>`).join('');
+
+        let html = '';
+        if (isConfirmed) {
+          const when = a.confirmed_at ? new Date(a.confirmed_at).toLocaleString('en-AU', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+          html += `<div class="acc-confirmed-banner">✓ <strong>Accepted</strong> via ${escapeHtml(a.how || '')} · ${escapeHtml(when)} · by ${escapeHtml(a.confirmed_by || '')}${a.terms_confirmed ? ' · terms confirmed' : ''}</div>`;
+        }
+
+        html += `<div><span class="mini-label" style="font-size:12px;font-weight:700;color:var(--muted)">HOW ACCEPTED</span></div>
+          <div class="acc-chips">${chips}</div>
+          <label class="acc-terms"><input type="checkbox" id="acc-terms-cb" ${this.draft.terms_confirmed ? 'checked' : ''}/> Terms of trade confirmed with customer (optional)</label>`;
+
+        if (!hasQuote) {
+          html += `<div class="acc-blocked">Save a quote with a total before confirming acceptance.</div>`;
+        }
+        html += `<button class="btn btn-confirm" id="acc-confirm" ${hasQuote ? '' : 'disabled'}>${isConfirmed ? 'Update Acceptance' : 'Confirm Acceptance'}</button>`;
+
+        // Job card (only meaningful once there's a quote)
+        if (hasQuote) {
+          const card = this.buildCard(job);
+          html += `
+            <div class="qb-block-title">Technician Job Card</div>
+            <div class="jobcard-box" id="jobcard-text">${escapeHtml(card)}</div>
+            <div class="jobcard-actions">
+              <button class="btn-copy" id="jobcard-copy">Copy to Clipboard</button>
+              <button class="btn btn-secondary" id="jobcard-download">Download .txt</button>
+            </div>`;
+        }
+
+        mount.innerHTML = html;
+        this.wire(job);
+      },
+
+      wire(job) {
+        document.querySelectorAll('.acc-chip[data-how]').forEach((c) =>
+          c.addEventListener('click', () => { this.draft.how = c.dataset.how; this.render(job); }));
+        const tc = $('#acc-terms-cb');
+        if (tc) tc.addEventListener('change', (e) => { this.draft.terms_confirmed = e.target.checked; });
+
+        const conf = $('#acc-confirm');
+        if (conf) conf.addEventListener('click', async () => {
+          conf.disabled = true; conf.textContent = 'Confirming…';
+          try {
+            const acc = {
+              how: this.draft.how,
+              terms_confirmed: this.draft.terms_confirmed,
+              confirmed_at: new Date().toISOString(),
+              confirmed_by: session.profile.name,
+            };
+            // save acceptance + generate & store the job card, advance to confirmed
+            const fresh = await db.getJob(this.jobId);
+            const card = this.buildCard(fresh);
+            await db.saveJob(this.jobId, {
+              acceptance: acc,
+              technician_card: { generated_at: acc.confirmed_at, text: card },
+            });
+            // advance status only if not already past confirmed
+            const order = ['quoted', 'confirmed', 'in_progress', 'complete', 'invoiced'];
+            if (order.indexOf(fresh.status) < order.indexOf('confirmed')) {
+              await db.advanceStatus(this.jobId, 'confirmed');
+            }
+            ui.toast('Acceptance confirmed');
+            // Offer to send the customer an acceptance email (optional).
+            const fresh2 = await db.getJob(this.jobId);
+            acceptanceEmail.open(fresh2);
+            router.jobPage(this.main); // refresh whole job page (status bar + sections)
+          } catch (err) {
+            ui.toast('Confirm failed: ' + (err.message || 'error'));
+            conf.disabled = false; conf.textContent = 'Confirm Acceptance';
+          }
+        });
+
+        const copy = $('#jobcard-copy');
+        if (copy) copy.addEventListener('click', async () => {
+          try {
+            await navigator.clipboard.writeText(this.buildCard(job));
+            ui.toast('Job card copied');
+          } catch (_) {
+            ui.toast('Copy failed — select and copy manually');
+          }
+        });
+        const dl = $('#jobcard-download');
+        if (dl) dl.addEventListener('click', () => {
+          const blob = new Blob([this.buildCard(job)], { type: 'text/plain' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url; a.download = `${job.quote_number || 'JobCard'}.txt`;
+          a.click(); URL.revokeObjectURL(url);
+        });
+      },
+
+      // Plain-text job card, grouped by room, for pasting into Fergus.
+      buildCard(job) {
+        const q = job.data?.quote || {};
+        const a = job.data?.acceptance || {};
+        const L = [];
+        L.push(`JOB CARD — ${job.quote_number || ''}`);
+        if (job.drd_number) L.push(`Fergus: ${job.drd_number}`);
+        L.push(`Customer: ${job.customer_name || ''}`);
+        if (job.customer_phone) L.push(`Phone: ${job.customer_phone}`);
+        if (job.site_address) L.push(`Address: ${job.site_address}`);
+        if (q.insurer_name || q.claim_number) {
+          L.push(`Insurance: ${[q.insurer_name, q.claim_number].filter(Boolean).join(' / ')}`);
+        }
+        const when = a.confirmed_at ? new Date(a.confirmed_at).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' }) : new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+        L.push(`Confirmed: ${when} | Via: ${(a.how || this.draft.how || 'verbal')} | Terms: ${a.terms_confirmed ? 'Confirmed' : 'Implied'}`);
+        L.push('');
+
+        // Items grouped by room
+        (q.rooms || []).forEach((room) => {
+          const items = room.items || [];
+          const reps = room.repairs || [];
+          if (!items.length && !reps.length) return;
+          L.push(`${(room.name || 'ROOM').toUpperCase()}:`);
+          items.forEach((it) => {
+            if (it.cat === 'custom') {
+              L.push(`  • ${it.label || 'Custom item'}${it.item_note ? ' — ' + it.item_note : ''}`);
+              return;
+            }
+            const label = CATALOG[it.cat]?.label || it.cat;
+            const calc = computeLine(it);
+            const isBlind = CATALOG[it.cat]?.mode === 'blind';
+            let dims = '';
+            if (isBlind) dims = `${calc.widthM.toFixed(2)}m W × ${calc.dropM.toFixed(2)}m H (${calc.sqm} m²)`;
+            else if (['curtain', 'sheer', 'velvet'].includes(CATALOG[it.cat]?.mode)) dims = `${calc.widthM.toFixed(2)}m W × ${calc.dropM.toFixed(2)}m H`;
+            else dims = `${calc.widthM.toFixed(2)}m W`;
+            const extras = [];
+            if (it.mould) extras.push('MOULD TREATMENT');
+            if (it.item_note) extras.push(it.item_note);
+            L.push(`  • ${label} — ${dims}${extras.length ? ' (' + extras.join('; ') + ')' : ''}`);
+          });
+          reps.forEach((r) => {
+            const lbl = (REPAIRS.find(([k]) => k === r.key) || [null, r.key])[1];
+            L.push(`  • ${lbl} ×${parseInt(r.qty, 10) || 0}`);
+          });
+          L.push('');
+        });
+
+        // Whole-job repairs
+        if ((q.repairs || []).length) {
+          L.push('REPAIRS & HARDWARE:');
+          q.repairs.forEach((r) => {
+            const lbl = (REPAIRS.find(([k]) => k === r.key) || [null, r.key])[1];
+            L.push(`  • ${lbl} ×${parseInt(r.qty, 10) || 0}`);
+          });
+          L.push('');
+        }
+
+        // Conditions summary (any mould treatment flagged across the job)
+        const hasMould = (q.rooms || []).some((rm) => (rm.items || []).some((it) => it.mould));
+        if (hasMould) L.push('CONDITIONS: Mould treatment required');
+
+        // Extras worth a tech knowing about
+        const ex = q.extras || {};
+        const exNotes = [];
+        if (Number(ex.rehang)) exNotes.push('Rehang included');
+        if (Number(ex.transport)) exNotes.push('Transport');
+        if (Number(ex.storage)) exNotes.push('Storage');
+        if (exNotes.length) L.push(`SERVICE: ${exNotes.join(', ')}`);
+
+        // Notes
+        if (q.notes) { L.push(''); L.push(`QUOTE NOTES: ${q.notes}`); }
+        if (job.data?.internal_notes) { L.push(`INTERNAL: ${job.data.internal_notes}`); }
+
+        return L.join('\n');
+      },
+    };
+
+    // Turn common Resend/function errors into something readable.
+    function sendErrorMessage(raw) {
+      const r = String(raw).toLowerCase();
+      if (r.includes('domain') || r.includes('not verified') || r.includes('verify')) {
+        return 'Sending domain not verified yet. Verify drdrapes.com.au in Resend (DKIM/SPF DNS records), then try again.';
+      }
+      if (r.includes('forbidden')) return 'This job belongs to another company — cannot send.';
+      if (r.includes('authenticated')) return 'Session expired — sign out and back in, then retry.';
+      return raw;
+    }
+
+    /* ============================================================
+       INSPECTION REPORT EMAIL  (via send-inspection-email function)
+       phase: 'pre' | 'post' | 'combined'
+       ============================================================ */
+    const inspectionEmail = {
+      open(job, phase) {
+        const companyName = session.company?.name || 'Dr Drapes Curtain Clinic';
+        const cc = session.company?.contact_email || '';
+        const label = phase === 'combined' ? 'Inspection Report' : (phase === 'pre' ? 'Pre-Inspection Report' : 'Post-Inspection Report');
+        const defaultSubject = `${label} ${job.quote_number || ''} — ${companyName}`;
+        const greeting = job.customer_name ? `Hi ${firstName(job.customer_name)},` : 'Hi,';
+        const defaultBody = `${greeting}\n\nPlease find attached the ${label.toLowerCase()} for your records.\n\n${session.settings['email-outro'] || ''}`.trim();
+        const fname = `${job.quote_number || 'Report'}_${phase === 'combined' ? 'Inspection' : (phase === 'pre' ? 'Pre-Inspection' : 'Post-Inspection')}.pdf`;
+
+        const mount = $('#modal-mount');
+        mount.innerHTML = `
+          <div class="modal-backdrop" id="ie-backdrop">
+            <div class="modal compose">
+              <div class="m-head"><h2>Email ${escapeHtml(label)}</h2><p>${escapeHtml(job.quote_number || '')} — report PDF attached automatically.</p></div>
+              <div class="m-body">
+                <div class="modal-error hidden" id="ie-error"></div>
+                <div class="field"><label>To</label><input id="ie-to" value="${escapeAttr(job.customer_email || '')}" placeholder="customer@email.com" /></div>
+                <div class="field"><label>CC (always included)</label><div class="cc-locked"><span class="lock">🔒</span> ${escapeHtml(cc || 'No company CC set')}</div></div>
+                <div class="field"><label>Subject</label><input id="ie-subject" value="${escapeAttr(defaultSubject)}" /></div>
+                <div class="field"><label>Message</label><textarea id="ie-body" rows="7">${escapeHtml(defaultBody)}</textarea></div>
+                <div class="attach-chip">📎 ${escapeHtml(fname)}</div>
+              </div>
+              <div class="m-foot">
+                <button class="btn btn-secondary" id="ie-cancel">Cancel</button>
+                <button class="btn btn-email" id="ie-send" style="width:auto">Send Email</button>
+              </div>
+            </div>
+          </div>`;
+
+        const close = () => { mount.innerHTML = ''; };
+        $('#ie-cancel').addEventListener('click', close);
+        $('#ie-backdrop').addEventListener('click', (e) => { if (e.target.id === 'ie-backdrop') close(); });
+
+        $('#ie-send').addEventListener('click', async () => {
+          const to = $('#ie-to').value.trim();
+          const errEl = $('#ie-error'); errEl.classList.add('hidden');
+          if (!to || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) { errEl.textContent = 'Enter a valid email address.'; errEl.classList.remove('hidden'); return; }
+          const btn = $('#ie-send'); btn.disabled = true; btn.textContent = 'Generating & sending…';
+          try {
+            const pdf_base64 = await inspectionPdf.base64(job, phase);
+            const body_html = '<div style="font-family:Arial,sans-serif;font-size:14px;color:#222;white-space:pre-wrap">' + escapeHtml($('#ie-body').value) + '</div>';
+            const { data: { session: s } } = await sb.auth.getSession();
+            const res = await fetch(`${SUPABASE_URL}/functions/v1/send-inspection-email`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${s.access_token}`, 'apikey': SUPABASE_ANON_KEY },
+              body: JSON.stringify({ job_id: job.id, phase, to, subject: $('#ie-subject').value, body_html, pdf_base64, pdf_filename: fname }),
+            });
+            const out = await res.json().catch(() => ({}));
+            if (!res.ok || out.error) throw new Error(out.detail || out.error || `Send failed (${res.status})`);
+            close(); ui.toast('Report emailed to ' + to);
+          } catch (err) {
+            errEl.textContent = sendErrorMessage(err.message || 'Send failed'); errEl.classList.remove('hidden');
+            btn.disabled = false; btn.textContent = 'Send Email';
+          }
+        });
+      },
+    };
+
+    /* ============================================================
+       ACCEPTANCE EMAIL  (optional, reuses send-quote-email with no PDF)
+       ============================================================ */
+    const acceptanceEmail = {
+      open(job) {
+        const companyName = session.company?.name || 'Dr Drapes Curtain Clinic';
+        const cc = session.company?.contact_email || '';
+        const greeting = job.customer_name ? `Hi ${firstName(job.customer_name)},` : 'Hi,';
+        const defaultSubject = `Quote ${job.quote_number || ''} accepted — ${companyName}`;
+        const defaultBody = `${greeting}\n\nGood news — we've marked your quote ${job.quote_number || ''} as accepted and your job is now confirmed.\n\nWe'll be in touch to arrange a collection and rehang date if we haven't already.\n\n${session.settings['email-outro'] || ''}`.trim();
+
+        const mount = $('#modal-mount');
+        mount.innerHTML = `
+          <div class="modal-backdrop" id="ae-backdrop">
+            <div class="modal compose">
+              <div class="m-head"><h2>Send Acceptance Email</h2><p>Optional — let the customer know their quote is accepted.</p></div>
+              <div class="m-body">
+                <div class="modal-error hidden" id="ae-error"></div>
+                <div class="field"><label>To</label><input id="ae-to" value="${escapeAttr(job.customer_email || '')}" placeholder="customer@email.com" /></div>
+                <div class="field"><label>CC (always included)</label><div class="cc-locked"><span class="lock">🔒</span> ${escapeHtml(cc || 'No company CC set')}</div></div>
+                <div class="field"><label>Subject</label><input id="ae-subject" value="${escapeAttr(defaultSubject)}" /></div>
+                <div class="field"><label>Message</label><textarea id="ae-body" rows="8">${escapeHtml(defaultBody)}</textarea></div>
+              </div>
+              <div class="m-foot">
+                <button class="btn btn-secondary" id="ae-skip">Skip</button>
+                <button class="btn btn-email" id="ae-send" style="width:auto">Send Email</button>
+              </div>
+            </div>
+          </div>`;
+
+        const close = () => { mount.innerHTML = ''; };
+        $('#ae-skip').addEventListener('click', close);
+        $('#ae-backdrop').addEventListener('click', (e) => { if (e.target.id === 'ae-backdrop') close(); });
+
+        $('#ae-send').addEventListener('click', async () => {
+          const to = $('#ae-to').value.trim();
+          const errEl = $('#ae-error'); errEl.classList.add('hidden');
+          if (!to || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) { errEl.textContent = 'Enter a valid email address.'; errEl.classList.remove('hidden'); return; }
+          const btn = $('#ae-send'); btn.disabled = true; btn.textContent = 'Sending…';
+          try {
+            const body_html = '<div style="font-family:Arial,sans-serif;font-size:14px;color:#222;white-space:pre-wrap">' + escapeHtml($('#ae-body').value) + '</div>';
+            const { data: { session: s } } = await sb.auth.getSession();
+            // Reuses send-quote-email with no pdf_base64 (PDF now optional in that function).
+            const res = await fetch(`${SUPABASE_URL}/functions/v1/send-quote-email`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${s.access_token}`, 'apikey': SUPABASE_ANON_KEY },
+              body: JSON.stringify({ job_id: job.id, to, subject: $('#ae-subject').value, body_html }),
+            });
+            const out = await res.json().catch(() => ({}));
+            if (!res.ok || out.error) throw new Error(out.detail || out.error || `Send failed (${res.status})`);
+            close(); ui.toast('Acceptance email sent to ' + to);
+          } catch (err) {
+            errEl.textContent = sendErrorMessage(err.message || 'Send failed'); errEl.classList.remove('hidden');
+            btn.disabled = false; btn.textContent = 'Send Email';
+          }
+        });
+      },
+    };
+
+    /* ============================================================
        COMPOSE QUOTE EMAIL
        Builds the PDF client-side, opens a compose window (to editable,
        CC locked to company contact_email, subject + body editable),
@@ -1879,17 +2910,6 @@
         });
       },
     };
-
-    // Turn common Resend/function errors into something readable.
-    function sendErrorMessage(raw) {
-      const r = String(raw).toLowerCase();
-      if (r.includes('domain') || r.includes('not verified') || r.includes('verify')) {
-        return 'Sending domain not verified yet. Verify drdrapes.com.au in Resend (DKIM/SPF DNS records), then try again.';
-      }
-      if (r.includes('forbidden')) return 'This job belongs to another company — cannot send.';
-      if (r.includes('authenticated')) return 'Session expired — sign out and back in, then retry.';
-      return raw;
-    }
 
     /* ============================================================
        NEW JOB MODAL
