@@ -1,761 +1,432 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Get a Quote — Dr Drapes Curtain Clinic</title>
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Request a Quote — Dr Drapes Curtain Clinic</title>
 <style>
   :root {
-    --navy:#2b2d7e; --teal:#0f766e; --red:#e0192e;
-    --g50:#f0f1f8; --g100:#e4e5f0; --g300:#9597be; --g700:#3a3c6e;
+    --navy-dark: #1a1c50; --navy-mid: #2b2d7e; --teal: #3aa7a0;
+    --pink: #c81b55; --ink: #2a2a3a; --muted: #6e6e78;
+    --line: #dde0ea; --card: #ffffff; --bg: #f4f5fa;
+    --r: 14px; --r-sm: 9px;
   }
-  * { box-sizing:border-box; margin:0; padding:0; }
-  body { font-family:'Open Sans',sans-serif; background:#f0f1f8; color:#2b2d5e; min-height:100vh; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--ink); line-height: 1.5; padding: 20px; }
+  .wrap { max-width: 600px; margin: 0 auto; }
+  .card { background: var(--card); border-radius: var(--r); box-shadow: 0 2px 16px rgba(26,28,80,.08); padding: 28px; }
+  .logo { display: block; max-width: 220px; height: auto; margin: 0 auto 18px; }
+  h1 { font-family: 'Montserrat', sans-serif; font-size: 22px; color: var(--navy-dark); text-align: center; margin-bottom: 6px; }
+  .sub { text-align: center; color: var(--muted); font-size: 14px; margin-bottom: 24px; }
+  .field { margin-bottom: 16px; }
+  label { display: block; font-size: 13px; font-weight: 600; color: var(--navy-mid); margin-bottom: 5px; }
+  label .opt { color: var(--muted); font-weight: 400; }
+  input, select, textarea { width: 100%; padding: 11px 13px; border: 1.5px solid var(--line); border-radius: var(--r-sm); font-size: 15px; font-family: inherit; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--navy-mid); box-shadow: 0 0 0 3px rgba(43,45,126,.12); }
+  textarea { resize: vertical; min-height: 90px; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 480px) { .row { grid-template-columns: 1fr; } }
+  .section-label { font-family: 'Montserrat', sans-serif; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 22px 0 10px; }
+  .photo-area { border: 2px dashed #c5c9dc; border-radius: var(--r-sm); padding: 18px; text-align: center; cursor: pointer; background: #fafbfd; color: var(--navy-mid); font-size: 14px; font-weight: 600; }
+  .photo-area:hover { border-color: var(--navy-mid); background: #f3f4f8; }
+  .photo-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .photo-grid .pt { position: relative; width: 76px; height: 76px; border-radius: 6px; overflow: hidden; border: 1px solid var(--line); }
+  .photo-grid .pt img { width: 100%; height: 100%; object-fit: cover; }
+  .photo-grid .pt .x { position: absolute; top: 2px; right: 2px; background: rgba(200,27,85,.92); color: #fff; border-radius: 4px; font-size: 12px; padding: 1px 6px; cursor: pointer; font-weight: 700; }
 
-  /* ── Header ── */
-  header {
-    background:linear-gradient(135deg,#1a1c50,#2b2d7e);
-    padding:20px 24px;
-    display:flex; align-items:center; gap:16px;
-  }
-  header img { height:52px; }
-  .hdr-text h1 { font-family:'Montserrat',sans-serif; font-size:1.1rem; font-weight:800; color:#fff; }
-  .hdr-text h1 span { color:#ff6b7a; }
-  .hdr-text p { color:rgba(255,255,255,.55); font-size:.72rem; letter-spacing:2px; text-transform:uppercase; margin-top:2px; }
-  .hdr-bar { height:4px; background:linear-gradient(90deg,var(--red),#ff6b7a,var(--teal)); }
+  /* Rooms / items UI */
+  .help-panel { background: #f8f9fc; border: 1px solid var(--line); border-radius: var(--r-sm); padding: 12px 14px; margin-bottom: 14px; font-size: 13px; color: var(--ink); }
+  .help-panel summary { cursor: pointer; font-weight: 700; color: var(--navy-mid); font-size: 13.5px; padding: 2px 0; }
+  .help-panel .help-body { margin-top: 10px; line-height: 1.55; }
+  .help-panel h4 { font-size: 13px; color: var(--navy-dark); margin: 10px 0 4px; font-weight: 700; }
+  .help-panel svg { display: block; margin: 6px 0; max-width: 100%; height: auto; }
+  .help-panel ul { margin: 4px 0 6px 18px; }
+  .help-panel li { margin-bottom: 3px; }
 
-  /* ── Main ── */
-  .main { max-width:640px; margin:0 auto; padding:24px 16px 60px; }
+  .room { background: #fafbfd; border: 1.5px solid var(--line); border-radius: var(--r-sm); padding: 14px; margin-bottom: 12px; }
+  .room.collapsed .room-body { display: none; }
+  .room-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; cursor: pointer; }
+  .room-head .room-title { font-family: 'Montserrat', sans-serif; font-weight: 700; color: var(--navy-dark); font-size: 15px; }
+  .room-head .room-title small { font-weight: 400; color: var(--muted); font-size: 12.5px; margin-left: 6px; }
+  .room-head .room-actions { display: flex; gap: 6px; }
+  .room-mini-btn { background: transparent; border: none; color: var(--muted); font-size: 18px; cursor: pointer; padding: 2px 6px; }
+  .room-mini-btn:hover { color: var(--pink); }
+  .room-body { margin-top: 12px; }
+  .room input.room-name { font-weight: 600; }
+  .item { background: #fff; border: 1px solid var(--line); border-radius: 7px; padding: 11px 12px; margin-bottom: 8px; }
+  .item-row { display: grid; grid-template-columns: 1fr 70px; gap: 8px; align-items: end; }
+  .item-row .field { margin-bottom: 0; }
+  .item-row .field label { font-size: 11.5px; margin-bottom: 3px; }
+  .item-row select, .item-row input { padding: 8px 10px; font-size: 14px; }
+  .item-row .remove-item { background: transparent; border: none; color: var(--muted); font-size: 18px; cursor: pointer; padding: 6px; }
+  .item-row .remove-item:hover { color: var(--pink); }
+  .item-measure { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+  .item-tier-toggle { display: flex; gap: 6px; margin-top: 8px; font-size: 12px; }
+  .item-tier-toggle .tog { padding: 5px 10px; border-radius: 999px; background: #eef0f6; color: var(--navy-mid); font-weight: 600; cursor: pointer; }
+  .item-tier-toggle .tog.active { background: var(--navy-mid); color: #fff; }
+  .item-tier-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 8px; }
+  .item-tier-row .tier { padding: 9px 6px; text-align: center; border-radius: 6px; background: #eef0f6; color: var(--navy-mid); font-size: 12.5px; font-weight: 600; cursor: pointer; border: 1.5px solid transparent; }
+  .item-tier-row .tier.active { background: #fff; border-color: var(--navy-mid); color: var(--navy-dark); }
+  .item-note { margin-top: 8px; }
+  .item-note input { font-size: 13.5px; padding: 8px 10px; }
+  .room-photos-label { font-size: 12px; color: var(--muted); margin-top: 12px; margin-bottom: 6px; font-weight: 600; }
+  .add-item-btn { width: 100%; padding: 9px; border: 1.5px dashed #c5c9dc; border-radius: 7px; background: transparent; color: var(--navy-mid); font-weight: 600; font-size: 13px; cursor: pointer; margin-top: 4px; }
+  .add-item-btn:hover { border-color: var(--navy-mid); background: #f3f4f8; }
+  .add-room-btn { width: 100%; padding: 12px; border: 2px dashed var(--navy-mid); border-radius: var(--r-sm); background: transparent; color: var(--navy-mid); font-weight: 700; font-size: 14.5px; cursor: pointer; margin-bottom: 8px; }
+  .add-room-btn:hover { background: rgba(43,45,126,.06); }
 
-  /* ── Hero card ── */
-  .hero {
-    background:#fff; border-radius:14px; padding:24px;
-    margin-bottom:20px;
-    box-shadow:0 4px 18px rgba(43,45,126,.1);
-    border-top:4px solid var(--teal);
-  }
-  .hero h2 { font-family:'Montserrat',sans-serif; font-size:1.25rem; font-weight:800; color:var(--navy); margin-bottom:6px; }
-  .hero p { font-size:.85rem; color:var(--g700); line-height:1.6; }
-  .hero-steps { display:flex; gap:8px; margin-top:14px; flex-wrap:wrap; }
-  .step-pill {
-    display:flex; align-items:center; gap:6px;
-    background:var(--g50); border-radius:20px; padding:5px 12px;
-    font-size:.75rem; font-family:'Montserrat',sans-serif; font-weight:700; color:var(--g700);
-  }
-  .step-pill span { color:var(--teal); font-size:.9rem; }
-
-  /* ── Form card ── */
-  .card {
-    background:#fff; border-radius:12px; padding:20px;
-    margin-bottom:16px;
-    box-shadow:0 2px 12px rgba(43,45,126,.07);
-  }
-  .card-title {
-    font-family:'Montserrat',sans-serif; font-size:.82rem; font-weight:800;
-    color:var(--navy); text-transform:uppercase; letter-spacing:1px;
-    padding-bottom:10px; margin-bottom:14px;
-    border-bottom:2px solid var(--g50);
-    display:flex; align-items:center; gap:8px;
-  }
-  .card-title .dot {
-    width:8px; height:8px; border-radius:50%; background:var(--teal); flex-shrink:0;
-  }
-
-  /* ── Form fields ── */
-  .f { margin-bottom:14px; }
-  .f label {
-    display:block; font-size:.72rem; font-weight:700; text-transform:uppercase;
-    letter-spacing:1.2px; color:var(--g300); margin-bottom:5px;
-    font-family:'Montserrat',sans-serif;
-  }
-  .f label .req { color:var(--red); margin-left:2px; }
-  .f input, .f select, .f textarea {
-    width:100%; border:1.5px solid var(--g100); border-radius:8px;
-    padding:10px 12px; font-size:.88rem; font-family:'Open Sans',sans-serif;
-    color:#2b2d5e; background:#fff; outline:none;
-    transition:border-color .15s;
-  }
-  .f input:focus, .f select:focus, .f textarea:focus { border-color:var(--teal); }
-  .f input.err, .f select.err, .f textarea.err { border-color:var(--red); }
-  .f textarea { resize:vertical; min-height:80px; }
-  .g2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-  @media(max-width:480px){ .g2{grid-template-columns:1fr;} }
-
-  /* ── Checkbox chips ── */
-  .chip-group { display:flex; flex-wrap:wrap; gap:8px; }
-  .chip {
-    display:inline-flex; align-items:center; gap:6px;
-    padding:8px 14px; border-radius:20px;
-    border:1.5px solid var(--g100); cursor:pointer;
-    font-size:.82rem; font-family:'Montserrat',sans-serif; font-weight:600;
-    color:var(--g700); transition:all .15s; user-select:none;
-  }
-  .chip:hover { border-color:var(--teal); color:var(--teal); }
-  .chip.selected { border-color:var(--teal); background:rgba(15,118,110,.08); color:var(--teal); }
-  .chip input { display:none; }
-  .chip .ck { font-size:.9rem; }
-
-  /* ── Room counter ── */
-  .room-counter {
-    display:flex; align-items:center; gap:0;
-    border:1.5px solid var(--g100); border-radius:8px;
-    overflow:hidden; width:fit-content;
-  }
-  .rc-btn {
-    width:40px; height:40px; border:none; background:var(--g50);
-    font-size:1.2rem; cursor:pointer; color:var(--navy); font-weight:700;
-    transition:background .12s; flex-shrink:0;
-  }
-  .rc-btn:hover { background:var(--g100); }
-  .rc-val {
-    width:50px; text-align:center; font-size:1rem; font-weight:700;
-    color:var(--navy); font-family:'Montserrat',sans-serif;
-    border:none; border-left:1px solid var(--g100); border-right:1px solid var(--g100);
-    height:40px; padding:0;
-  }
-
-  /* ── Photo upload ── */
-  .photo-upload-area {
-    border:2px dashed var(--g100); border-radius:10px;
-    padding:20px; text-align:center; cursor:pointer;
-    transition:all .15s; background:var(--g50);
-  }
-  .photo-upload-area:hover, .photo-upload-area.drag-over {
-    border-color:var(--teal); background:rgba(15,118,110,.05);
-  }
-  .photo-upload-area p { font-size:.82rem; color:var(--g300); margin-top:6px; }
-  .photo-upload-area .icon { font-size:2rem; }
-  .photo-preview { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
-  .photo-thumb {
-    position:relative; width:80px; height:80px;
-    border-radius:8px; overflow:hidden; border:1.5px solid var(--g100);
-  }
-  .photo-thumb img { width:100%; height:100%; object-fit:cover; }
-  .photo-thumb .rm {
-    position:absolute; top:2px; right:2px; width:20px; height:20px;
-    background:rgba(224,25,46,.9); color:#fff; border:none; border-radius:50%;
-    font-size:.75rem; cursor:pointer; display:flex; align-items:center; justify-content:center;
-    font-weight:700; line-height:1;
-  }
-  #photoInput { display:none; }
-
-  /* ── Item cards ── */
-  .item-card {
-    border:1.5px solid var(--g100); border-radius:10px;
-    margin-bottom:10px; overflow:hidden;
-    background:#fafbff;
-  }
-  .item-card-hdr {
-    display:flex; align-items:center; gap:10px;
-    padding:10px 12px; background:var(--g50);
-    border-bottom:1px solid var(--g100);
-  }
-  .item-num {
-    width:24px; height:24px; border-radius:50%;
-    background:var(--teal); color:#fff;
-    font-family:'Montserrat',sans-serif; font-size:.72rem; font-weight:800;
-    display:flex; align-items:center; justify-content:center; flex-shrink:0;
-  }
-  .item-type-sel {
-    flex:1; border:1.5px solid var(--g100); border-radius:7px;
-    padding:7px 10px; font-size:.84rem; font-family:'Open Sans',sans-serif;
-    background:#fff; outline:none; cursor:pointer;
-  }
-  .item-type-sel:focus { border-color:var(--teal); }
-  .item-remove {
-    width:28px; height:28px; border-radius:50%;
-    background:rgba(224,25,46,.1); color:var(--red);
-    border:none; cursor:pointer; font-size:1rem; font-weight:700;
-    display:flex; align-items:center; justify-content:center;
-    flex-shrink:0; transition:background .12s;
-  }
-  .item-remove:hover { background:rgba(224,25,46,.2); }
-  .item-body { padding:12px; }
-  .item-meas { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px; }
-  @media(max-width:400px){ .item-meas{grid-template-columns:1fr;} }
-  .meas-input {
-    border:1.5px solid var(--g100); border-radius:7px;
-    padding:9px 11px; font-size:.88rem; font-family:'Open Sans',sans-serif;
-    width:100%; outline:none; transition:border-color .15s;
-  }
-  .meas-input:focus { border-color:var(--teal); }
-  .meas-hint { font-size:.7rem; color:var(--g300); margin-top:3px; }
-  .add-item-btn {
-    width:100%; padding:11px; border-radius:8px;
-    border:2px dashed var(--g100); background:transparent;
-    color:var(--teal); font-family:'Montserrat',sans-serif;
-    font-size:.84rem; font-weight:700; cursor:pointer;
-    transition:all .15s; margin-top:4px;
-  }
-  .add-item-btn:hover { border-color:var(--teal); background:rgba(15,118,110,.04); }
-
-  /* ── Submit button ── */
-  .submit-btn {
-    width:100%; padding:16px; border-radius:10px;
-    background:linear-gradient(135deg,var(--teal),#0e6660);
-    color:#fff; border:none; cursor:pointer;
-    font-family:'Montserrat',sans-serif; font-size:1rem; font-weight:800;
-    letter-spacing:.5px; display:flex; align-items:center; justify-content:center;
-    gap:10px; transition:all .2s; margin-top:8px;
-    box-shadow:0 4px 14px rgba(15,118,110,.3);
-  }
-  .submit-btn:hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(15,118,110,.4); }
-  .submit-btn:disabled { background:#ccc; cursor:not-allowed; transform:none; box-shadow:none; }
-
-  /* ── Success screen ── */
-  .success-screen {
-    display:none; text-align:center;
-    background:#fff; border-radius:14px; padding:40px 24px;
-    box-shadow:0 4px 18px rgba(43,45,126,.1);
-    border-top:4px solid var(--teal);
-  }
-  .success-icon { font-size:3.5rem; margin-bottom:16px; }
-  .success-screen h2 { font-family:'Montserrat',sans-serif; font-size:1.3rem; font-weight:800; color:var(--navy); margin-bottom:10px; }
-  .success-screen p { font-size:.88rem; color:var(--g700); line-height:1.7; margin-bottom:8px; }
-  .dq-ref { font-family:'Montserrat',sans-serif; font-size:1.1rem; font-weight:800; color:var(--teal); background:var(--g50); padding:10px 20px; border-radius:8px; display:inline-block; margin:12px 0; }
-
-  /* ── Error message ── */
-  .err-msg { color:var(--red); font-size:.78rem; margin-top:4px; display:none; }
-
-  /* ── Footer ── */
-  footer {
-    background:var(--navy); padding:16px 24px;
-    text-align:center; color:rgba(255,255,255,.5); font-size:.72rem; letter-spacing:1px;
-  }
-  footer strong { color:#fff; }
-  footer a { color:rgba(255,255,255,.6); text-decoration:none; }
-
-  /* ── Spinner ── */
-  @keyframes spin { to{transform:rotate(360deg)} }
-  .spinner { width:20px; height:20px; border:2px solid rgba(255,255,255,.4); border-top-color:#fff; border-radius:50%; animation:spin .6s linear infinite; }
+  .submit { width: 100%; background: var(--navy-mid); color: #fff; font-weight: 700; font-size: 16px; padding: 14px; border: none; border-radius: var(--r-sm); cursor: pointer; margin-top: 8px; }
+  .submit:hover { filter: brightness(1.1); }
+  .submit:disabled { opacity: .55; cursor: default; }
+  .err { background: #fee2e2; color: #991b1b; border-radius: var(--r-sm); padding: 11px 14px; font-size: 14px; margin-bottom: 16px; display: none; }
+  .err.show { display: block; }
+  .done { text-align: center; padding: 20px 0; }
+  .done .tick { font-size: 46px; color: var(--teal); }
+  .done h2 { font-family: 'Montserrat', sans-serif; color: var(--navy-dark); margin: 10px 0 8px; }
+  .done p { color: var(--muted); }
+  .foot { text-align: center; font-size: 12px; color: var(--muted); margin-top: 18px; }
+  /* hidden honeypot field for basic bot defence */
+  .hp { position: absolute; left: -9999px; top: -9999px; }
 </style>
 </head>
 <body>
+  <div class="wrap">
+    <div class="card" id="card">
+      <img class="logo" id="logo" alt="Dr Drapes Curtain Clinic" />
+      <h1>Request a Quote</h1>
+      <p class="sub">Tell us what you'd like cleaned and we'll be in touch. Fill in as much or as little as you like.</p>
 
-<header>
-  <img src="data:image/png;base64,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WuhFRrMbp8XONkG+S7XeJUBWOOxO8g292TyuqktrCTyA66IJrb/H65fR3l33dr8Snx+uX0d5d93a/Eqza7GvJAwiM06outw8TfdbvEcqg5N6V6FBvEX0bk5/T7e7G5ubm1y84HN+Sd68Nj21VHZt+dXjB9uD+fLqefH65fR3l33dr8Snx+uX0d5d93a/EqzblrGPY0YOjblBnco6nuiQYHib7r5xeA/8rmevyoTnocqJbENrcaPdvcrb4WASNK1sAj39agcjFMixTiXi2P26I9Nw34aVcoTiUKUbYotOpcYUR0DZLgUknXmOp3U++P1y+jvLvu7X4lPj9cvo7y77u1+JUtvC0nDAiOQieKdT3W4eJvutV2gP/b7/AOeLb/8Asrd8XsZuORY/Dfsa203qzXBm529LiuVDrrRP9Go+QUCR+zfSvH4/XL6O8u+7tfiU+P1y+jvLvu7X4lVF1qhkftnzTqe63DxN91gDiywmL3L2F5em9gcptotTiiV+HR0DkKN/n71rrU/tL8mVbI0mbCVBkutJU7GU4lZZUR1TzJ6HR6bFQ/4/XL6O8u+7tfiVMrdIXLgR5TkV+Ip5tKyw8AHGyRvlVokbH11R76bu42PqsK9lWtwDUjH5g/Yle9KUrNcyUpSiJSlKIlKUoiUpSiJSlKIlKUoiUpSiJVe4bgTtk4rZJlCw16HOSDDSlZJCnClTxKfI8yR18xVhUqCF1W97Vt2VGUzg8QeEg+nIlY90iNz7ZKgPAFqSytlYPmFJIP8AGqY7PPpt4vjs64MuNnHbW3ZW0k7Tz94pSyPfpKAfrq761eP2C1WETha43cenS1zJHrlXM6vXMep6Dp4DoKESZXZZ6Rbb2degRi+IO7OeYMKJcR+HXxuy2zXMy0sQmWyxc2gSFyWAsOIb6eI5wdg68djrW8uuD4/c8steTSopM22N92wlOg2R4pKhrrykkp69N/VUlpSAsetbvUZTDyAwECMMHZ88uAG5KUpUrz0pSlESlKURKUpREpSlESlKURKUpREpSlESlKURKUpREpSlESlKURKUpREpSlESlKURKUpREpSlESlKURKUpREpSlESlKURKUpREpSlESlKURKUpREpSlESlKURKUpREpSlESlKURKUpREpSlESlKURKUpREpSlESlKURKUpREpSlESlKURf//Z" alt="Dr Drapes">
-  <div class="hdr-text">
-    <h1>Dr<span>Drapes</span></h1>
-    <p>Curtain Clinic</p>
-  </div>
-</header>
-<div class="hdr-bar"></div>
+      <div class="err" id="err"></div>
 
-<div class="main">
+      <div id="form">
+        <div class="section-label">Your details</div>
+        <div class="field"><label>Name</label><input id="f-name" autocomplete="name" /></div>
+        <div class="row">
+          <div class="field"><label>Phone</label><input id="f-phone" autocomplete="tel" inputmode="tel" /></div>
+          <div class="field"><label>Email</label><input id="f-email" autocomplete="email" inputmode="email" /></div>
+        </div>
+        <div class="field"><label>Address <span class="opt">(optional)</span></label><input id="f-address" autocomplete="street-address" /></div>
 
-  <!-- Hero -->
-  <div class="hero">
-    <h2>Request a Cleaning Quote</h2>
-    <p>Tell us about your curtains and blinds and we'll get back to you with a quote. We'll give you a call to confirm the details before we send anything through.</p>
-    <div class="hero-steps">
-      <div class="step-pill"><span>📋</span> Fill in your details</div>
-      <div class="step-pill"><span>📸</span> Add photos (optional)</div>
-      <div class="step-pill"><span>📞</span> We call to confirm</div>
-      <div class="step-pill"><span>💌</span> Quote sent to you</div>
+        <div class="section-label">About the job <span style="text-transform:none;font-weight:400">(all optional — fill in what you can)</span></div>
+        <div class="row">
+          <div class="field"><label>Property type</label>
+            <select id="f-property"><option value="">Select…</option><option>House</option><option>Apartment / Unit</option><option>Commercial</option><option>Insurance / Restoration</option><option>Other</option></select>
+          </div>
+          <div class="field"><label>Best time to contact</label>
+            <select id="f-time"><option value="">Any time</option><option>Morning</option><option>Afternoon</option><option>Evening</option></select>
+          </div>
+        </div>
+        <div class="field"><label>Preferred contact</label>
+          <select id="f-method"><option value="">Either</option><option>Phone call</option><option>Text / SMS</option><option>Email</option></select>
+        </div>
+
+        <div class="section-label">Rooms &amp; items <span style="text-transform:none;font-weight:400">(optional — adding rooms helps us quote faster)</span></div>
+
+        <details class="help-panel">
+          <summary>How to measure (tap to view)</summary>
+          <div class="help-body">
+            <h4>Curtains</h4>
+            <ul>
+              <li><strong>Width</strong> — measure the <em>track</em> from end to end (not the curtain hem). This works for standard tracks, rods, and S-fold tracks.</li>
+              <li><strong>Height</strong> — measure from the top of the track down to where the curtain finishes (usually the floor). Easy trick: if your curtain touches the floor, measure floor to top of the track.</li>
+              <li>Can't measure? Just pick the closest height range — we use three tiers and any of them will get you a fair quote.</li>
+            </ul>
+            <svg viewBox="0 0 320 110" xmlns="http://www.w3.org/2000/svg" aria-label="Curtain measurement diagram">
+              <rect x="40" y="14" width="240" height="6" fill="#2b2d7e"/>
+              <text x="44" y="11" font-size="9" fill="#6e6e78">track</text>
+              <path d="M50,24 Q60,55 50,90 Q60,55 70,90 Q80,55 90,90 Q100,55 110,90 Q120,55 130,90 Q140,55 150,90 Q160,55 170,90 Q180,55 190,90 Q200,55 210,90 Q220,55 230,90 Q240,55 250,90 Q260,55 270,90 Q280,55 270,24" fill="none" stroke="#1a1c50" stroke-width="1.5"/>
+              <line x1="40" y1="100" x2="280" y2="100" stroke="#c81b55" stroke-width="1"/>
+              <line x1="40" y1="97" x2="40" y2="103" stroke="#c81b55" stroke-width="1.5"/>
+              <line x1="280" y1="97" x2="280" y2="103" stroke="#c81b55" stroke-width="1.5"/>
+              <text x="160" y="108" font-size="9" fill="#c81b55" text-anchor="middle">width (track end-to-end)</text>
+              <line x1="295" y1="14" x2="295" y2="92" stroke="#c81b55" stroke-width="1"/>
+              <line x1="292" y1="14" x2="298" y2="14" stroke="#c81b55" stroke-width="1.5"/>
+              <line x1="292" y1="92" x2="298" y2="92" stroke="#c81b55" stroke-width="1.5"/>
+              <text x="303" y="56" font-size="9" fill="#c81b55">height</text>
+            </svg>
+            <h4>Blinds</h4>
+            <ul>
+              <li><strong>Width</strong> — measure the <em>base rail</em> at the bottom of the blind, end to end.</li>
+              <li><strong>Height</strong> — measure from the base rail up to the top of the blind.</li>
+            </ul>
+            <svg viewBox="0 0 320 110" xmlns="http://www.w3.org/2000/svg" aria-label="Blind measurement diagram">
+              <rect x="60" y="18" width="200" height="6" fill="#2b2d7e"/>
+              <text x="64" y="15" font-size="9" fill="#6e6e78">top of blind</text>
+              <g stroke="#1a1c50" stroke-width="1" fill="none">
+                <line x1="60" y1="32" x2="260" y2="32"/>
+                <line x1="60" y1="40" x2="260" y2="40"/>
+                <line x1="60" y1="48" x2="260" y2="48"/>
+                <line x1="60" y1="56" x2="260" y2="56"/>
+                <line x1="60" y1="64" x2="260" y2="64"/>
+                <line x1="60" y1="72" x2="260" y2="72"/>
+              </g>
+              <rect x="60" y="78" width="200" height="7" fill="#2b2d7e"/>
+              <text x="160" y="93" font-size="9" fill="#6e6e78" text-anchor="middle">base rail</text>
+              <line x1="60" y1="100" x2="260" y2="100" stroke="#c81b55" stroke-width="1"/>
+              <line x1="60" y1="97" x2="60" y2="103" stroke="#c81b55" stroke-width="1.5"/>
+              <line x1="260" y1="97" x2="260" y2="103" stroke="#c81b55" stroke-width="1.5"/>
+              <text x="160" y="108" font-size="9" fill="#c81b55" text-anchor="middle">width (base rail end-to-end)</text>
+              <line x1="275" y1="18" x2="275" y2="85" stroke="#c81b55" stroke-width="1"/>
+              <line x1="272" y1="18" x2="278" y2="18" stroke="#c81b55" stroke-width="1.5"/>
+              <line x1="272" y1="85" x2="278" y2="85" stroke="#c81b55" stroke-width="1.5"/>
+              <text x="283" y="54" font-size="9" fill="#c81b55">height</text>
+            </svg>
+            <p style="margin-top:8px;color:var(--muted);font-size:12.5px">Measure in <strong>metres</strong> (e.g. 2.4) or <strong>millimetres</strong> (e.g. 2400). Either works.</p>
+          </div>
+        </details>
+
+        <div id="rooms"></div>
+        <button class="add-room-btn" id="add-room" type="button">+ Add a room</button>
+
+        <div class="field" style="margin-top:14px"><label>Anything else worth telling us? <span class="opt">(optional)</span></label>
+          <textarea id="f-desc" placeholder="Describe anything that doesn't fit above — water damage, mould, urgent timing, special access, etc."></textarea>
+        </div>
+
+        <div class="section-label">Overall photos <span style="text-transform:none;font-weight:400">(optional — any general shots of the property or issue)</span></div>
+        <div class="photo-area" id="photo-area">+ Add photos</div>
+        <input type="file" id="f-files" accept="image/*" multiple style="display:none" />
+        <div class="photo-grid" id="photo-grid"></div>
+
+        <!-- honeypot: bots fill this, humans never see it -->
+        <input class="hp" id="f-website" tabindex="-1" autocomplete="off" placeholder="Leave this blank" />
+
+        <button class="submit" id="submit" style="margin-top:20px">Send Request</button>
+      </div>
+
+      <div class="done" id="done" style="display:none">
+        <div class="tick">✓</div>
+        <h2>Request received</h2>
+        <p>Thanks — we've got your details and we'll be in touch shortly.</p>
+      </div>
+
+      <div class="foot">Dr Drapes Curtain Clinic · 1300 652 866 · drdrapes.com.au</div>
     </div>
   </div>
-
-  <!-- Form -->
-  <form id="quoteForm" novalidate>
-
-    <!-- Contact Details -->
-    <div class="card">
-      <div class="card-title"><div class="dot"></div>Your Details</div>
-      <div class="g2">
-        <div class="f">
-          <label>First Name <span class="req">*</span></label>
-          <input type="text" id="firstName" placeholder="Jane" autocomplete="given-name">
-          <div class="err-msg" id="err-firstName">Please enter your first name</div>
-        </div>
-        <div class="f">
-          <label>Last Name <span class="req">*</span></label>
-          <input type="text" id="lastName" placeholder="Smith" autocomplete="family-name">
-          <div class="err-msg" id="err-lastName">Please enter your last name</div>
-        </div>
-      </div>
-      <div class="g2">
-        <div class="f">
-          <label>Phone <span class="req">*</span></label>
-          <input type="tel" id="phone" placeholder="0412 345 678" autocomplete="tel">
-          <div class="err-msg" id="err-phone">Please enter your phone number</div>
-        </div>
-        <div class="f">
-          <label>Email <span class="req">*</span></label>
-          <input type="email" id="email" placeholder="jane@example.com" autocomplete="email">
-          <div class="err-msg" id="err-email">Please enter a valid email</div>
-        </div>
-      </div>
-      <div class="f">
-        <label>Service Address <span class="req">*</span></label>
-        <input type="text" id="address" placeholder="12 Main St, Altona VIC 3018" autocomplete="street-address">
-        <div class="err-msg" id="err-address">Please enter your address</div>
-      </div>
-      <div class="f">
-        <label>Job Type</label>
-        <select id="jobType">
-          <option value="residential">Residential</option>
-          <option value="insurance">Insurance Claim</option>
-          <option value="rental">Rental / Property Management</option>
-          <option value="commercial">Commercial</option>
-        </select>
-      </div>
-    </div>
-
-    <!-- Items with measurements -->
-    <div class="card">
-      <div class="card-title"><div class="dot"></div>What Needs Cleaning? <span style="font-size:.7rem;font-weight:400;text-transform:none;letter-spacing:0;color:var(--g300);font-family:'Open Sans',sans-serif">(add each item with measurements if known)</span></div>
-
-      <div id="itemList"></div>
-
-      <button type="button" class="add-item-btn" onclick="addItem()">
-        + Add Item
-      </button>
-      <div class="err-msg" id="err-items" style="margin-top:8px">Please add at least one item</div>
-
-      <div class="f" style="margin-top:16px;padding-top:14px;border-top:1px solid var(--g50)">
-        <label>Any Special Conditions?</label>
-        <div class="chip-group">
-          <label class="chip" onclick="toggleChip(this,event)">
-            <input type="checkbox" value="mould" name="conditions">
-            <span class="ck">✓</span> Mould / Mildew
-          </label>
-          <label class="chip" onclick="toggleChip(this,event)">
-            <input type="checkbox" value="smoke" name="conditions">
-            <span class="ck">✓</span> Smoke Damage
-          </label>
-          <label class="chip" onclick="toggleChip(this,event)">
-            <input type="checkbox" value="flood" name="conditions">
-            <span class="ck">✓</span> Flood / Water Damage
-          </label>
-          <label class="chip" onclick="toggleChip(this,event)">
-            <input type="checkbox" value="pet" name="conditions">
-            <span class="ck">✓</span> Pet Odour / Hair
-          </label>
-          <label class="chip" onclick="toggleChip(this,event)">
-            <input type="checkbox" value="rehang" name="conditions">
-            <span class="ck">✓</span> Need Rehang
-          </label>
-          <label class="chip" onclick="toggleChip(this,event)">
-            <input type="checkbox" value="urgent" name="conditions">
-            <span class="ck">✓</span> Urgent
-          </label>
-        </div>
-      </div>
-    </div>
-
-    <!-- Notes -->
-    <div class="card">
-      <div class="card-title"><div class="dot"></div>Extra Info</div>
-      <div class="f">
-        <label>Insurance / Claim Reference</label>
-        <input type="text" id="claimRef" placeholder="e.g. IAG-2026-12345 (leave blank if not applicable)">
-      </div>
-      <div class="f">
-        <label>Notes for Us</label>
-        <textarea id="notes" placeholder="e.g. 3 large bay window curtains in lounge, smaller ones in 2 bedrooms. Some mould on the lining of the main pair..."></textarea>
-      </div>
-    </div>
-
-    <!-- Photos -->
-    <div class="card">
-      <div class="card-title"><div class="dot"></div>Photos <span style="font-size:.7rem;font-weight:400;text-transform:none;letter-spacing:0;color:var(--g300);font-family:'Open Sans',sans-serif">(optional but helpful — up to 6)</span></div>
-      <div class="photo-upload-area" id="uploadArea" onclick="document.getElementById('photoInput').click()" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropPhotos(event)">
-        <div class="icon">📷</div>
-        <p><strong>Tap to take a photo or upload</strong></p>
-        <p>JPG, PNG up to 10MB each · up to 6 photos</p>
-      </div>
-      <input type="file" id="photoInput" accept="image/*" multiple capture="environment" onchange="handlePhotos(this.files)">
-      <div class="photo-preview" id="photoPreview"></div>
-    </div>
-
-    <!-- Submit -->
-    <button type="submit" class="submit-btn" id="submitBtn">
-      <span id="submitText">Send My Quote Request</span>
-      <span id="submitSpinner" class="spinner" style="display:none"></span>
-    </button>
-    <p style="text-align:center;font-size:.75rem;color:var(--g300);margin-top:12px">We'll call you within one business day to confirm details before sending a quote.</p>
-
-  </form>
-
-  <!-- Success screen -->
-  <div class="success-screen" id="successScreen">
-    <div class="success-icon">✅</div>
-    <h2>Request Received!</h2>
-    <p>Thanks — we've got your request and will call you within one business day to confirm the details.</p>
-    <div class="dq-ref" id="successRef">DQ-1000</div>
-    <p>A confirmation has been sent to <strong id="successEmail"></strong></p>
-    <p style="margin-top:16px;font-size:.8rem;color:var(--g300)">Questions? Call us on <strong style="color:var(--navy)">1300 652 866</strong></p>
-  </div>
-
-</div>
-
-<footer>
-  <strong>DR DRAPES CURTAIN CLINIC</strong> &nbsp;·&nbsp;
-  Professional Curtain &amp; Blind Care &nbsp;·&nbsp;
-  <a href="tel:1300652866">1300 652 866</a> &nbsp;·&nbsp;
-  <a href="https://www.drdrapes.com.au">drdrapes.com.au</a>
-</footer>
 
 <script>
-const SUPABASE_URL = 'https://kspezkqanaqrhbirqmlc.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzcGV6a3FhbmFxcmhiaXJxbWxjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwOTU1MDksImV4cCI6MjA5NDY3MTUwOX0.toB3DTsKZ8Cydhxw4DTJjzmanF7tghHlXQNOzJ4xOiA';
-const RESEND_KEY = 're_LHeaQL24_Hk9kAmoRrfCoQzPfv5Bo93x5';
-const DR_DRAPES_EMAIL = 'drdrapes@hudsongroup.com.au';
+  const SUPABASE_URL = 'https://kspezkqanaqrhbirqmlc.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzcGV6a3FhbmFxcmhiaXJxbWxjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwOTU1MDksImV4cCI6MjA5NDY3MTUwOX0.toB3DTsKZ8Cydhxw4DTJjzmanF7tghHlXQNOzJ4xOiA';
+  window.__LOGO__ = 'data:image/png;base64,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';
+  document.getElementById('logo').src = window.__LOGO__;
+  const $ = (sel) => document.querySelector(sel);
 
-// ── Item builder ────────────────────────────────────────────
-var itemCounter = 0;
-var itemList = [];
-
-var ITEM_TYPES = [
-  { value: 'curtain',  label: 'Curtain / Drape',        meas: 'wh' },
-  { value: 'sheer',    label: 'Sheer Curtain',           meas: 'wh' },
-  { value: 'blind',    label: 'Blind (Roller / Roman)',  meas: 'wh' },
-  { value: 'venetian', label: 'Venetian Blind',          meas: 'wh' },
-  { value: 'pelmet',   label: 'Pelmet',                  meas: 'w'  },
-  { value: 'valance',  label: 'Valance / Swag',          meas: 'w'  },
-  { value: 'other',    label: 'Other',                   meas: 'none' }
-];
-
-function addItem() {
-  var id = ++itemCounter;
-  itemList.push(id);
-  var container = document.getElementById('itemList');
-  var div = document.createElement('div');
-  div.className = 'item-card';
-  div.id = 'item-' + id;
-  var typeOpts = ITEM_TYPES.map(function(t){
-    return '<option value="' + t.value + '">' + t.label + '</option>';
-  }).join('');
-  div.innerHTML =
-    '<div class="item-card-hdr">' +
-      '<div class="item-num">' + id + '</div>' +
-      '<select class="item-type-sel" id="itype-' + id + '" onchange="updateItemMeas(' + id + ')">' + typeOpts + '</select>' +
-      '<button type="button" class="item-remove" onclick="removeItem(' + id + ')">&#215;</button>' +
-    '</div>' +
-    '<div class="item-body">' +
-      '<div class="f" style="margin-bottom:10px">' +
-        '<label>Room / Location</label>' +
-        '<input type="text" class="meas-input" id="iloc-' + id + '" placeholder="e.g. Master Bedroom, Lounge">' +
-      '</div>' +
-      '<div id="imeas-' + id + '">' + getMeasHTML(id, 'curtain') + '</div>' +
-    '</div>';
-  container.appendChild(div);
-  document.getElementById('err-items').style.display = 'none';
-}
-
-function getMeasHTML(id, type) {
-  var t = ITEM_TYPES.find(function(x){ return x.value === type; }) || ITEM_TYPES[0];
-  if (t.meas === 'none') return '<p class="meas-hint" style="padding:4px 0">No measurements needed — describe in Notes.</p>';
-  var wHtml = '<div><label style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--g300);font-family:Montserrat,sans-serif">Width (mm or m)</label><input type="number" class="meas-input" id="iw-' + id + '" placeholder="e.g. 1200" min="0" step="any" inputmode="decimal"><div class="meas-hint">Type mm (1200) or metres (1.2) — we will sort it out</div></div>';
-  var hHtml = t.meas === 'wh' ? '<div><label style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--g300);font-family:Montserrat,sans-serif">Height / Drop (mm or m)</label><input type="number" class="meas-input" id="ih-' + id + '" placeholder="e.g. 2400" min="0" step="any" inputmode="decimal"><div class="meas-hint">Type mm (2400) or metres (2.4)</div></div>' : '';
-  return '<div class="item-meas">' + wHtml + hHtml + '</div>';
-}
-
-function updateItemMeas(id) {
-  var sel = document.getElementById('itype-' + id);
-  var measDiv = document.getElementById('imeas-' + id);
-  if (measDiv) measDiv.innerHTML = getMeasHTML(id, sel ? sel.value : 'curtain');
-}
-
-function removeItem(id) {
-  itemList = itemList.filter(function(i){ return i !== id; });
-  var el = document.getElementById('item-' + id);
-  if (el) el.remove();
-  itemList.forEach(function(i, idx) {
-    var num = document.querySelector('#item-' + i + ' .item-num');
-    if (num) num.textContent = idx + 1;
+  // ---------- Overall photos ----------
+  const overallPhotos = [];
+  document.getElementById('photo-area').addEventListener('click', () => document.getElementById('f-files').click());
+  document.getElementById('f-files').addEventListener('change', (e) => {
+    const files = Array.from(e.target.files || []);
+    const room = 6 - overallPhotos.length;
+    files.slice(0, room).forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = () => { overallPhotos.push({ dataUrl: reader.result, name: file.name }); renderOverallPhotos(); };
+      reader.readAsDataURL(file);
+    });
+    e.target.value = '';
   });
-}
+  function renderOverallPhotos() {
+    const grid = document.getElementById('photo-grid');
+    grid.innerHTML = overallPhotos.map((p, i) => `<div class="pt"><img src="${p.dataUrl}" /><span class="x" data-i="${i}">×</span></div>`).join('');
+    grid.querySelectorAll('.x').forEach((x) => x.addEventListener('click', () => { overallPhotos.splice(+x.dataset.i, 1); renderOverallPhotos(); }));
+  }
 
-function getItems() {
-  return itemList.map(function(id) {
-    var type = document.getElementById('itype-' + id);
-    var loc  = document.getElementById('iloc-' + id);
-    var w    = document.getElementById('iw-' + id);
-    var h    = document.getElementById('ih-' + id);
-    var t = type ? type.value : '';
-    var tLabel = (ITEM_TYPES.find(function(x){ return x.value===t; })||{}).label || t;
-    return { type:t, label:tLabel, location:loc?loc.value.trim():'', width:w?w.value:'', height:h?h.value:'' };
-  }).filter(function(i){ return i.type; });
-}
+  // ---------- Rooms & items ----------
+  const ITEM_TYPES = [
+    { v: 'curtain', l: 'Curtains' }, { v: 'sheer', l: 'Sheer curtains' },
+    { v: 'velvet', l: 'Velvet / heavy curtains' }, { v: 'roller-block', l: 'Roller blinds (blockout)' },
+    { v: 'roller-sun', l: 'Roller blinds (sunscreen)' }, { v: 'roman', l: 'Roman blinds' },
+    { v: 'venetian', l: 'Venetian blinds' }, { v: 'unsure', l: 'Not sure / other' },
+  ];
+  const CURTAIN_TYPES = ['curtain', 'sheer', 'velvet'];
+  let rooms = [];
+  let nextId = 1;
+  function newItem() { return { id: nextId++, type: 'curtain', width: '', height: '', heightMode: 'measured', tier: 'short', note: '' }; }
+  function newRoom() { return { id: nextId++, name: '', collapsed: false, items: [newItem()], photos: [] }; }
+  document.getElementById('add-room').addEventListener('click', () => {
+    rooms.forEach((r) => r.collapsed = true);
+    rooms.push(newRoom()); renderRooms();
+  });
+  function renderRooms() {
+    const wrap = document.getElementById('rooms');
+    if (!rooms.length) { wrap.innerHTML = ''; return; }
+    wrap.innerHTML = rooms.map((r) => roomHtml(r)).join('');
+    wireRoomEvents();
+  }
+  function roomHtml(r) {
+    const itemCount = r.items.length;
+    const photoCount = r.photos.length;
+    const title = r.name.trim() || 'New room';
+    return `
+      <div class="room ${r.collapsed ? 'collapsed' : ''}" data-rid="${r.id}">
+        <div class="room-head" data-toggle="${r.id}">
+          <div class="room-title">${escapeHtml(title)}<small>${itemCount} item${itemCount === 1 ? '' : 's'}${photoCount ? ' · ' + photoCount + ' photo' + (photoCount === 1 ? '' : 's') : ''}</small></div>
+          <div class="room-actions">
+            <button class="room-mini-btn" data-rmcollapse="${r.id}" title="${r.collapsed ? 'Expand' : 'Collapse'}">${r.collapsed ? '▾' : '▴'}</button>
+            <button class="room-mini-btn" data-rmremove="${r.id}" title="Remove room">×</button>
+          </div>
+        </div>
+        <div class="room-body">
+          <div class="field" style="margin-bottom:10px"><label>Room name</label>
+            <input class="room-name" data-rname="${r.id}" value="${escapeAttr(r.name)}" placeholder="e.g. Lounge, Master Bedroom" />
+          </div>
+          ${r.items.map((it) => itemHtml(r.id, it)).join('')}
+          <button class="add-item-btn" type="button" data-additem="${r.id}">+ Add another item to this room</button>
+          <div class="room-photos-label">Photos of this room (optional)</div>
+          <div class="photo-grid" data-rphotos="${r.id}">
+            ${r.photos.map((p, i) => `<div class="pt"><img src="${p.dataUrl}" /><span class="x" data-rphotodel="${r.id}-${i}">×</span></div>`).join('')}
+          </div>
+          <button class="add-item-btn" type="button" data-rphotoadd="${r.id}" style="font-size:12.5px">+ Add photo${r.photos.length ? 's' : ''} (room)</button>
+          <input type="file" accept="image/*" multiple style="display:none" data-rphotofile="${r.id}" />
+        </div>
+      </div>`;
+  }
+  function itemHtml(roomId, it) {
+    const isCurtain = CURTAIN_TYPES.includes(it.type);
+    const showTier = isCurtain && it.heightMode === 'tier';
+    return `
+      <div class="item" data-iid="${it.id}">
+        <div class="item-row">
+          <div class="field"><label>Item type</label>
+            <select data-itype="${it.id}">${ITEM_TYPES.map((t) => `<option value="${t.v}" ${it.type === t.v ? 'selected' : ''}>${t.l}</option>`).join('')}</select>
+          </div>
+          <button class="remove-item" data-iremove="${it.id}" title="Remove">×</button>
+        </div>
+        <div class="item-measure">
+          <div class="field"><label>Width (m or mm)</label><input data-iwidth="${it.id}" inputmode="decimal" value="${escapeAttr(it.width)}" placeholder="e.g. 2.4 or 2400" /></div>
+          ${showTier ? '<div></div>' : `<div class="field"><label>Height (m or mm)</label><input data-iheight="${it.id}" inputmode="decimal" value="${escapeAttr(it.height)}" placeholder="e.g. 2.4 or 2400" /></div>`}
+        </div>
+        ${isCurtain ? `
+          <div class="item-tier-toggle">
+            <span class="tog ${it.heightMode === 'measured' ? 'active' : ''}" data-imode="${it.id}-measured">I measured the height</span>
+            <span class="tog ${it.heightMode === 'tier' ? 'active' : ''}" data-imode="${it.id}-tier">Pick a height range</span>
+          </div>
+          ${showTier ? `
+            <div class="item-tier-row">
+              <span class="tier ${it.tier === 'short' ? 'active' : ''}" data-itier="${it.id}-short">Under 2.4m</span>
+              <span class="tier ${it.tier === 'medium' ? 'active' : ''}" data-itier="${it.id}-medium">2.4m – 3.8m</span>
+              <span class="tier ${it.tier === 'tall' ? 'active' : ''}" data-itier="${it.id}-tall">Over 3.8m</span>
+            </div>` : ''}
+        ` : ''}
+        <div class="item-note"><input data-inote="${it.id}" value="${escapeAttr(it.note)}" placeholder="Notes (mould, water damage, special instructions…)" /></div>
+      </div>`;
+  }
+  function escapeHtml(s) { return String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+  function escapeAttr(s) { return escapeHtml(s).replace(/'/g, '&#39;'); }
+  function findRoom(id) { return rooms.find((r) => r.id === +id); }
+  function findItem(id) { for (const r of rooms) { const it = r.items.find((x) => x.id === +id); if (it) return { room: r, item: it }; } return null; }
+  function wireRoomEvents() {
+    document.querySelectorAll('[data-toggle]').forEach((el) =>
+      el.addEventListener('click', (e) => {
+        if (e.target.closest('.room-mini-btn')) return;
+        const r = findRoom(el.dataset.toggle); r.collapsed = !r.collapsed; renderRooms();
+      }));
+    document.querySelectorAll('[data-rmcollapse]').forEach((b) =>
+      b.addEventListener('click', () => { const r = findRoom(b.dataset.rmcollapse); r.collapsed = !r.collapsed; renderRooms(); }));
+    document.querySelectorAll('[data-rmremove]').forEach((b) =>
+      b.addEventListener('click', () => {
+        if (!confirm('Remove this room and its items?')) return;
+        rooms = rooms.filter((r) => r.id !== +b.dataset.rmremove); renderRooms();
+      }));
+    document.querySelectorAll('[data-rname]').forEach((i) =>
+      i.addEventListener('input', (e) => { const r = findRoom(i.dataset.rname); r.name = e.target.value; }));
+    document.querySelectorAll('[data-additem]').forEach((b) =>
+      b.addEventListener('click', () => { const r = findRoom(b.dataset.additem); r.items.push(newItem()); renderRooms(); }));
+    document.querySelectorAll('[data-iremove]').forEach((b) =>
+      b.addEventListener('click', () => {
+        const found = findItem(b.dataset.iremove); if (!found) return;
+        if (found.room.items.length === 1) { if (!confirm('Remove the last item in this room?')) return; }
+        found.room.items = found.room.items.filter((x) => x.id !== found.item.id);
+        if (!found.room.items.length) found.room.items.push(newItem());
+        renderRooms();
+      }));
+    document.querySelectorAll('[data-itype]').forEach((s) =>
+      s.addEventListener('change', (e) => {
+        const found = findItem(s.dataset.itype); if (!found) return;
+        found.item.type = e.target.value;
+        if (!CURTAIN_TYPES.includes(found.item.type)) found.item.heightMode = 'measured';
+        renderRooms();
+      }));
+    document.querySelectorAll('[data-iwidth]').forEach((i) => i.addEventListener('input', (e) => { const f = findItem(i.dataset.iwidth); if (f) f.item.width = e.target.value; }));
+    document.querySelectorAll('[data-iheight]').forEach((i) => i.addEventListener('input', (e) => { const f = findItem(i.dataset.iheight); if (f) f.item.height = e.target.value; }));
+    document.querySelectorAll('[data-inote]').forEach((i) => i.addEventListener('input', (e) => { const f = findItem(i.dataset.inote); if (f) f.item.note = e.target.value; }));
+    document.querySelectorAll('[data-imode]').forEach((b) =>
+      b.addEventListener('click', () => {
+        const [id, mode] = b.dataset.imode.split('-'); const f = findItem(id); if (!f) return;
+        f.item.heightMode = mode; if (mode === 'tier' && !f.item.tier) f.item.tier = 'short'; renderRooms();
+      }));
+    document.querySelectorAll('[data-itier]').forEach((b) =>
+      b.addEventListener('click', () => {
+        const [id, tier] = b.dataset.itier.split('-'); const f = findItem(id); if (!f) return;
+        f.item.tier = tier; renderRooms();
+      }));
+    document.querySelectorAll('[data-rphotoadd]').forEach((b) =>
+      b.addEventListener('click', () => { document.querySelector(`[data-rphotofile="${b.dataset.rphotoadd}"]`).click(); }));
+    document.querySelectorAll('[data-rphotofile]').forEach((inp) =>
+      inp.addEventListener('change', (e) => {
+        const r = findRoom(inp.dataset.rphotofile); if (!r) return;
+        const files = Array.from(e.target.files || []);
+        const room = 4 - r.photos.length;
+        files.slice(0, room).forEach((file) => {
+          const reader = new FileReader();
+          reader.onload = () => { r.photos.push({ dataUrl: reader.result, name: file.name }); renderRooms(); };
+          reader.readAsDataURL(file);
+        });
+        e.target.value = '';
+      }));
+    document.querySelectorAll('[data-rphotodel]').forEach((x) =>
+      x.addEventListener('click', () => {
+        const [rid, i] = x.dataset.rphotodel.split('-'); const r = findRoom(rid); if (!r) return;
+        r.photos.splice(+i, 1); renderRooms();
+      }));
+  }
 
-function toggleChip(el, e) {
-  if (e) e.preventDefault();
-  el.classList.toggle('selected');
-  var cb = el.querySelector('input[type=checkbox]');
-  if (cb) cb.checked = el.classList.contains('selected');
-}
+  function showErr(msg) { const e = document.getElementById('err'); e.textContent = msg; e.classList.add('show'); window.scrollTo(0, 0); }
 
-// ── Photos ──────────────────────────────────────────────────
-var photos = []; // array of { dataUrl, name }
-function dragOver(e) {
-  e.preventDefault();
-  document.getElementById('uploadArea').classList.add('drag-over');
-}
-function dragLeave(e) {
-  document.getElementById('uploadArea').classList.remove('drag-over');
-}
-function dropPhotos(e) {
-  e.preventDefault();
-  dragLeave(e);
-  handlePhotos(e.dataTransfer.files);
-}
+  document.getElementById('submit').addEventListener('click', async () => {
+    document.getElementById('err').classList.remove('show');
+    const name = $('#f-name').value.trim();
+    const phone = $('#f-phone').value.trim();
+    const email = $('#f-email').value.trim();
+    if (!name) return showErr('Please enter your name.');
+    if (!phone && !email) return showErr('Please give us a phone number or email so we can reach you.');
+    if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return showErr('That email address doesn\'t look right.');
 
-function handlePhotos(files) {
-  if (!files || !files.length) return;
-  var remaining = 6 - photos.length;
-  if (remaining <= 0) { alert('Maximum 6 photos allowed.'); return; }
-  var toAdd = Array.from(files).slice(0, remaining);
-  toAdd.forEach(function(file) {
-    var reader = new FileReader();
-    reader.onload = function(e) {
-      // Compress to max 900px
-      var img = new Image();
-      img.onload = function() {
-        var canvas = document.createElement('canvas');
-        var maxW = 900;
-        var scale = Math.min(1, maxW / Math.max(img.width, img.height));
-        canvas.width = img.width * scale;
-        canvas.height = img.height * scale;
-        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-        var dataUrl = canvas.toDataURL('image/jpeg', 0.75);
-        photos.push({ dataUrl: dataUrl, name: file.name });
-        renderPhotoPreviews();
+    const cleanRooms = rooms.map((r) => ({
+      name: (r.name || '').trim(),
+      items: r.items.filter((it) => it.width || it.height || it.note || (CURTAIN_TYPES.includes(it.type) && it.heightMode === 'tier')).map((it) => ({
+        type: it.type, width: it.width, height: it.height,
+        heightMode: it.heightMode, tier: CURTAIN_TYPES.includes(it.type) && it.heightMode === 'tier' ? it.tier : null,
+        note: it.note,
+      })),
+      photos: r.photos.map((p) => ({ name: p.name, dataUrl: p.dataUrl })),
+    })).filter((r) => r.name || r.items.length || r.photos.length);
+
+    const btn = document.getElementById('submit');
+    btn.disabled = true; btn.textContent = 'Sending…';
+    try {
+      const payload = {
+        honeypot: $('#f-website').value,
+        customer_name: name, customer_phone: phone, customer_email: email,
+        site_address: $('#f-address').value.trim(),
+        property_type: $('#f-property').value,
+        contact_time: $('#f-time').value, contact_method: $('#f-method').value,
+        description: $('#f-desc').value.trim(),
+        rooms: cleanRooms,
+        photos: overallPhotos.map((p) => ({ name: p.name, dataUrl: p.dataUrl })),
       };
-      img.src = e.target.result;
-    };
-    reader.readAsDataURL(file);
-  });
-}
-
-function renderPhotoPreviews() {
-  var container = document.getElementById('photoPreview');
-  container.innerHTML = '';
-  photos.forEach(function(p, i) {
-    var div = document.createElement('div');
-    div.className = 'photo-thumb';
-    div.innerHTML = '<img src="' + p.dataUrl + '"><button type="button" class="rm" onclick="removePhoto(' + i + ')">×</button>';
-    container.appendChild(div);
-  });
-  document.getElementById('uploadArea').style.display = photos.length >= 6 ? 'none' : '';
-}
-
-function removePhoto(i) {
-  photos.splice(i, 1);
-  renderPhotoPreviews();
-  document.getElementById('uploadArea').style.display = '';
-}
-
-// ── Validation ──────────────────────────────────────────────
-function validate() {
-  var ok = true;
-  [['firstName','first name'],['lastName','last name'],['phone','phone number'],['email','email'],['address','address']].forEach(function(pair) {
-    var el = document.getElementById(pair[0]);
-    var err = document.getElementById('err-' + pair[0]);
-    var v = el ? el.value.trim() : '';
-    var invalid = !v || (pair[0]==='email' && !/^[^@]+@[^@]+\.[^@]+$/.test(v));
-    if (el) el.classList.toggle('err', invalid);
-    if (err) err.style.display = invalid ? 'block' : 'none';
-    if (invalid) ok = false;
-  });
-  // At least one item
-  var itemErr = document.getElementById('err-items');
-  if (!itemList.length) { if(itemErr) itemErr.style.display='block'; ok=false; }
-  else { if(itemErr) itemErr.style.display='none'; }
-  return ok;
-}
-
-// ── Get next DQ number from Supabase ────────────────────────
-async function getNextDQNumber() {
-  try {
-    var r = await fetch(SUPABASE_URL + '/rest/v1/enquiries?select=dq_number&order=dq_number.desc&limit=1', {
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
-    });
-    var rows = await r.json();
-    if (rows && rows.length && rows[0].dq_number) {
-      var last = parseInt(rows[0].dq_number.replace('DQ-','')) || 999;
-      return 'DQ-' + (last + 1);
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/submit-enquiry`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
+        body: JSON.stringify(payload),
+      });
+      const out = await res.json().catch(() => ({}));
+      if (!res.ok || out.error) throw new Error(out.error || `Something went wrong (${res.status})`);
+      document.getElementById('form').style.display = 'none';
+      document.getElementById('done').style.display = 'block';
+    } catch (err) {
+      showErr(err.message || 'Could not send — please try again, or call us on 1300 652 866.');
+      btn.disabled = false; btn.textContent = 'Send Request';
     }
-  } catch(e) { console.warn('DQ fetch failed:', e); }
-  return 'DQ-1000';
-}
-
-// ── Send email via Resend ────────────────────────────────────
-async function sendEmails(data) {
-  if (!RESEND_KEY || RESEND_KEY === 'RESEND_API_KEY_HERE') {
-    console.warn('Resend key not set');
-    return;
-  }
-
-  var items = data.items.map(function(i){
-    return i.label + (i.location?' — '+i.location:'') + (i.width?' W:'+i.width:'') + (i.height?' H:'+i.height:'');
-  }).join('<br>');
-  var conditions = data.conditions.length ? data.conditions.join(', ') : 'None noted';
-  var photoCount = data.photos ? data.photos.length : 0;
-
-  // Staff notification — goes to DR_DRAPES_EMAIL (verified account owner)
-  var staffHtml = `
-    <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto">
-      <div style="background:#1d4ed8;padding:16px 24px;border-radius:10px 10px 0 0">
-        <h2 style="color:#fff;font-size:15px;margin:0">&#128276; New Quote Request — ${data.dqNumber}</h2>
-      </div>
-      <div style="background:#f0f1f8;padding:20px 24px">
-        <div style="background:#fff;border-radius:8px;padding:16px;font-size:13px;color:#333">
-          <div style="margin-bottom:8px;font-size:16px;font-weight:700;color:#2b2d7e">${data.firstName} ${data.lastName}</div>
-          <div style="margin-bottom:6px">&#128222; ${data.phone}</div>
-          <div style="margin-bottom:6px">&#128231; ${data.email}</div>
-          <div style="margin-bottom:6px">&#128205; ${data.address}</div>
-          <hr style="border:none;border-top:1px solid #eee;margin:10px 0">
-          <div style="margin-bottom:6px"><strong>Job type:</strong> ${data.jobType}</div>
-          <div style="margin-bottom:8px"><strong>Items:</strong><br>${items}</div>
-          <div style="margin-bottom:6px"><strong>Conditions:</strong> ${conditions}</div>
-          ${data.claimRef ? '<div style="margin-bottom:6px"><strong>Claim ref:</strong> ' + data.claimRef + '</div>' : ''}
-          ${data.notes ? '<div style="margin-bottom:6px"><strong>Notes:</strong> ' + data.notes + '</div>' : ''}
-          ${photoCount ? '<div style="margin-bottom:6px"><strong>Photos:</strong> ' + photoCount + ' uploaded</div>' : ''}
-          <hr style="border:none;border-top:1px solid #eee;margin:10px 0">
-          <div style="font-size:11px;color:#888">Customer confirmation was also sent to: ${data.email}</div>
-        </div>
-      </div>
-    </div>`;
-
-  // Customer confirmation — also goes to DR_DRAPES_EMAIL while domain unverified
-  // Once hudsongroup.com.au DNS is verified this switches to data.email
-  var custHtml = `
-    <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto">
-      <div style="background:#2b2d7e;padding:20px 24px;border-radius:10px 10px 0 0">
-        <h2 style="color:#fff;font-size:16px;margin:0">Quote Request Received — ${data.dqNumber}</h2>
-      </div>
-      <div style="background:#f0f1f8;padding:20px 24px">
-        <p style="color:#3a3c6e;font-size:14px;margin-bottom:16px">Hi ${data.firstName}, thanks for your request! We will call you within one business day to confirm details.</p>
-        <div style="background:#fff;border-radius:8px;padding:14px;margin-bottom:14px;border-left:4px solid #0f766e;font-size:13px;color:#333">
-          <div><strong>Reference:</strong> <span style="color:#0f766e;font-weight:700;font-size:16px">${data.dqNumber}</span></div>
-          <div style="margin-top:6px"><strong>Items:</strong><br>${items}</div>
-          ${conditions !== 'None noted' ? '<div style="margin-top:6px"><strong>Conditions:</strong> ' + conditions + '</div>' : ''}
-        </div>
-        <p style="color:#9597be;font-size:12px">Questions? Call <strong style="color:#2b2d7e">1300 652 866</strong> or email <a href="mailto:drdrapes@hudsongroup.com.au" style="color:#0f766e">drdrapes@hudsongroup.com.au</a></p>
-      </div>
-      <div style="background:#2b2d7e;padding:10px 24px;border-radius:0 0 10px 10px;text-align:center">
-        <span style="color:rgba(255,255,255,.5);font-size:11px">DR DRAPES CURTAIN CLINIC &bull; drdrapes.com.au</span>
-      </div>
-    </div>`;
-
-  var sends = [];
-
-  // Staff notification — always send to DR_DRAPES_EMAIL
-  sends.push(fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { 'Authorization': 'Bearer ' + RESEND_KEY, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      from: 'DrapesQuotePro <onboarding@resend.dev>',
-      to: [DR_DRAPES_EMAIL],
-      subject: '&#128276; New Quote Request — ' + data.dqNumber + ' — ' + data.firstName + ' ' + data.lastName,
-      html: staffHtml
-    })
-  }));
-
-  // Customer confirmation — send to customer email
-  // Note: while hudsongroup.com.au DNS is unverified, Resend may restrict delivery
-  // to verified addresses only. Once DNS verified this works for all customers.
-  sends.push(fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { 'Authorization': 'Bearer ' + RESEND_KEY, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      from: 'Dr Drapes <onboarding@resend.dev>',
-      to: [data.email],
-      subject: 'Quote Request Received — ' + data.dqNumber,
-      html: custHtml
-    })
-  }));
-
-  var results = await Promise.allSettled(sends);
-  results.forEach(function(res, i) {
-    if (res.status === 'rejected') console.warn('Email ' + i + ' failed:', res.reason);
-    else res.value.json().then(function(j){ console.log('Email ' + i + ' result:', JSON.stringify(j)); });
   });
-}
-
-
-// ── Submit ───────────────────────────────────────────────────
-document.getElementById('quoteForm').addEventListener('submit', async function(e) {
-  e.preventDefault();
-  if (!validate()) return;
-
-  var btn = document.getElementById('submitBtn');
-  var txt = document.getElementById('submitText');
-  var spn = document.getElementById('submitSpinner');
-  btn.disabled = true;
-  txt.textContent = 'Sending...';
-  spn.style.display = 'inline-block';
-
-  try {
-    // Gather data
-    var items = getItems();
-    var conditions = Array.from(document.querySelectorAll('[name=conditions]:checked')).map(function(cb){ return cb.value; });
-
-    var dqNumber = await getNextDQNumber();
-
-    var data = {
-      dqNumber: dqNumber,
-      firstName: document.getElementById('firstName').value.trim(),
-      lastName: document.getElementById('lastName').value.trim(),
-      phone: document.getElementById('phone').value.trim(),
-      email: document.getElementById('email').value.trim(),
-      address: document.getElementById('address').value.trim(),
-      jobType: document.getElementById('jobType').value,
-      items: items,
-      conditions: conditions,
-      claimRef: document.getElementById('claimRef').value.trim(),
-      notes: document.getElementById('notes').value.trim(),
-      photos: photos.map(function(p){ return { name: p.name, dataUrl: p.dataUrl }; })
-    };
-
-    // Save to Supabase
-    var r = await fetch(SUPABASE_URL + '/rest/v1/enquiries', {
-      method: 'POST',
-      headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': 'Bearer ' + SUPABASE_KEY,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=minimal'
-      },
-      body: JSON.stringify({
-        customer_name: data.firstName + ' ' + data.lastName,
-        customer_phone: data.phone,
-        customer_email: data.email,
-        site_address: data.address,
-        items_description: data.items.map(function(i){ return i.label + (i.location?' ('+i.location+')':'') + (i.width?' W:'+i.width:'') + (i.height?' H:'+i.height:''); }).join(', ') + (conditions.length ? ' | ' + conditions.join(', ') : ''),
-        notes: (data.claimRef ? 'Claim ref: ' + data.claimRef + '\n' : '') + (data.notes || ''),
-        status: 'new',
-        data: data
-      })
-    });
-
-    if (!r.ok) throw new Error('Save failed: ' + r.status);
-
-    // Send emails
-    await sendEmails(data);
-
-    // Show success
-    document.getElementById('quoteForm').style.display = 'none';
-    var s = document.getElementById('successScreen');
-    s.style.display = 'block';
-    document.getElementById('successRef').textContent = dqNumber;
-    document.getElementById('successEmail').textContent = data.email;
-
-  } catch(err) {
-    console.error(err);
-    alert('Sorry, something went wrong. Please call us on 1300 652 866 or try again.');
-    btn.disabled = false;
-    txt.textContent = 'Send My Quote Request';
-    spn.style.display = 'none';
-  }
-});
-
-// Add first item on load
-window.addEventListener('DOMContentLoaded', function(){
-  addItem();
-});
 </script>
 </body>
 </html>

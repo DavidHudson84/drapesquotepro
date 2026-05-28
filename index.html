@@ -265,6 +265,13 @@
     .e-pill.new { background: #fee2e2; color: #991b1b; }
     .e-pill.called { background: #fef3c7; color: #92590a; }
     .e-pill.converted { background: #d1fae5; color: #065f46; }
+    .enq-rooms { margin-top: 12px; }
+    .enq-room { border-top: 1px solid var(--line); padding-top: 10px; margin-top: 10px; }
+    .enq-room:first-child { border-top: none; padding-top: 0; }
+    .enq-room-name { font-family: 'Montserrat', sans-serif; font-weight: 700; color: var(--navy-mid); font-size: 14px; margin-bottom: 4px; }
+    .enq-items { list-style: none; padding: 0; margin: 0; }
+    .enq-items li { font-size: 13.5px; color: var(--ink); padding: 2px 0; }
+    .enq-items li small { display: inline-block; margin-left: 6px; font-size: 11px; font-style: italic; }
 
     /* ============================================================
        NAV BAR (secondary, under topbar)
@@ -421,6 +428,7 @@
     .qb-line select:focus, .qb-line input:focus { outline: none; border-color: var(--navy-mid); box-shadow: 0 0 0 2px rgba(43,45,126,.12); }
     .qb-line .line-amt { font-family: 'Montserrat'; font-weight: 800; color: var(--navy-dark); font-size: 15px; white-space: nowrap; text-align: right; min-width: 84px; }
     .qb-line .line-basis { font-size: 11px; color: var(--muted); text-align: right; margin-top: 2px; }
+    .cm-tag { display: block; font-size: 10.5px; color: #b45309; font-style: italic; margin-top: 3px; font-weight: 600; }
     .qb-mould { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--navy-mid); white-space: nowrap; padding-bottom: 9px; }
     .qb-mould input { width: auto; }
     .qb-rate-wrap { position: relative; }
@@ -826,14 +834,44 @@
         if (error) throw error;
       },
 
-      // Convert an enquiry into a job: maps details, preserves the original
-      // read-only in data.enquiry_source, pre-loads any items into the quote.
+      // Convert an enquiry into a job: maps customer rooms/items into quote
+      // rooms with measurements pre-filled and customer-measured / tier flags.
       async convertEnquiry(enq) {
         const ref = await db.nextQuoteNumber();
-        const items = (enq.data?.items || []).map((it) => ({
-          cat: it.cat || 'curtain', item_note: it.location || it.note || '',
-          width: it.width_mm || '', drop: it.height_mm || '', mould: false,
-        }));
+        // Friendly enquiry types → catalogue category codes used by quote builder.
+        // "unsure" stays empty so staff pick on the line.
+        const TYPE_MAP = {
+          curtain: 'curtain', sheer: 'sheer', velvet: 'velvet',
+          'roller-block': 'roller-block', 'roller-sun': 'roller-sun',
+          roman: 'roman', venetian: 'venetian', unsure: '',
+        };
+        // Tier → numeric metre value used by curtain rate-tier logic.
+        const TIER_M = { short: 2.4, medium: 3.0, tall: 4.0 };
+
+        const enqRooms = Array.isArray(enq.data?.rooms) ? enq.data.rooms : [];
+        const quoteRooms = enqRooms.length ? enqRooms.map((er) => {
+          const items = (er.items || []).map((it) => {
+            const cat = TYPE_MAP[it.type] ?? '';
+            const note = it.note || '';
+            const tag = it.heightMode === 'tier'
+              ? '(customer tier estimate)'
+              : (it.width || it.height) ? '(customer-measured)' : '';
+            const itemNote = [note, tag].filter(Boolean).join(' · ');
+            // For tier-only height, use the tier's representative metre value.
+            const drop = it.heightMode === 'tier' ? (TIER_M[it.tier || 'short']) : (it.height || '');
+            return {
+              cat: cat || 'curtain', // default if unsure; staff change on the line
+              item_note: itemNote,
+              width: it.width || '',
+              drop: drop,
+              mould: false,
+              customer_measured: !!(it.width || it.height) && it.heightMode !== 'tier',
+              customer_tier: it.heightMode === 'tier' ? (it.tier || 'short') : null,
+            };
+          });
+          return { name: er.name || 'Room', items, repairs: [] };
+        }) : [];
+
         const data = {
           job_type: 'enquiry',
           created_by: session.profile.name,
@@ -841,13 +879,13 @@
             enquiry_id: enq.id,
             submitted_at: enq.submitted_at,
             property_type: enq.data?.property_type || '',
-            rooms: enq.data?.rooms || '',
             contact_time: enq.data?.contact_time || '',
             contact_method: enq.data?.contact_method || '',
             description: enq.data?.description || '',
+            rooms: enqRooms,            // preserve full original (read-only)
             photos: enq.data?.photos || [],
           },
-          quote: items.length ? { rooms: [{ name: 'From enquiry', items, repairs: [] }] } : {},
+          quote: quoteRooms.length ? { rooms: quoteRooms } : {},
           status_history: [{ status: 'quoted', changed_by: session.profile.name, changed_at: new Date().toISOString(), note: 'Converted from enquiry' }],
         };
         const row = {
@@ -1388,10 +1426,34 @@
           const d = e.data || {};
           const fields = [];
           if (d.property_type) fields.push(`<span><strong>Property:</strong> ${escapeHtml(d.property_type)}</span>`);
-          if (d.rooms) fields.push(`<span><strong>Rooms/items:</strong> ${escapeHtml(String(d.rooms))}</span>`);
           if (d.contact_time) fields.push(`<span><strong>Best time:</strong> ${escapeHtml(d.contact_time)}</span>`);
           if (d.contact_method) fields.push(`<span><strong>Prefers:</strong> ${escapeHtml(d.contact_method)}</span>`);
-          const photos = (d.photos || []);
+          const enqRooms = Array.isArray(d.rooms) ? d.rooms : [];
+          const overallPhotos = (d.photos || []);
+          // Friendly type labels mirror the public form options.
+          const TYPE_LABEL = {
+            curtain: 'Curtains', sheer: 'Sheer curtains', velvet: 'Velvet / heavy curtains',
+            'roller-block': 'Roller blinds (blockout)', 'roller-sun': 'Roller blinds (sunscreen)',
+            roman: 'Roman blinds', venetian: 'Venetian blinds', unsure: 'Not sure / other',
+          };
+          const TIER_LABEL = { short: 'under 2.4m', medium: '2.4–3.8m', tall: 'over 3.8m' };
+          const roomsHtml = enqRooms.length ? `<div class="enq-rooms">${enqRooms.map((r, ri) => {
+            const items = (r.items || []).map((it) => {
+              const dims = [];
+              if (it.width) dims.push(`W ${escapeHtml(it.width)}`);
+              if (it.heightMode === 'tier' && it.tier) dims.push(`H ${TIER_LABEL[it.tier] || it.tier} (estimated)`);
+              else if (it.height) dims.push(`H ${escapeHtml(it.height)}`);
+              const tag = it.heightMode === 'tier' ? ' · tier estimate' : ((it.width || it.height) ? ' · customer-measured' : '');
+              return `<li><strong>${escapeHtml(TYPE_LABEL[it.type] || it.type)}</strong>${dims.length ? ' — ' + dims.join(' × ') : ''}${it.note ? ' · ' + escapeHtml(it.note) : ''}<small style="color:var(--muted)">${tag}</small></li>`;
+            }).join('');
+            const ps = (r.photos || []);
+            return `
+              <div class="enq-room">
+                <div class="enq-room-name">${escapeHtml(r.name || 'Room ' + (ri + 1))}</div>
+                ${items ? `<ul class="enq-items">${items}</ul>` : ''}
+                ${ps.length ? `<div class="e-photos" data-photos='${escapeAttr(JSON.stringify(ps))}'>${ps.map(() => '<div style="width:80px;height:80px;border-radius:6px;background:#eef0f6;display:flex;align-items:center;justify-content:center;font-size:10px;color:#999">room</div>').join('')}</div>` : ''}
+              </div>`;
+          }).join('')}</div>` : '';
           return `
             <div class="enq-card s-${st}" data-enq="${e.id}">
               <div class="e-top">
@@ -1404,7 +1466,8 @@
               </div>
               ${fields.length ? `<div class="e-fields">${fields.join('')}</div>` : ''}
               ${d.description ? `<div class="e-desc">${escapeHtml(d.description)}</div>` : ''}
-              ${photos.length ? `<div class="e-photos" data-photos='${escapeAttr(JSON.stringify(photos))}'>${photos.map(() => '<div style="width:80px;height:80px;border-radius:6px;background:#eef0f6;display:flex;align-items:center;justify-content:center;font-size:10px;color:#999">photo</div>').join('')}</div>` : ''}
+              ${roomsHtml}
+              ${overallPhotos.length ? `<div class="room-photos-label" style="margin-top:14px;font-size:12px;color:var(--muted);font-weight:600">Overall photos</div><div class="e-photos" data-photos='${escapeAttr(JSON.stringify(overallPhotos))}'>${overallPhotos.map(() => '<div style="width:80px;height:80px;border-radius:6px;background:#eef0f6;display:flex;align-items:center;justify-content:center;font-size:10px;color:#999">photo</div>').join('')}</div>` : ''}
               <div class="e-actions">
                 ${st === 'new' ? `<button class="btn btn-secondary" data-called="${e.id}">Mark Called</button>` : ''}
                 ${st !== 'converted' ? `<button class="btn btn-convert" data-convert="${e.id}">Convert to Job</button>` : ''}
@@ -1657,8 +1720,8 @@
           <div class="qb-line" style="grid-template-columns:1.4fr 1fr 0.85fr 0.85fr 0.8fr auto auto auto" ${di}>
             <div><span class="mini-label">Item</span><select class="qb-cat">${catOpts}</select></div>
             <div><span class="mini-label">Note (optional)</span><input class="qb-note" value="${escapeAttr(line.item_note)}" placeholder="e.g. heavy soiling" /></div>
-            <div><span class="mini-label">Width (m/mm)</span><input class="qb-width" value="${escapeAttr(line.width)}" placeholder="2.4 or 2400" /></div>
-            <div><span class="mini-label">${needsDrop ? 'Drop (m/mm)' : '—'}</span><input class="qb-drop" value="${escapeAttr(line.drop)}" placeholder="2.4 or 2400" ${needsDrop ? '' : 'disabled'} /></div>
+            <div><span class="mini-label">Width (m/mm)</span><input class="qb-width" value="${escapeAttr(line.width)}" placeholder="2.4 or 2400" />${line.customer_measured ? '<small class="cm-tag">customer-measured</small>' : ''}</div>
+            <div><span class="mini-label">${needsDrop ? 'Drop (m/mm)' : '—'}</span><input class="qb-drop" value="${escapeAttr(line.drop)}" placeholder="2.4 or 2400" ${needsDrop ? '' : 'disabled'} />${line.customer_tier ? '<small class="cm-tag">tier estimate</small>' : ''}</div>
             <div class="qb-rate-wrap"><span class="mini-label">${rateLabel}</span>
               <input class="qb-rate ${calc.isOverride ? 'override' : ''}" type="number" step="0.01" value="${escapeAttr(rateVal)}" />
               ${calc.isOverride ? '<span class="qb-rate-reset" data-resetrate>reset</span>' : ''}
@@ -1738,9 +1801,9 @@
           const note = row.querySelector('.qb-note');
           if (note) note.addEventListener('input', (e) => { item.item_note = e.target.value; });
           const w = row.querySelector('.qb-width');
-          if (w) w.addEventListener('input', (e) => { item.width = e.target.value; this.recalcRow(row, item); });
+          if (w) w.addEventListener('input', (e) => { item.width = e.target.value; item.customer_measured = false; this.recalcRow(row, item); });
           const d = row.querySelector('.qb-drop');
-          if (d) d.addEventListener('input', (e) => { item.drop = e.target.value; this.recalcRow(row, item); });
+          if (d) d.addEventListener('input', (e) => { item.drop = e.target.value; item.customer_measured = false; item.customer_tier = null; this.recalcRow(row, item); });
           const mc = row.querySelector('.qb-mould-cb');
           if (mc) mc.addEventListener('change', (e) => { item.mould = e.target.checked; this.recalcRow(row, item); });
           // rate override: typing sets a sticky override on this line only
