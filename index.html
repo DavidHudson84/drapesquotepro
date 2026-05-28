@@ -870,6 +870,39 @@
         const TIER_M = { short: 2.4, medium: 3.0, tall: 4.0 };
 
         const enqRooms = Array.isArray(enq.data?.rooms) ? enq.data.rooms : [];
+        // Map customer hardware ticks → quote whole-job repairs.
+        // Keys match the public form; map to catalogue codes used in REPAIRS.
+        const HW_MAP = {
+          'track-replace': { key: 'track-replace', noteHint: 'Customer requested track replacement' },
+          'track-service': { key: 'track-repair', noteHint: 'Customer requested track service' },
+          'track-parts':   { key: 'track-repair', noteHint: 'Customer requested track parts replacement' },
+          'cord-replace':  { key: 'cord-replace', noteHint: 'Customer requested cord replacement' },
+          'blind-parts':   { key: 'track-repair', noteHint: 'Customer requested blind parts replacement' },
+        };
+        const quoteRepairs = (enq.data?.hardware || []).map((hw) => {
+          if (hw.key === 'other') return null; // free-text only goes to notes
+          const m = HW_MAP[hw.key];
+          if (!m) return null;
+          return { key: m.key, qty: 1 };
+        }).filter(Boolean);
+
+        // Collect a readable summary of the customer's hardware requests for the
+        // quote notes — repair rows themselves can't store notes, but the quote
+        // notes field shows everything to the customer/staff.
+        const hwNotes = (enq.data?.hardware || []).map((hw) => {
+          if (hw.key === 'other') return 'Hardware: ' + hw.note;
+          const labels = {
+            'track-replace': 'Track replacement', 'track-service': 'Service track',
+            'track-parts': 'Track part replacements', 'cord-replace': 'Replace cord',
+            'blind-parts': 'Blind parts replacement',
+          };
+          const parts = [labels[hw.key] || hw.key];
+          if (hw.width) parts.push('width ' + hw.width);
+          if (hw.note) parts.push(hw.note);
+          return parts.join(' — ');
+        }).filter(Boolean);
+        const hwNotesBlock = hwNotes.length ? '\n\nCustomer hardware requests:\n• ' + hwNotes.join('\n• ') : '';
+
         const quoteRooms = enqRooms.length ? enqRooms.map((er) => {
           const items = (er.items || []).map((it) => {
             const cat = TYPE_MAP[it.type] ?? '';
@@ -904,10 +937,13 @@
             description: enq.data?.description || '',
             observation_ticks: enq.data?.observation_ticks || [],
             customer_rating: enq.data?.customer_rating ?? null,
+            hardware: enq.data?.hardware || [],
             rooms: enqRooms,
             photos: enq.data?.photos || [],
           },
-          quote: quoteRooms.length ? { rooms: quoteRooms } : {},
+          quote: quoteRooms.length || quoteRepairs.length || hwNotesBlock
+            ? { rooms: quoteRooms, repairs: quoteRepairs, notes: hwNotesBlock ? hwNotesBlock.trim() : '' }
+            : {},
           status_history: [{ status: 'quoted', changed_by: session.profile.name, changed_at: new Date().toISOString(), note: 'Converted from enquiry' }],
         };
         const row = {
@@ -1373,7 +1409,6 @@
           ${section('acceptance', 'Acceptance & Job Card', false, `<div id="acc-mount"></div>`)}
           ${section('pre', 'Pre-Inspection', false, `<div id="pre-mount"></div>`)}
           ${section('post', 'Post-Inspection', false, `<div id="post-mount"></div>`)}
-          ${d.enquiry_source ? section('enquiry', 'Original Enquiry', false, `<div class="placeholder-note">Read-only original enquiry view.</div>`) : ''}
           ${section('notes', 'Internal Notes', false, internalNotesHtml(job))}
         `;
 
@@ -1469,6 +1504,20 @@
             ? `<div style="margin-top:8px;font-size:13px"><strong style="color:var(--navy-mid)">Customer flagged:</strong> ${(d.observation_ticks || []).map((k) => escapeHtml(OBS_LABEL[k] || k)).join(', ')}</div>` : '';
           const ratingHtml = (d.customer_rating != null)
             ? `<div style="margin-top:4px;font-size:13px"><strong style="color:var(--navy-mid)">Customer rating:</strong> ${d.customer_rating}/10</div>` : '';
+          const HW_LABEL = {
+            'track-replace': 'Track replacement', 'track-service': 'Service track',
+            'track-parts': 'Track part replacements', 'cord-replace': 'Replace cord',
+            'blind-parts': 'Blind parts replacement',
+          };
+          const hwItems = (d.hardware || []).map((hw) => {
+            if (hw.key === 'other') return escapeHtml(hw.note || 'Other');
+            const parts = [HW_LABEL[hw.key] || hw.key];
+            if (hw.width) parts.push('width ' + escapeHtml(hw.width));
+            if (hw.note) parts.push(escapeHtml(hw.note));
+            return parts.join(' — ');
+          });
+          const hwCardHtml = hwItems.length
+            ? `<div style="margin-top:8px;font-size:13px"><strong style="color:var(--navy-mid)">Hardware:</strong><ul style="margin:4px 0 0 18px;padding:0">${hwItems.map((s) => '<li>' + s + '</li>').join('')}</ul></div>` : '';
           const roomsHtml = enqRooms.length ? `<div class="enq-rooms">${enqRooms.map((r, ri) => {
             const items = (r.items || []).map((it) => {
               const dims = [];
@@ -1499,6 +1548,7 @@
               ${fields.length ? `<div class="e-fields">${fields.join('')}</div>` : ''}
               ${ratingHtml}
               ${obsHtml}
+              ${hwCardHtml}
               ${d.description ? `<div class="e-desc">${escapeHtml(d.description)}</div>` : ''}
               ${roomsHtml}
               ${overallPhotos.length ? `<div class="room-photos-label" style="margin-top:14px;font-size:12px;color:var(--muted);font-weight:600">Overall photos</div><div class="e-photos" data-photos='${escapeAttr(JSON.stringify(overallPhotos))}'>${overallPhotos.map(() => '<div style="width:80px;height:80px;border-radius:6px;background:#eef0f6;display:flex;align-items:center;justify-content:center;font-size:10px;color:#999">photo</div>').join('')}</div>` : ''}
@@ -1658,6 +1708,22 @@
         const obs = (es.observation_ticks || []).map((k) => OBS_LABEL[k] || k);
         const rating = (es.customer_rating != null) ? es.customer_rating : null;
 
+        // Hardware requests
+        const HW_LABEL = {
+          'track-replace': 'Track replacement', 'track-service': 'Service track',
+          'track-parts': 'Track part replacements', 'cord-replace': 'Replace cord',
+          'blind-parts': 'Blind parts replacement',
+        };
+        const hwItems = (es.hardware || []).map((hw) => {
+          if (hw.key === 'other') return escapeHtml(hw.note || 'Other');
+          const parts = [HW_LABEL[hw.key] || hw.key];
+          if (hw.width) parts.push('width ' + escapeHtml(hw.width));
+          if (hw.note) parts.push(escapeHtml(hw.note));
+          return parts.join(' — ');
+        });
+        const hwHtml = hwItems.length
+          ? `<div class="es-room"><div class="es-room-name">Hardware requests</div><ul class="es-items">${hwItems.map((s) => '<li>' + s + '</li>').join('')}</ul></div>` : '';
+
         const roomsHtml = (es.rooms || []).map((r, ri) => {
           const items = (r.items || []).map((it) => {
             const dims = [];
@@ -1693,6 +1759,7 @@
               ${rating != null ? `<div class="es-rating">Customer's condition rating: <strong>${rating}/10</strong></div>` : ''}
               ${obs.length ? `<div class="es-obs"><strong>Customer observations:</strong> ${obs.map(escapeHtml).join(', ')}</div>` : ''}
               ${es.description ? `<div class="es-desc">${escapeHtml(es.description)}</div>` : ''}
+              ${hwHtml}
               ${roomsHtml}
               ${overallHtml}
             </div>
