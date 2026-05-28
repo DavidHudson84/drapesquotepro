@@ -191,6 +191,82 @@
     .empty-card h3 { color: var(--navy-dark); font-size: 18px; margin-bottom: 8px; }
 
     /* ============================================================
+       DASHBOARD
+       ============================================================ */
+    .dash-band { margin-bottom: 26px; }
+    .dash-band-title { font-family: 'Montserrat'; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 12px; }
+    .dash-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+
+    .metric {
+      background: var(--card); border-radius: var(--r); padding: 18px 20px;
+      box-shadow: var(--shadow); border-top: 3px solid var(--navy-mid);
+    }
+    .metric.teal { border-top-color: var(--teal); }
+    .metric.green { border-top-color: var(--green); }
+    .metric.red { border-top-color: var(--red); }
+    .metric .m-label { font-size: 12.5px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+    .metric .m-value { font-family: 'Montserrat'; font-weight: 800; font-size: 28px; color: var(--navy-dark); margin-top: 4px; line-height: 1.1; }
+    .metric .m-sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
+    .metric .m-count { font-family: 'Montserrat'; font-weight: 700; font-size: 15px; color: var(--navy-mid); }
+
+    .progress { margin-top: 10px; }
+    .progress-track { height: 7px; background: #eef0f6; border-radius: 999px; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 999px; background: var(--navy-mid); transition: width .4s; }
+    .progress.teal .progress-fill { background: var(--teal); }
+    .progress.green .progress-fill { background: var(--green); }
+    .progress.over .progress-fill { background: var(--green); }
+    .progress-label { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--muted); margin-top: 4px; }
+    .progress-label strong { color: var(--navy-dark); }
+
+    .attention-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+    .attn-card {
+      background: var(--card); border-radius: var(--r); padding: 18px 20px; box-shadow: var(--shadow);
+      cursor: pointer; border-left: 4px solid var(--red); transition: transform .08s, box-shadow .12s;
+    }
+    .attn-card:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(26,28,80,.12); }
+    .attn-card.ok { border-left-color: var(--green); cursor: default; }
+    .attn-card .a-count { font-family: 'Montserrat'; font-weight: 800; font-size: 30px; color: var(--navy-dark); }
+    .attn-card .a-label { font-size: 13.5px; color: var(--ink); font-weight: 600; margin-top: 2px; }
+    .attn-card .a-hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+    .funnel { display: flex; gap: 8px; flex-wrap: wrap; }
+    .funnel-step {
+      flex: 1; min-width: 110px; background: var(--card); border-radius: var(--r); padding: 14px 16px; box-shadow: var(--shadow);
+      text-align: center; cursor: pointer; transition: transform .08s;
+    }
+    .funnel-step:hover { transform: translateY(-1px); }
+    .funnel-step .f-count { font-family: 'Montserrat'; font-weight: 800; font-size: 24px; color: var(--navy-dark); }
+    .funnel-step .f-label { font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .03em; margin-top: 2px; }
+
+    /* ============================================================
+       ENQUIRIES
+       ============================================================ */
+    .enq-card {
+      background: var(--card); border-radius: var(--r); box-shadow: var(--shadow);
+      padding: 18px 20px; margin-bottom: 14px; border-left: 4px solid var(--teal);
+    }
+    .enq-card.s-new { border-left-color: var(--red); }
+    .enq-card.s-called { border-left-color: #d97706; }
+    .enq-card.s-converted { border-left-color: var(--green); }
+    .enq-card .e-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+    .enq-card .e-name { font-family: 'Montserrat'; font-weight: 700; font-size: 16px; color: var(--navy-dark); }
+    .enq-card .e-meta { font-size: 13px; color: var(--muted); margin-top: 2px; }
+    .enq-card .e-when { font-size: 12px; color: var(--muted); }
+    .enq-card .e-detail { margin-top: 12px; font-size: 14px; color: var(--ink); }
+    .enq-card .e-fields { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 8px; font-size: 13px; color: var(--muted); }
+    .enq-card .e-fields strong { color: var(--navy-mid); }
+    .enq-card .e-desc { margin-top: 10px; padding: 10px 12px; background: #f8f9fc; border-radius: var(--r-sm); font-size: 13.5px; color: var(--ink); white-space: pre-wrap; }
+    .enq-card .e-photos { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+    .enq-card .e-photos img { width: 80px; height: 80px; object-fit: cover; border-radius: 6px; border: 1px solid var(--line); cursor: pointer; }
+    .enq-card .e-actions { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+    .btn-convert { background: var(--green); color: #fff; font-weight: 700; padding: 9px 16px; border-radius: var(--r-sm); }
+    .btn-convert:hover { filter: brightness(1.08); }
+    .e-pill { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+    .e-pill.new { background: #fee2e2; color: #991b1b; }
+    .e-pill.called { background: #fef3c7; color: #92590a; }
+    .e-pill.converted { background: #d1fae5; color: #065f46; }
+
+    /* ============================================================
        NAV BAR (secondary, under topbar)
        ============================================================ */
     .navbar {
@@ -251,6 +327,9 @@
     .job-row .cust small { display: block; color: var(--muted); font-weight: 400; font-size: 12.5px; }
     .job-row .addr { color: var(--muted); font-size: 13px; }
     .job-row .amt { font-family: 'Montserrat'; font-weight: 700; text-align: right; }
+    .row-arch-wrap { display: inline-block; }
+    .row-arch { font-family: 'Open Sans'; font-weight: 600; font-size: 11px; color: var(--muted); cursor: pointer; margin-left: 8px; padding: 2px 7px; border-radius: 5px; background: #eef0f6; white-space: nowrap; }
+    .row-arch:hover { background: #e3e6f1; color: var(--navy-mid); }
     .job-row .hdr { font-weight: 700; font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
     .job-row.head { cursor: default; background: #fafbfd; }
     .job-row.head:hover { background: #fafbfd; }
@@ -264,6 +343,7 @@
     .s-in_progress{ background: #e0e7ff; color: #3730a3; }
     .s-complete   { background: #d1fae5; color: #065f46; }
     .s-invoiced   { background: #ede9fe; color: #5b21b6; }
+    .s-declined   { background: #fee2e2; color: #991b1b; }
 
     /* ============================================================
        JOB PAGE
@@ -703,13 +783,87 @@
       },
 
       // ---------- JOBS ----------
-      async listJobs() {
-        const { data, error } = await sb
+      async listJobs(includeArchived = false) {
+        let query = sb
           .from('jobs')
-          .select('id, quote_number, drd_number, status, customer_name, customer_phone, customer_email, site_address, data, updated_at')
+          .select('id, quote_number, drd_number, status, customer_name, customer_phone, customer_email, site_address, data, archived, updated_at')
           .order('updated_at', { ascending: false });
+        if (!includeArchived) query = query.eq('archived', false);
+        else query = query.eq('archived', true);
+        const { data, error } = await query;
         if (error) throw error;
         return data || [];
+      },
+
+      // Pull non-archived jobs with created_at for time-window stats.
+      async listJobsForStats() {
+        const { data, error } = await sb
+          .from('jobs')
+          .select('id, status, data, created_at, updated_at')
+          .eq('archived', false)
+          .order('created_at', { ascending: false });
+        if (error) throw error;
+        return data || [];
+      },
+
+      async setArchived(jobId, archived) {
+        const { error } = await sb.from('jobs').update({ archived, updated_at: new Date().toISOString() }).eq('id', jobId);
+        if (error) throw error;
+      },
+
+      // ---------- ENQUIRIES ----------
+      async listEnquiries() {
+        const { data, error } = await sb
+          .from('enquiries')
+          .select('id, quote_number, customer_name, customer_phone, customer_email, site_address, status, submitted_at, data')
+          .order('submitted_at', { ascending: false });
+        if (error) throw error;
+        return data || [];
+      },
+
+      async setEnquiryStatus(enquiryId, status) {
+        const { error } = await sb.from('enquiries').update({ status }).eq('id', enquiryId);
+        if (error) throw error;
+      },
+
+      // Convert an enquiry into a job: maps details, preserves the original
+      // read-only in data.enquiry_source, pre-loads any items into the quote.
+      async convertEnquiry(enq) {
+        const ref = await db.nextQuoteNumber();
+        const items = (enq.data?.items || []).map((it) => ({
+          cat: it.cat || 'curtain', item_note: it.location || it.note || '',
+          width: it.width_mm || '', drop: it.height_mm || '', mould: false,
+        }));
+        const data = {
+          job_type: 'enquiry',
+          created_by: session.profile.name,
+          enquiry_source: {
+            enquiry_id: enq.id,
+            submitted_at: enq.submitted_at,
+            property_type: enq.data?.property_type || '',
+            rooms: enq.data?.rooms || '',
+            contact_time: enq.data?.contact_time || '',
+            contact_method: enq.data?.contact_method || '',
+            description: enq.data?.description || '',
+            photos: enq.data?.photos || [],
+          },
+          quote: items.length ? { rooms: [{ name: 'From enquiry', items, repairs: [] }] } : {},
+          status_history: [{ status: 'quoted', changed_by: session.profile.name, changed_at: new Date().toISOString(), note: 'Converted from enquiry' }],
+        };
+        const row = {
+          company_id: session.profile.company_id,
+          quote_number: ref,
+          status: 'quoted',
+          customer_name: enq.customer_name || null,
+          customer_phone: enq.customer_phone || null,
+          customer_email: enq.customer_email || null,
+          site_address: enq.site_address || null,
+          data,
+        };
+        const { data: created, error } = await sb.from('jobs').insert(row).select().single();
+        if (error) throw error;
+        await db.setEnquiryStatus(enq.id, 'converted');
+        return created;
       },
 
       async getJob(jobId) {
@@ -903,8 +1057,12 @@
     const STATUSES = ['quoted', 'confirmed', 'in_progress', 'complete', 'invoiced'];
     const STATUS_LABEL = {
       quoted: 'Quoted', confirmed: 'Confirmed', in_progress: 'In Progress',
-      complete: 'Complete', invoiced: 'Invoiced',
+      complete: 'Complete', invoiced: 'Invoiced', declined: 'Declined',
     };
+    const DECLINE_REASONS = [
+      ['price', 'Price / too expensive'], ['elsewhere', 'Went elsewhere'],
+      ['timing', 'Timing / not now'], ['no_response', 'No response'], ['other', 'Other'],
+    ];
 
     const route = { name: 'dashboard', jobId: null, filter: 'all', search: '' };
 
@@ -922,10 +1080,10 @@
       async render() {
         const main = $('#main');
         try {
-          if (route.name === 'dashboard') return router.dashboard(main);
+          if (route.name === 'dashboard') return await router.dashboard(main);
           if (route.name === 'jobs') return await router.jobsList(main);
           if (route.name === 'job') return await router.jobPage(main);
-          if (route.name === 'enquiries') return router.enquiriesStub(main);
+          if (route.name === 'enquiries') return await router.enquiries(main);
         } catch (err) {
           console.error(err);
           main.innerHTML = `<div class="empty-card"><h3>Something went wrong</h3><p>${escapeHtml(err.message || 'Error loading view')}</p></div>`;
@@ -933,32 +1091,122 @@
       },
 
       /* ---------- DASHBOARD ---------- */
-      dashboard(main) {
+      async dashboard(main) {
         main.innerHTML = `
-          <div class="page-head">
-            <h1>Dashboard</h1>
-            <p>Welcome back, ${escapeHtml(firstName(session.profile.name))} — ${escapeHtml(session.company.name)}</p>
-          </div>
-          <div class="stat-grid">
-            <div class="stat"><div class="label">Active Jobs</div><div class="value">—</div></div>
-            <div class="stat accent-teal"><div class="label">New Enquiries</div><div class="value">—</div></div>
-            <div class="stat accent-green"><div class="label">$ Confirmed</div><div class="value">—</div></div>
-            <div class="stat accent-red"><div class="label">$ This Month</div><div class="value">—</div></div>
-          </div>
-          <div class="empty-card">
-            <h3>Live stats coming soon</h3>
-            <p>Dashboard figures wire up once jobs are flowing.<br/>
-            For now, head to <strong>Jobs</strong> to create and manage jobs.</p>
+          <div class="page-head"><h1>Dashboard</h1><p>Welcome back, ${escapeHtml(firstName(session.profile.name))} — ${escapeHtml(session.company.name)}</p></div>
+          <div class="empty-card"><div class="spin" style="margin:0 auto;border-top-color:var(--navy-mid);border-color:#ddd"></div></div>`;
+
+        const jobs = await db.listJobsForStats();
+        const s = computeDashStats(jobs);
+
+        // Targets (seeded; editable in Admin later — read from settings if present)
+        const tgt = {
+          quoted: Number(session.settings['target-quoted'] || 60000),
+          confirmed: Number(session.settings['target-confirmed'] || 60000),
+          invoiced: Number(session.settings['target-invoiced'] || 60000),
+          newjobs: Number(session.settings['target-newjobs'] || 36),
+        };
+
+        const bar = (val, target, cls) => {
+          const pct = target > 0 ? Math.min(100, Math.round(val / target * 100)) : 0;
+          const over = target > 0 && val >= target;
+          return `<div class="progress ${cls} ${over ? 'over' : ''}">
+            <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
+            <div class="progress-label"><span>${pct}% of target</span><strong>${money(target)}</strong></div>
           </div>`;
+        };
+        const barCount = (val, target, cls) => {
+          const pct = target > 0 ? Math.min(100, Math.round(val / target * 100)) : 0;
+          const over = target > 0 && val >= target;
+          return `<div class="progress ${cls} ${over ? 'over' : ''}">
+            <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
+            <div class="progress-label"><span>${pct}% of target</span><strong>${target}</strong></div>
+          </div>`;
+        };
+
+        main.innerHTML = `
+          <div class="page-head"><h1>Dashboard</h1><p>Welcome back, ${escapeHtml(firstName(session.profile.name))} — ${escapeHtml(session.company.name)}</p></div>
+
+          <div class="dash-band">
+            <div class="dash-band-title">This month at a glance</div>
+            <div class="dash-grid">
+              <div class="metric">
+                <div class="m-label">Quoted</div>
+                <div class="m-value">${money(s.month.quotedVal)}</div>
+                <div class="m-sub"><span class="m-count">${s.month.quotedCount}</span> quote${s.month.quotedCount === 1 ? '' : 's'}</div>
+                ${bar(s.month.quotedVal, tgt.quoted, '')}
+              </div>
+              <div class="metric teal">
+                <div class="m-label">Confirmed</div>
+                <div class="m-value">${money(s.month.confirmedVal)}</div>
+                <div class="m-sub"><span class="m-count">${s.month.confirmedCount}</span> job${s.month.confirmedCount === 1 ? '' : 's'}</div>
+                ${bar(s.month.confirmedVal, tgt.confirmed, 'teal')}
+              </div>
+              <div class="metric green">
+                <div class="m-label">Invoiced</div>
+                <div class="m-value">${money(s.month.invoicedVal)}</div>
+                <div class="m-sub"><span class="m-count">${s.month.invoicedCount}</span> job${s.month.invoicedCount === 1 ? '' : 's'}</div>
+                ${bar(s.month.invoicedVal, tgt.invoiced, 'green')}
+              </div>
+              <div class="metric red">
+                <div class="m-label">New Jobs (month)</div>
+                <div class="m-value">${s.month.newJobs}</div>
+                <div class="m-sub">${s.week.newJobs} this week</div>
+                ${barCount(s.month.newJobs, tgt.newjobs, '')}
+              </div>
+            </div>
+          </div>
+
+          <div class="dash-band">
+            <div class="dash-band-title">Health</div>
+            <div class="dash-grid">
+              <div class="metric"><div class="m-label">Win rate</div><div class="m-value">${s.winRate}%</div><div class="m-sub">${s.wonCount} won · ${s.declinedCount} declined · ${s.pendingCount} pending</div></div>
+              <div class="metric"><div class="m-label">Average job size</div><div class="m-value">${money(s.avgJobSize)}</div><div class="m-sub">confirmed jobs</div></div>
+              <div class="metric teal"><div class="m-label">Pipeline value</div><div class="m-value">${money(s.pipelineVal)}</div><div class="m-sub">${s.pipelineCount} open quote${s.pipelineCount === 1 ? '' : 's'}</div></div>
+              <div class="metric"><div class="m-label">Invoiced this week</div><div class="m-value">${money(s.week.invoicedVal)}</div><div class="m-sub"><span class="m-count">${s.week.invoicedCount}</span> job${s.week.invoicedCount === 1 ? '' : 's'}</div></div>
+            </div>
+          </div>
+
+          <div class="dash-band">
+            <div class="dash-band-title">Needs attention</div>
+            <div class="attention-grid">
+              <div class="attn-card ${s.toChase ? '' : 'ok'}" id="attn-chase">
+                <div class="a-count">${s.toChase}</div>
+                <div class="a-label">Quotes to chase</div>
+                <div class="a-hint">Quoted 7+ days ago, not yet accepted</div>
+              </div>
+              <div class="attn-card ${s.toSchedule ? '' : 'ok'}" id="attn-schedule">
+                <div class="a-count">${s.toSchedule}</div>
+                <div class="a-label">To schedule</div>
+                <div class="a-hint">Confirmed, no pre-inspection yet</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="dash-band">
+            <div class="dash-band-title">Pipeline</div>
+            <div class="funnel">
+              ${STATUSES.map((st) => `<div class="funnel-step" data-fstatus="${st}"><div class="f-count">${s.byStatus[st] || 0}</div><div class="f-label">${STATUS_LABEL[st]}</div></div>`).join('')}
+            </div>
+          </div>
+        `;
+
+        // wire clickable cards → jobs list filtered
+        const goFiltered = (filter) => { route.filter = filter; router.go('jobs'); };
+        const chase = $('#attn-chase'); if (chase && s.toChase) chase.addEventListener('click', () => goFiltered('quoted'));
+        const sched = $('#attn-schedule'); if (sched && s.toSchedule) sched.addEventListener('click', () => goFiltered('confirmed'));
+        document.querySelectorAll('.funnel-step[data-fstatus]').forEach((f) =>
+          f.addEventListener('click', () => goFiltered(f.dataset.fstatus)));
       },
 
       /* ---------- JOBS LIST ---------- */
       async jobsList(main) {
         main.innerHTML = `<div class="empty-card"><div class="spin" style="margin:0 auto;border-top-color:var(--navy-mid);border-color:#ddd;border-top-color:var(--navy-mid)"></div></div>`;
-        const jobs = await db.listJobs();
+        const archivedView = route.filter === 'archived';
+        const jobs = await db.listJobs(archivedView);
 
         const filtered = jobs.filter((j) => {
-          if (route.filter !== 'all' && j.status !== route.filter) return false;
+          if (!archivedView && route.filter !== 'all' && j.status !== route.filter) return false;
           if (route.search) {
             const q = route.search.toLowerCase();
             return (j.quote_number || '').toLowerCase().includes(q)
@@ -969,45 +1217,68 @@
           return true;
         });
 
-        const chips = ['all', ...STATUSES].map((s) =>
-          `<span class="chip ${route.filter === s ? 'active' : ''}" data-filter="${s}">${s === 'all' ? 'All' : STATUS_LABEL[s]}</span>`
+        // chips: all + statuses + declined + archived
+        const chipKeys = ['all', ...STATUSES, 'declined', 'archived'];
+        const chips = chipKeys.map((s) =>
+          `<span class="chip ${route.filter === s ? 'active' : ''}" data-filter="${s}">${s === 'all' ? 'All' : (s === 'archived' ? 'Archived' : STATUS_LABEL[s])}</span>`
         ).join('');
 
         const rows = filtered.length ? filtered.map((j) => {
           const total = j.data?.quote?.total;
           const amt = total ? '$' + Number(total).toLocaleString('en-AU', { minimumFractionDigits: 2 }) : '—';
+          const archBtn = archivedView
+            ? `<span class="row-arch" data-unarch="${j.id}" title="Restore">↩︎ Restore</span>`
+            : `<span class="row-arch" data-arch="${j.id}" title="Archive">Archive</span>`;
           return `
             <div class="job-row" data-job="${j.id}">
               <div class="dq">${escapeHtml(j.quote_number || '—')}</div>
               <div class="cust">${escapeHtml(j.customer_name || 'No name')}<small>${escapeHtml(j.customer_phone || '')}</small></div>
               <div class="addr">${escapeHtml(j.site_address || '—')}</div>
               <div><span class="status-pill s-${j.status}">${STATUS_LABEL[j.status] || j.status}</span></div>
-              <div class="amt">${amt}</div>
+              <div class="amt">${amt} <span class="row-arch-wrap">${archBtn}</span></div>
             </div>`;
-        }).join('') : `<div style="padding:40px;text-align:center;color:var(--muted)">No jobs ${route.filter !== 'all' ? 'with this status' : 'yet'}. Tap <strong>+ New Job</strong> to create one.</div>`;
+        }).join('') : `<div style="padding:40px;text-align:center;color:var(--muted)">No jobs ${archivedView ? 'archived' : (route.filter !== 'all' ? 'with this status' : 'yet')}. ${archivedView ? '' : 'Tap <strong>+ New Job</strong> to create one.'}</div>`;
 
         main.innerHTML = `
-          <div class="page-head"><h1>Jobs</h1><p>${filtered.length} of ${jobs.length} job${jobs.length === 1 ? '' : 's'}</p></div>
+          <div class="page-head"><h1>Jobs</h1><p>${filtered.length} ${archivedView ? 'archived' : 'of ' + jobs.length} job${jobs.length === 1 ? '' : 's'}</p></div>
           <div class="list-controls">
             <input class="search-box" id="job-search" placeholder="Search DRD ref, Fergus, customer, address…" value="${escapeHtml(route.search)}" />
-            <button class="btn-new" id="new-job-btn">+ New Job</button>
+            ${archivedView ? '' : '<button class="btn-new" id="new-job-btn">+ New Job</button>'}
           </div>
           <div class="filter-chips" style="margin-bottom:16px">${chips}</div>
           <div class="jobs-table">
             <div class="job-row head">
-              <div class="hdr">DQ</div><div class="hdr">Customer</div><div class="hdr">Address</div><div class="hdr">Status</div><div class="hdr" style="text-align:right">Total</div>
+              <div class="hdr">DRD</div><div class="hdr">Customer</div><div class="hdr">Address</div><div class="hdr">Status</div><div class="hdr" style="text-align:right">Total</div>
             </div>
             ${rows}
           </div>`;
 
         // wire
-        $('#new-job-btn').addEventListener('click', openNewJobModal);
+        const nb = $('#new-job-btn'); if (nb) nb.addEventListener('click', openNewJobModal);
         const sb_ = $('#job-search');
         sb_.addEventListener('input', debounce((e) => { route.search = e.target.value; router.jobsList(main); }, 250));
         document.querySelectorAll('.chip[data-filter]').forEach((c) =>
           c.addEventListener('click', () => { route.filter = c.dataset.filter; router.jobsList(main); }));
         document.querySelectorAll('.job-row[data-job]').forEach((r) =>
-          r.addEventListener('click', () => router.go('job', { jobId: r.dataset.job })));
+          r.addEventListener('click', (e) => {
+            if (e.target.closest('.row-arch')) return; // don't open when clicking archive
+            router.go('job', { jobId: r.dataset.job });
+          }));
+        document.querySelectorAll('[data-arch]').forEach((b) =>
+          b.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            if (!confirm('Archive this job? It will be hidden from lists and stats (recoverable).')) return;
+            await db.setArchived(b.dataset.arch, true);
+            ui.toast('Job archived');
+            router.jobsList(main);
+          }));
+        document.querySelectorAll('[data-unarch]').forEach((b) =>
+          b.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            await db.setArchived(b.dataset.unarch, false);
+            ui.toast('Job restored');
+            router.jobsList(main);
+          }));
       },
 
       /* ---------- JOB PAGE ---------- */
@@ -1097,11 +1368,90 @@
       },
 
       /* ---------- ENQUIRIES (stub for now) ---------- */
-      enquiriesStub(main) {
+      async enquiries(main) {
+        main.innerHTML = `<div class="empty-card"><div class="spin" style="margin:0 auto;border-top-color:var(--navy-mid);border-color:#ddd"></div></div>`;
+        let list;
+        try { list = await db.listEnquiries(); }
+        catch (err) { main.innerHTML = `<div class="page-head"><h1>Enquiries</h1></div><div class="empty-card"><p>Could not load enquiries: ${escapeHtml(err.message || 'error')}</p></div>`; return; }
+
+        const f = route.enqFilter || 'new';
+        const filtered = list.filter((e) => f === 'all' ? true : (e.status || 'new') === f);
+        const counts = { new: 0, called: 0, converted: 0 };
+        list.forEach((e) => { counts[e.status || 'new'] = (counts[e.status || 'new'] || 0) + 1; });
+
+        const chips = [['new', 'New'], ['called', 'Called'], ['converted', 'Converted'], ['all', 'All']].map(([k, l]) =>
+          `<span class="chip ${f === k ? 'active' : ''}" data-enqf="${k}">${l}${k !== 'all' && counts[k] ? ' (' + counts[k] + ')' : ''}</span>`).join('');
+
+        const cards = filtered.length ? filtered.map((e) => {
+          const st = e.status || 'new';
+          const when = e.submitted_at ? new Date(e.submitted_at).toLocaleString('en-AU', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+          const d = e.data || {};
+          const fields = [];
+          if (d.property_type) fields.push(`<span><strong>Property:</strong> ${escapeHtml(d.property_type)}</span>`);
+          if (d.rooms) fields.push(`<span><strong>Rooms/items:</strong> ${escapeHtml(String(d.rooms))}</span>`);
+          if (d.contact_time) fields.push(`<span><strong>Best time:</strong> ${escapeHtml(d.contact_time)}</span>`);
+          if (d.contact_method) fields.push(`<span><strong>Prefers:</strong> ${escapeHtml(d.contact_method)}</span>`);
+          const photos = (d.photos || []);
+          return `
+            <div class="enq-card s-${st}" data-enq="${e.id}">
+              <div class="e-top">
+                <div>
+                  <div class="e-name">${escapeHtml(e.customer_name || 'No name')} <span class="e-pill ${st}">${st}</span></div>
+                  <div class="e-meta">${escapeHtml(e.customer_phone || '')}${e.customer_email ? ' · ' + escapeHtml(e.customer_email) : ''}</div>
+                  ${e.site_address ? `<div class="e-meta">${escapeHtml(e.site_address)}</div>` : ''}
+                </div>
+                <div class="e-when">${escapeHtml(when)}</div>
+              </div>
+              ${fields.length ? `<div class="e-fields">${fields.join('')}</div>` : ''}
+              ${d.description ? `<div class="e-desc">${escapeHtml(d.description)}</div>` : ''}
+              ${photos.length ? `<div class="e-photos" data-photos='${escapeAttr(JSON.stringify(photos))}'>${photos.map(() => '<div style="width:80px;height:80px;border-radius:6px;background:#eef0f6;display:flex;align-items:center;justify-content:center;font-size:10px;color:#999">photo</div>').join('')}</div>` : ''}
+              <div class="e-actions">
+                ${st === 'new' ? `<button class="btn btn-secondary" data-called="${e.id}">Mark Called</button>` : ''}
+                ${st !== 'converted' ? `<button class="btn btn-convert" data-convert="${e.id}">Convert to Job</button>` : ''}
+              </div>
+            </div>`;
+        }).join('') : `<div class="empty-card"><h3>No ${f === 'all' ? '' : f} enquiries</h3><p>Customer submissions from your request form appear here.</p></div>`;
+
         main.innerHTML = `
           <div class="page-head"><h1>Enquiries</h1><p>Customer request-form submissions</p></div>
-          <div class="empty-card"><h3>Enquiries flow coming soon</h3>
-          <p>The request form, enquiry list and convert-to-job slot in at build step 7.</p></div>`;
+          <div class="filter-chips" style="margin-bottom:16px">${chips}</div>
+          ${cards}`;
+
+        document.querySelectorAll('.chip[data-enqf]').forEach((c) =>
+          c.addEventListener('click', () => { route.enqFilter = c.dataset.enqf; router.enquiries(main); }));
+
+        document.querySelectorAll('[data-called]').forEach((b) =>
+          b.addEventListener('click', async () => {
+            await db.setEnquiryStatus(b.dataset.called, 'called');
+            ui.toast('Marked as called'); router.enquiries(main);
+          }));
+
+        document.querySelectorAll('[data-convert]').forEach((b) =>
+          b.addEventListener('click', async () => {
+            b.disabled = true; b.textContent = 'Converting…';
+            try {
+              const enq = list.find((x) => x.id === b.dataset.convert);
+              const job = await db.convertEnquiry(enq);
+              ui.toast('Converted to job ' + job.quote_number);
+              route.jobId = job.id; router.go('job', { jobId: job.id });
+            } catch (err) {
+              ui.toast('Convert failed: ' + (err.message || 'error'));
+              b.disabled = false; b.textContent = 'Convert to Job';
+            }
+          }));
+
+        // load enquiry photo thumbnails (signed URLs)
+        document.querySelectorAll('.e-photos[data-photos]').forEach(async (wrap) => {
+          let paths = [];
+          try { paths = JSON.parse(wrap.dataset.photos); } catch (_) {}
+          const imgs = wrap.querySelectorAll('div');
+          paths.forEach(async (p, i) => {
+            try {
+              const url = await db.photoUrl(p.path || p);
+              if (imgs[i]) { const im = document.createElement('img'); im.src = url; im.addEventListener('click', () => window.open(url, '_blank')); imgs[i].replaceWith(im); }
+            } catch (_) {}
+          });
+        });
       },
     };
 
@@ -2515,6 +2865,23 @@
           `<span class="acc-chip ${this.draft.how === h ? 'active' : ''}" data-how="${h}">${h.charAt(0).toUpperCase() + h.slice(1)}</span>`).join('');
 
         let html = '';
+        const isDeclined = job.status === 'declined';
+        if (isDeclined) {
+          const dec = job.data?.declined || {};
+          const reasonLabel = (DECLINE_REASONS.find(([v]) => v === dec.reason) || [null, dec.reason])[1] || '';
+          const when = dec.at ? new Date(dec.at).toLocaleString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+          html += `<div class="acc-confirmed-banner" style="background:#fee2e2;border-color:#fecaca;color:#991b1b">✕ <strong>Quote declined</strong>${reasonLabel ? ' — ' + escapeHtml(reasonLabel) : ''} · ${escapeHtml(when)}${dec.note ? '<br/><span style="font-weight:400">' + escapeHtml(dec.note) + '</span>' : ''}</div>
+            <button class="btn btn-secondary" id="acc-reopen">Re-open Quote</button>`;
+          mount.innerHTML = html;
+          $('#acc-reopen').addEventListener('click', async () => {
+            if (!confirm('Re-open this quote? It returns to Quoted status.')) return;
+            await db.saveJob(this.jobId, { declined: null }, { status: 'quoted' });
+            ui.toast('Quote re-opened');
+            router.jobPage(this.main);
+          });
+          return;
+        }
+
         if (isConfirmed) {
           const when = a.confirmed_at ? new Date(a.confirmed_at).toLocaleString('en-AU', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
           html += `<div class="acc-confirmed-banner">✓ <strong>Accepted</strong> via ${escapeHtml(a.how || '')} · ${escapeHtml(when)} · by ${escapeHtml(a.confirmed_by || '')}${a.terms_confirmed ? ' · terms confirmed' : ''}</div>`;
@@ -2527,7 +2894,10 @@
         if (!hasQuote) {
           html += `<div class="acc-blocked">Save a quote with a total before confirming acceptance.</div>`;
         }
-        html += `<button class="btn btn-confirm" id="acc-confirm" ${hasQuote ? '' : 'disabled'}>${isConfirmed ? 'Update Acceptance' : 'Confirm Acceptance'}</button>`;
+        html += `<div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn btn-confirm" id="acc-confirm" ${hasQuote ? '' : 'disabled'}>${isConfirmed ? 'Update Acceptance' : 'Confirm Acceptance'}</button>
+          ${isConfirmed ? '' : `<button class="btn btn-secondary" id="acc-decline" style="background:#fee2e2;color:#991b1b" ${hasQuote ? '' : 'disabled'}>Mark as Declined</button>`}
+        </div>`;
 
         // Job card (only meaningful once there's a quote)
         if (hasQuote) {
@@ -2584,8 +2954,10 @@
           }
         });
 
-        const copy = $('#jobcard-copy');
-        if (copy) copy.addEventListener('click', async () => {
+        const decline = $('#acc-decline');
+        if (decline) decline.addEventListener('click', () => this.openDeclineModal(job));
+
+        const copy = $('#jobcard-copy');        if (copy) copy.addEventListener('click', async () => {
           try {
             await navigator.clipboard.writeText(this.buildCard(job));
             ui.toast('Job card copied');
@@ -2603,9 +2975,45 @@
         });
       },
 
+      openDeclineModal(job) {
+        const mount = $('#modal-mount');
+        mount.innerHTML = `
+          <div class="modal-backdrop" id="dec-backdrop">
+            <div class="modal">
+              <div class="m-head"><h2>Mark as Declined</h2><p>${escapeHtml(job.quote_number || '')} — record why the quote didn't proceed.</p></div>
+              <div class="m-body">
+                <div class="field"><label>Reason</label>
+                  <select id="dec-reason">${DECLINE_REASONS.map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select>
+                </div>
+                <div class="field"><label>Note (optional)</label><textarea id="dec-note" rows="3" placeholder="Any detail worth recording"></textarea></div>
+              </div>
+              <div class="m-foot">
+                <button class="btn btn-secondary" id="dec-cancel">Cancel</button>
+                <button class="btn" id="dec-confirm" style="background:#991b1b;color:#fff;width:auto">Mark Declined</button>
+              </div>
+            </div>
+          </div>`;
+        const close = () => { mount.innerHTML = ''; };
+        $('#dec-cancel').addEventListener('click', close);
+        $('#dec-backdrop').addEventListener('click', (e) => { if (e.target.id === 'dec-backdrop') close(); });
+        $('#dec-confirm').addEventListener('click', async () => {
+          const reason = $('#dec-reason').value;
+          const note = $('#dec-note').value.trim();
+          try {
+            await db.saveJob(this.jobId, {
+              declined: { reason, note, at: new Date().toISOString(), by: session.profile.name },
+            }, { status: 'declined' });
+            close();
+            ui.toast('Quote marked declined');
+            router.jobPage(this.main);
+          } catch (err) {
+            ui.toast('Failed: ' + (err.message || 'error'));
+          }
+        });
+      },
+
       // Plain-text job card, grouped by room, for pasting into Fergus.
-      buildCard(job) {
-        const q = job.data?.quote || {};
+      buildCard(job) {        const q = job.data?.quote || {};
         const a = job.data?.acceptance || {};
         const L = [];
         L.push(`JOB CARD — ${job.quote_number || ''}`);
@@ -3106,6 +3514,87 @@
 
     function round2(n) { return Math.round((Number(n) || 0) * 100) / 100; }
     function money(n) { return '$' + Number(n || 0).toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+
+    // Derive dashboard stats from the jobs list.
+    function computeDashStats(jobs) {
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const weekStart = new Date(now); weekStart.setDate(now.getDate() - now.getDay()); weekStart.setHours(0, 0, 0, 0);
+      const total = (j) => Number(j.data?.quote?.total || 0);
+      const createdAt = (j) => new Date(j.created_at || j.updated_at || 0);
+      // confirmed/invoiced "when" — use status_history if available, else created_at
+      const statusChangedAt = (j, st) => {
+        const h = (j.data?.status_history || []).filter((x) => x.status === st);
+        return h.length ? new Date(h[h.length - 1].changed_at) : createdAt(j);
+      };
+
+      const byStatus = {};
+      let pipelineVal = 0, pipelineCount = 0;
+      let confirmedTotalVal = 0, confirmedTotalCount = 0; // for avg job size (all confirmed+)
+      let wonCount = 0, declinedCount = 0, pendingCount = 0;
+      let toChase = 0, toSchedule = 0;
+      let declinedMonthVal = 0, declinedMonthCount = 0;
+      const m = { quotedVal: 0, quotedCount: 0, confirmedVal: 0, confirmedCount: 0, invoicedVal: 0, invoicedCount: 0, newJobs: 0 };
+      const w = { invoicedVal: 0, invoicedCount: 0, newJobs: 0 };
+      const order = ['quoted', 'confirmed', 'in_progress', 'complete', 'invoiced'];
+
+      jobs.forEach((j) => {
+        byStatus[j.status] = (byStatus[j.status] || 0) + 1;
+        const t = total(j);
+        const ca = createdAt(j);
+        const declined = j.status === 'declined';
+        const sIdx = order.indexOf(j.status); // -1 for declined
+
+        // open pipeline = still in quoted (not declined)
+        if (j.status === 'quoted') { pipelineVal += t; pipelineCount++; }
+
+        // avg job size: jobs confirmed or beyond
+        if (sIdx >= order.indexOf('confirmed')) { confirmedTotalVal += t; confirmedTotalCount++; }
+
+        // win rate buckets (Option B): won = confirmed+, lost = declined, pending = quoted
+        if (sIdx >= order.indexOf('confirmed')) wonCount++;
+        else if (declined) declinedCount++;
+        else if (j.status === 'quoted') pendingCount++;
+
+        // this-month buckets
+        if (ca >= monthStart) m.newJobs++;
+        if (ca >= weekStart) w.newJobs++;
+        if (ca >= monthStart && !declined) { m.quotedVal += t; m.quotedCount++; }
+        if (sIdx >= order.indexOf('confirmed')) {
+          const cAt = statusChangedAt(j, 'confirmed');
+          if (cAt >= monthStart) { m.confirmedVal += t; m.confirmedCount++; }
+        }
+        if (j.status === 'invoiced') {
+          const iAt = statusChangedAt(j, 'invoiced');
+          if (iAt >= monthStart) { m.invoicedVal += t; m.invoicedCount++; }
+          if (iAt >= weekStart) { w.invoicedVal += t; w.invoicedCount++; }
+        }
+        if (declined) {
+          const dAt = j.data?.declined?.at ? new Date(j.data.declined.at) : ca;
+          if (dAt >= monthStart) { declinedMonthVal += t; declinedMonthCount++; }
+        }
+
+        // needs attention (not declined)
+        if (j.status === 'quoted') {
+          const ageDays = (now - ca) / 86400000;
+          if (ageDays >= 7) toChase++;
+        }
+        if (j.status === 'confirmed' && !(j.data?.pre_inspection?.saved_at)) toSchedule++;
+      });
+
+      // Option B win rate: won ÷ (won + declined)
+      const decided = wonCount + declinedCount;
+      const winRate = decided > 0 ? Math.round(wonCount / decided * 100) : 0;
+      const avgJobSize = confirmedTotalCount > 0 ? round2(confirmedTotalVal / confirmedTotalCount) : 0;
+
+      return {
+        byStatus, month: m, week: w,
+        pipelineVal: round2(pipelineVal), pipelineCount,
+        winRate, wonCount, declinedCount, pendingCount,
+        avgJobSize, toChase, toSchedule,
+        declinedMonthVal: round2(declinedMonthVal), declinedMonthCount,
+      };
+    }
 
     // Roll up an entire quote object → subtotal/gst/total.
     // Room-based: rooms[].items + rooms[].repairs, plus whole-job repairs.
