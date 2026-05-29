@@ -449,6 +449,41 @@
     .es-panel .es-items li { font-size: 13px; color: var(--ink); padding: 1px 0; }
     .es-panel .es-photos { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
     .es-panel .es-thumb, .es-panel img.es-thumb { width: 80px; height: 80px; border-radius: 6px; object-fit: cover; border: 1px solid var(--line); background: #eef0f6; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #999; }
+
+    /* ============================================================
+       ADMIN PANEL
+       ============================================================ */
+    .admin-tabs { display: flex; gap: 4px; flex-wrap: wrap; border-bottom: 2px solid var(--line); margin-bottom: 24px; }
+    .admin-tab {
+      padding: 11px 18px; font-size: 14px; font-weight: 600; color: var(--muted);
+      cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px;
+      transition: all .12s;
+    }
+    .admin-tab:hover { color: var(--navy-mid); }
+    .admin-tab.active { color: var(--navy-dark); border-bottom-color: var(--navy-mid); }
+    .admin-section { background: var(--card); border-radius: var(--r); padding: 24px 28px; box-shadow: var(--shadow); margin-bottom: 18px; }
+    .admin-section h3 { font-family: 'Montserrat'; font-size: 16px; color: var(--navy-dark); margin-bottom: 4px; }
+    .admin-section .section-hint { color: var(--muted); font-size: 13px; margin-bottom: 16px; }
+    .admin-section .field { margin-bottom: 14px; }
+    .admin-section input, .admin-section textarea { width: 100%; padding: 10px 13px; border: 1.5px solid var(--line); border-radius: var(--r-sm); font-size: 14px; }
+    .admin-section input:focus, .admin-section textarea:focus { outline: none; border-color: var(--navy-mid); box-shadow: 0 0 0 3px rgba(43,45,126,.12); }
+    .admin-section textarea { font-family: inherit; resize: vertical; min-height: 90px; }
+    .price-grid { display: grid; grid-template-columns: 1fr 140px; gap: 6px 12px; align-items: center; padding: 6px 0; border-bottom: 1px dashed var(--line); }
+    .price-grid:last-child { border-bottom: none; }
+    .price-grid .p-label { font-size: 13.5px; color: var(--ink); }
+    .price-grid .p-label small { color: var(--muted); font-size: 11.5px; display: block; }
+    .price-grid input { padding: 7px 10px; font-size: 13.5px; text-align: right; }
+    .price-group { margin-bottom: 22px; }
+    .price-group h4 { font-family: 'Montserrat'; font-size: 13px; color: var(--navy-mid); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
+    .save-bar { position: sticky; bottom: 0; background: var(--bg); padding: 14px 0; margin-top: 8px; display: flex; gap: 10px; align-items: center; }
+    .save-bar .save-status { color: var(--muted); font-size: 13px; }
+    .save-bar .save-status.dirty { color: #b45309; font-weight: 600; }
+    .save-bar .save-status.saved { color: var(--green); }
+    .ph-row { padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+    .ph-row:last-child { border-bottom: none; }
+    .ph-row .ph-when { color: var(--muted); font-size: 12px; }
+    .ph-row .ph-arrow { color: var(--muted); margin: 0 6px; }
+    .ph-row strong { color: var(--navy-mid); }
     .qb-mould { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--navy-mid); white-space: nowrap; padding-bottom: 9px; }
     .qb-mould input { width: auto; }
     .qb-rate-wrap { position: relative; }
@@ -704,6 +739,7 @@
         <a data-route="dashboard" class="active">Dashboard</a>
         <a data-route="jobs">Jobs</a>
         <a data-route="enquiries">Enquiries</a>
+        <a data-route="admin" id="nav-admin" style="display:none">Admin</a>
       </nav>
 
       <main id="main">
@@ -852,6 +888,48 @@
       async setEnquiryStatus(enquiryId, status) {
         const { error } = await sb.from('enquiries').update({ status }).eq('id', enquiryId);
         if (error) throw error;
+      },
+
+      // ---------- SETTINGS (Admin panel) ----------
+      async refreshSettings() {
+        const { data, error } = await sb.from('settings').select('key, value');
+        if (error) throw error;
+        const map = {};
+        (data || []).forEach((r) => { map[r.key] = r.value; });
+        session.settings = map;
+        return map;
+      },
+
+      // Set one setting key. For numeric "rate-*" keys, also writes a price-history row.
+      async setSetting(key, value, opts = {}) {
+        const isPrice = /^rate-|^target-/.test(key) || opts.audit;
+        const old = session.settings[key];
+        const row = { key, value: String(value), company_id: session.profile.company_id };
+        // settings table is keyed on (company_id, key) — upsert.
+        const { error } = await sb.from('settings').upsert(row, { onConflict: 'company_id,key' });
+        if (error) throw error;
+        session.settings[key] = String(value);
+        if (isPrice && old !== String(value)) {
+          try {
+            await sb.from('price_history').insert({
+              company_id: session.profile.company_id,
+              setting_key: key,
+              old_value: old ?? null,
+              new_value: String(value),
+              changed_by: session.profile.name,
+            });
+          } catch (_) { /* history is best-effort */ }
+        }
+      },
+
+      async listPriceHistory(limit = 50) {
+        const { data, error } = await sb
+          .from('price_history')
+          .select('setting_key, old_value, new_value, changed_by, changed_at')
+          .order('changed_at', { ascending: false })
+          .limit(limit);
+        if (error) throw error;
+        return data || [];
       },
 
       // Convert an enquiry into a job: maps customer rooms/items into quote
@@ -1124,6 +1202,7 @@
         // Populate identity in the top bar
         $('#who-name').textContent = session.profile.name || session.profile.email;
         $('#who-role').textContent = session.profile.role;
+        if (session.profile.role === 'admin') $('#nav-admin').style.display = '';
         ui.showBoot(false);
       },
 
@@ -1180,6 +1259,10 @@
           if (route.name === 'jobs') return await router.jobsList(main);
           if (route.name === 'job') return await router.jobPage(main);
           if (route.name === 'enquiries') return await router.enquiries(main);
+          if (route.name === 'admin') {
+            if (session.profile.role !== 'admin') { route.name = 'dashboard'; return await router.dashboard(main); }
+            return await router.admin(main);
+          }
         } catch (err) {
           console.error(err);
           main.innerHTML = `<div class="empty-card"><h3>Something went wrong</h3><p>${escapeHtml(err.message || 'Error loading view')}</p></div>`;
@@ -1599,6 +1682,325 @@
             } catch (_) {}
           });
         });
+      },
+
+      // ============================================================
+      // ADMIN PANEL — tabbed: Staff / Prices / Emails / Terms / Targets / Company
+      // ============================================================
+      async admin(main) {
+        if (session.profile.role !== 'admin') { router.go('dashboard'); return; }
+        const tab = route.adminTab || 'staff';
+        const tabs = [
+          ['staff', 'Staff'], ['prices', 'Prices'], ['emails', 'Email Templates'],
+          ['terms', 'Terms of Trade'], ['targets', 'Targets'], ['company', 'Company'],
+        ];
+        main.innerHTML = `
+          <div class="page-head"><h1>Admin</h1><p>Manage staff, prices, email templates, terms, dashboard targets and company details.</p></div>
+          <div class="admin-tabs">
+            ${tabs.map(([k, l]) => `<div class="admin-tab ${tab === k ? 'active' : ''}" data-atab="${k}">${l}</div>`).join('')}
+          </div>
+          <div id="admin-body"></div>`;
+
+        document.querySelectorAll('[data-atab]').forEach((el) =>
+          el.addEventListener('click', () => { route.adminTab = el.dataset.atab; router.admin(main); }));
+
+        await db.refreshSettings();
+        const body = $('#admin-body');
+        if (tab === 'staff') return adminStaff.render(body);
+        if (tab === 'prices') return adminPrices.render(body);
+        if (tab === 'emails') return adminEmails.render(body);
+        if (tab === 'terms') return adminTerms.render(body);
+        if (tab === 'targets') return adminTargets.render(body);
+        if (tab === 'company') return adminCompany.render(body);
+      },
+    };
+
+    /* ============================================================
+       ADMIN SUB-MODULES
+       Each renders its own tab body and saves to settings (or companies).
+       Use a "dirty / saved" status indicator near the Save button so it's
+       always clear whether the current edits have been persisted.
+       ============================================================ */
+
+    function adminStatusBar(saveFn) {
+      // Renders a Save button + status, and returns helpers to mark dirty/saved.
+      const html = `
+        <div class="save-bar">
+          <button class="btn btn-confirm" id="adm-save">Save changes</button>
+          <span class="save-status" id="adm-status">No changes</span>
+        </div>`;
+      const wire = () => {
+        const status = $('#adm-status');
+        const btn = $('#adm-save');
+        btn.addEventListener('click', async () => {
+          btn.disabled = true; btn.textContent = 'Saving…';
+          try { await saveFn(); status.textContent = 'Saved ✓'; status.className = 'save-status saved'; }
+          catch (err) { ui.toast('Save failed: ' + (err.message || 'error')); status.textContent = 'Save failed'; }
+          finally { btn.disabled = false; btn.textContent = 'Save changes'; }
+        });
+        return {
+          markDirty: () => { status.textContent = 'Unsaved changes'; status.className = 'save-status dirty'; },
+        };
+      };
+      return { html, wire };
+    }
+
+    const adminStaff = {
+      async render(body) {
+        const names = (session.settings['staff-names'] || '').split(',').map((s) => s.trim()).filter(Boolean);
+        const state = { names: names.slice() };
+        const draw = () => {
+          body.innerHTML = `
+            <div class="admin-section">
+              <h3>Staff names</h3>
+              <p class="section-hint">These names populate inspector dropdowns and appear on the technician job card. Add or remove names as people start or leave.</p>
+              <div id="staff-list">
+                ${state.names.map((n, i) => `
+                  <div class="field" style="display:flex;gap:8px;margin-bottom:8px">
+                    <input value="${escapeAttr(n)}" data-sni="${i}" style="flex:1" />
+                    <button class="btn btn-secondary" data-snrm="${i}" style="background:#fee2e2;color:#991b1b">Remove</button>
+                  </div>`).join('')}
+              </div>
+              <button class="btn btn-secondary" id="add-staff" style="margin-top:8px">+ Add staff member</button>
+              <p class="section-hint" style="margin-top:18px"><strong>Note:</strong> This list controls the dropdown. To add or remove app login accounts, use the Supabase dashboard under Authentication → Users.</p>
+            </div>`;
+          const bar = adminStatusBar(async () => {
+            const clean = state.names.map((n) => n.trim()).filter(Boolean).join(',');
+            await db.setSetting('staff-names', clean);
+          });
+          body.insertAdjacentHTML('beforeend', bar.html);
+          const ctl = bar.wire();
+          $('#add-staff').addEventListener('click', () => { state.names.push(''); draw(); ctl.markDirty(); });
+          document.querySelectorAll('[data-sni]').forEach((i) =>
+            i.addEventListener('input', (e) => { state.names[+i.dataset.sni] = e.target.value; ctl.markDirty(); }));
+          document.querySelectorAll('[data-snrm]').forEach((b) =>
+            b.addEventListener('click', () => { state.names.splice(+b.dataset.snrm, 1); draw(); ctl.markDirty(); }));
+        };
+        draw();
+      },
+    };
+
+    const adminPrices = {
+      // Curated price list — these are the rate keys the catalogue & repairs actually use.
+      groups: [
+        ['Curtains (per metre of track width)', [
+          ['curtain-s', 'Standard curtain — under 2.4m drop'],
+          ['curtain-m', 'Standard curtain — 2.4 to 3.8m drop'],
+          ['curtain-l', 'Standard curtain — over 3.8m drop'],
+          ['sheer-s', 'Sheer curtain — under 3m drop'],
+          ['sheer-l', 'Sheer curtain — over 3m drop'],
+          ['velvet-s', 'Velvet/silk/linen — under 2.4m drop'],
+          ['velvet-m', 'Velvet/silk/linen — 2.4 to 3.8m drop'],
+          ['velvet-l', 'Velvet/silk/linen — over 3.8m drop'],
+        ]],
+        ['Blinds (per m²)', [
+          ['roman', 'Roman blind'], ['austrian', 'Austrian blind'], ['venetian', 'Venetian blind'],
+          ['roller-sun', 'Roller blind — sunscreen'], ['roller-block', 'Roller blind — blockout'],
+        ]],
+        ['Flat items (per metre of width)', [
+          ['pelmet', 'Pelmet'], ['swags-tails', 'Swags & tails'], ['valance', 'Valance'],
+        ]],
+        ['Mould treatment', [
+          ['mould', 'Mould treatment — curtains (per metre)'],
+          ['mould-blind', 'Mould treatment — blinds (per m²)'],
+        ]],
+        ['Repairs & hardware (per unit)', [
+          ['cord-replace', 'Cord replace'], ['cord-tidy', 'Cord tidy'],
+          ['hook-replace', 'Hook replace'], ['ring-replace', 'Ring replace'],
+          ['weight-replace', 'Weight replace'], ['track-repair', 'Track repair'],
+          ['track-replace', 'Track replace'], ['motor-service', 'Motor service'],
+          ['motor-replace', 'Motor replace'], ['lining-repair', 'Lining repair'],
+          ['heading-repair', 'Heading repair'], ['seam-repair', 'Seam repair'],
+          ['bracket-replace', 'Bracket replace'], ['wand-replace', 'Wand replace'],
+          ['fascia-repair', 'Fascia repair'],
+        ]],
+      ],
+
+      async render(body) {
+        const state = {};
+        this.groups.forEach(([, items]) => items.forEach(([k]) => { state[k] = session.settings[k] || ''; }));
+
+        const groupHtml = this.groups.map(([title, items]) => `
+          <div class="price-group">
+            <h4>${escapeHtml(title)}</h4>
+            ${items.map(([k, lbl]) => `
+              <div class="price-grid">
+                <div class="p-label">${escapeHtml(lbl)}<small>${escapeHtml(k)}</small></div>
+                <input type="number" step="0.01" min="0" data-pkey="${k}" value="${escapeAttr(state[k])}" placeholder="0.00" />
+              </div>`).join('')}
+          </div>`).join('');
+
+        body.innerHTML = `
+          <div class="admin-section">
+            <h3>Price list</h3>
+            <p class="section-hint">Edit per-line rates. <strong>Changes apply to new quotes only</strong> — existing quotes keep the rates they were quoted at. Every change is logged below for audit.</p>
+            ${groupHtml}
+          </div>`;
+
+        const bar = adminStatusBar(async () => {
+          // Save only keys that actually changed.
+          const tasks = [];
+          for (const [k, v] of Object.entries(state)) {
+            const cur = session.settings[k] || '';
+            if (String(v) !== String(cur)) tasks.push(db.setSetting(k, v));
+          }
+          await Promise.all(tasks);
+          await adminPrices.renderHistory(body);
+        });
+        body.insertAdjacentHTML('beforeend', bar.html);
+        const ctl = bar.wire();
+        document.querySelectorAll('[data-pkey]').forEach((i) =>
+          i.addEventListener('input', (e) => { state[i.dataset.pkey] = e.target.value; ctl.markDirty(); }));
+
+        // History section appended after the save bar
+        body.insertAdjacentHTML('beforeend', '<div id="price-history-mount"></div>');
+        await this.renderHistory(body);
+      },
+
+      async renderHistory(body) {
+        const mount = $('#price-history-mount') || body.querySelector('#price-history-mount');
+        if (!mount) return;
+        const rows = await db.listPriceHistory(30);
+        if (!rows.length) {
+          mount.innerHTML = `<div class="admin-section"><h3>Price change history</h3><p class="section-hint">No changes recorded yet.</p></div>`;
+          return;
+        }
+        mount.innerHTML = `
+          <div class="admin-section">
+            <h3>Price change history</h3>
+            <p class="section-hint">Latest 30 changes.</p>
+            ${rows.map((r) => `
+              <div class="ph-row">
+                <strong>${escapeHtml(r.setting_key)}</strong>
+                ${r.old_value != null ? escapeHtml(r.old_value) : '—'}
+                <span class="ph-arrow">→</span>
+                ${escapeHtml(r.new_value)}
+                <div class="ph-when">${escapeHtml(new Date(r.changed_at).toLocaleString('en-AU'))} · ${escapeHtml(r.changed_by || '')}</div>
+              </div>`).join('')}
+          </div>`;
+      },
+    };
+
+    const adminEmails = {
+      // Each template = a settings key with a friendly label and helpful hint.
+      templates: [
+        ['email-intro', 'Quote email — intro', 'Goes at the top of the quote email body, after "Hi [name],".'],
+        ['email-outro', 'Quote email — outro', 'Goes at the bottom of every email, after the main message.'],
+        ['acceptance-email-body', 'Acceptance email — body', 'The message customers get after their quote is accepted. Use {ref} for the quote number.'],
+        ['inspection-email-body', 'Inspection report email — body', 'The message that accompanies inspection reports. Use {ref} and {phase} (pre/post/combined).'],
+        ['enquiry-confirm-body', 'Enquiry confirmation — body', 'Message the customer receives when they submit the public request form.'],
+      ],
+
+      async render(body) {
+        const state = {};
+        this.templates.forEach(([k]) => { state[k] = session.settings[k] || ''; });
+
+        body.innerHTML = `
+          <div class="admin-section">
+            <h3>Email templates</h3>
+            <p class="section-hint">All email wording. Templates with default fallback text in code will use these instead once filled in.</p>
+            ${this.templates.map(([k, label, hint]) => `
+              <div class="field">
+                <label style="font-weight:700;color:var(--navy-mid);font-size:13.5px;display:block;margin-bottom:4px">${escapeHtml(label)}</label>
+                <p class="section-hint" style="margin-bottom:6px">${escapeHtml(hint)}</p>
+                <textarea data-tkey="${k}" rows="5">${escapeHtml(state[k])}</textarea>
+              </div>`).join('')}
+          </div>`;
+
+        const bar = adminStatusBar(async () => {
+          const tasks = [];
+          for (const [k, v] of Object.entries(state)) {
+            if ((session.settings[k] || '') !== v) tasks.push(db.setSetting(k, v));
+          }
+          await Promise.all(tasks);
+        });
+        body.insertAdjacentHTML('beforeend', bar.html);
+        const ctl = bar.wire();
+        document.querySelectorAll('[data-tkey]').forEach((t) =>
+          t.addEventListener('input', (e) => { state[t.dataset.tkey] = e.target.value; ctl.markDirty(); }));
+      },
+    };
+
+    const adminTerms = {
+      async render(body) {
+        const state = { value: session.settings['terms-text'] || '' };
+        body.innerHTML = `
+          <div class="admin-section">
+            <h3>Terms of Trade</h3>
+            <p class="section-hint">Legal text that appears on page 2 of every quote PDF. The PDF auto-sizes the text to fit two columns on one page, so make it as long as needed — but keep paragraphs short for readability.</p>
+            <textarea id="terms-text" rows="20">${escapeHtml(state.value)}</textarea>
+          </div>`;
+        const bar = adminStatusBar(async () => { await db.setSetting('terms-text', state.value); });
+        body.insertAdjacentHTML('beforeend', bar.html);
+        const ctl = bar.wire();
+        $('#terms-text').addEventListener('input', (e) => { state.value = e.target.value; ctl.markDirty(); });
+      },
+    };
+
+    const adminTargets = {
+      async render(body) {
+        const fields = [
+          ['target-quoted', 'Monthly quoted target ($)'],
+          ['target-confirmed', 'Monthly confirmed target ($)'],
+          ['target-invoiced', 'Monthly invoiced target ($)'],
+          ['target-newjobs', 'Monthly new jobs target (count)'],
+        ];
+        const state = {};
+        fields.forEach(([k]) => { state[k] = session.settings[k] || ''; });
+
+        body.innerHTML = `
+          <div class="admin-section">
+            <h3>Dashboard targets</h3>
+            <p class="section-hint">These drive the progress bars in the "This month at a glance" band on the dashboard. Set realistic monthly numbers.</p>
+            ${fields.map(([k, lbl]) => `
+              <div class="field">
+                <label style="font-weight:600;color:var(--navy-mid);font-size:13.5px;display:block;margin-bottom:4px">${escapeHtml(lbl)}</label>
+                <input type="number" step="1" min="0" data-tgt="${k}" value="${escapeAttr(state[k])}" placeholder="e.g. 60000" />
+              </div>`).join('')}
+          </div>`;
+        const bar = adminStatusBar(async () => {
+          const tasks = [];
+          for (const [k, v] of Object.entries(state)) {
+            if ((session.settings[k] || '') !== v) tasks.push(db.setSetting(k, v));
+          }
+          await Promise.all(tasks);
+        });
+        body.insertAdjacentHTML('beforeend', bar.html);
+        const ctl = bar.wire();
+        document.querySelectorAll('[data-tgt]').forEach((i) =>
+          i.addEventListener('input', (e) => { state[i.dataset.tgt] = e.target.value; ctl.markDirty(); }));
+      },
+    };
+
+    const adminCompany = {
+      async render(body) {
+        const c = session.company || {};
+        const state = {
+          name: c.name || '', contact_email: c.contact_email || '', contact_phone: c.contact_phone || '', address: c.address || '',
+        };
+        body.innerHTML = `
+          <div class="admin-section">
+            <h3>Company details</h3>
+            <p class="section-hint">Used on quote PDFs, emails (the CC address), and the technician job card. Editing the contact email changes the CC on every outgoing email.</p>
+            <div class="field"><label>Company name</label><input id="co-name" value="${escapeAttr(state.name)}" /></div>
+            <div class="field"><label>Contact email (CC on outgoing)</label><input id="co-email" value="${escapeAttr(state.contact_email)}" /></div>
+            <div class="field"><label>Contact phone</label><input id="co-phone" value="${escapeAttr(state.contact_phone)}" /></div>
+            <div class="field"><label>Address</label><input id="co-addr" value="${escapeAttr(state.address)}" /></div>
+          </div>`;
+        const bar = adminStatusBar(async () => {
+          const { error } = await sb.from('companies').update({
+            name: state.name, contact_email: state.contact_email,
+            contact_phone: state.contact_phone, address: state.address,
+          }).eq('id', c.id);
+          if (error) throw error;
+          session.company = { ...c, ...state };
+        });
+        body.insertAdjacentHTML('beforeend', bar.html);
+        const ctl = bar.wire();
+        $('#co-name').addEventListener('input', (e) => { state.name = e.target.value; ctl.markDirty(); });
+        $('#co-email').addEventListener('input', (e) => { state.contact_email = e.target.value; ctl.markDirty(); });
+        $('#co-phone').addEventListener('input', (e) => { state.contact_phone = e.target.value; ctl.markDirty(); });
+        $('#co-addr').addEventListener('input', (e) => { state.address = e.target.value; ctl.markDirty(); });
       },
     };
 
@@ -3366,7 +3768,11 @@
         const label = phase === 'combined' ? 'Inspection Report' : (phase === 'pre' ? 'Pre-Inspection Report' : 'Post-Inspection Report');
         const defaultSubject = `${label} ${job.quote_number || ''} — ${companyName}`;
         const greeting = job.customer_name ? `Hi ${firstName(job.customer_name)},` : 'Hi,';
-        const defaultBody = `${greeting}\n\nPlease find attached the ${label.toLowerCase()} for your records.\n\n${session.settings['email-outro'] || ''}`.trim();
+        const tpl = session.settings['inspection-email-body'];
+        const bodyText = tpl
+          ? tpl.replace(/\{ref\}/g, job.quote_number || '').replace(/\{phase\}/g, label.toLowerCase())
+          : `Please find attached the ${label.toLowerCase()} for your records.`;
+        const defaultBody = `${greeting}\n\n${bodyText}\n\n${session.settings['email-outro'] || ''}`.trim();
         const fname = `${job.quote_number || 'Report'}_${phase === 'combined' ? 'Inspection' : (phase === 'pre' ? 'Pre-Inspection' : 'Post-Inspection')}.pdf`;
 
         const mount = $('#modal-mount');
@@ -3427,7 +3833,12 @@
         const cc = session.company?.contact_email || '';
         const greeting = job.customer_name ? `Hi ${firstName(job.customer_name)},` : 'Hi,';
         const defaultSubject = `Quote ${job.quote_number || ''} accepted — ${companyName}`;
-        const defaultBody = `${greeting}\n\nGood news — we've marked your quote ${job.quote_number || ''} as accepted and your job is now confirmed.\n\nWe'll be in touch to arrange a collection and rehang date if we haven't already.\n\n${session.settings['email-outro'] || ''}`.trim();
+        // Pull body from Admin-edited template if present; fall back to hardcoded default.
+        const tpl = session.settings['acceptance-email-body'];
+        const bodyText = tpl
+          ? tpl.replace(/\{ref\}/g, job.quote_number || '')
+          : `Good news — we've marked your quote ${job.quote_number || ''} as accepted and your job is now confirmed.\n\nWe'll be in touch to arrange a collection and rehang date if we haven't already.`;
+        const defaultBody = `${greeting}\n\n${bodyText}\n\n${session.settings['email-outro'] || ''}`.trim();
 
         const mount = $('#modal-mount');
         mount.innerHTML = `
