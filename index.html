@@ -372,6 +372,7 @@
     .s-in_progress{ background: #e0e7ff; color: #3730a3; }
     .s-complete   { background: #d1fae5; color: #065f46; }
     .s-invoiced   { background: #ede9fe; color: #5b21b6; }
+    .s-rehung     { background: #ccfbf1; color: #115e59; }
     .s-declined   { background: #fee2e2; color: #991b1b; }
 
     /* ============================================================
@@ -396,7 +397,7 @@
     /* Tappable status bar */
     .status-bar { display: flex; gap: 0; margin-top: 20px; border-radius: var(--r-sm); overflow: hidden; border: 1px solid var(--line); }
     .status-step {
-      flex: 1; text-align: center; padding: 12px 6px; font-size: 12.5px; font-weight: 700;
+      flex: 1; text-align: center; padding: 12px 4px; font-size: 11.5px; font-weight: 700; line-height: 1.25;
       background: #f3f4f8; color: var(--muted); cursor: pointer; position: relative;
       transition: background .15s, color .15s; border-right: 1px solid var(--line);
       text-transform: uppercase; letter-spacing: .03em;
@@ -1263,10 +1264,11 @@
        #main. New screens (quote builder, inspections) slot into the
        job page sections in later build steps.
        ============================================================ */
-    const STATUSES = ['quoted', 'confirmed', 'in_progress', 'complete', 'invoiced'];
+    const STATUSES = ['quoted', 'confirmed', 'in_progress', 'complete', 'invoiced', 'rehung'];
     const STATUS_LABEL = {
       quoted: 'Quoted', confirmed: 'Confirmed', in_progress: 'In Progress',
-      complete: 'Complete', invoiced: 'Invoiced', declined: 'Declined',
+      complete: 'Clean / Ready', invoiced: 'Invoiced', rehung: 'Rehung / Completed',
+      declined: 'Declined',
     };
     const DECLINE_REASONS = [
       ['price', 'Price / too expensive'], ['elsewhere', 'Went elsewhere'],
@@ -1597,6 +1599,11 @@
             if (!ok) return;
             await db.advanceStatus(job.id, target);
             ui.toast(`Status → ${STATUS_LABEL[target]}`);
+            // Job finished on site → offer the thank-you / Google review email.
+            if (target === 'rehung') {
+              const fresh = await db.getJob(job.id);
+              reviewEmail.open(fresh);
+            }
             router.jobPage(main);
           }));
 
@@ -2218,13 +2225,22 @@
         ['acceptance-email-body', 'Acceptance email — body', 'The message customers get after their quote is accepted. Use {ref} for the quote number.'],
         ['inspection-email-body', 'Inspection report email — body', 'The message that accompanies inspection reports. Use {ref} and {phase} (pre/post/combined).'],
         ['enquiry-confirm-body', 'Enquiry confirmation — body', 'Message the customer receives when they submit the public request form.'],
+        ['review-request-body', 'Thank you / Google review — body', 'Sent when a job is moved to Rehung / Completed. Use {company}, {name} and {ref}. The Google review button is added automatically underneath.'],
       ],
 
       async render(body) {
         const state = {};
-        this.templates.forEach(([k]) => { state[k] = session.settings[k] || ''; });
+        this.templates.forEach(([k]) => {
+          state[k] = session.settings[k] || (k === 'review-request-body' ? REVIEW_BODY_DEFAULT : '');
+        });
+        state['google-review-link'] = session.settings['google-review-link'] || '';
 
         body.innerHTML = `
+          <div class="admin-section">
+            <h3>Google review link</h3>
+            <p class="section-hint">From your Google Business Profile → "Get more reviews" → share link. Used for the review button on the thank-you email.</p>
+            <div class="field"><input data-tkey="google-review-link" value="${escapeAttr(state['google-review-link'])}" placeholder="https://g.page/r/…/review" /></div>
+          </div>
           <div class="admin-section">
             <h3>Email templates</h3>
             <p class="section-hint">All email wording. Templates with default fallback text in code will use these instead once filled in.</p>
@@ -3952,7 +3968,7 @@
           const key = phase === 'pre' ? 'pre_inspection' : 'post_inspection';
           await db.saveJob(s.jobId, { [key]: this.payload(phase) });
           // advance status forward only
-          const order = ['quoted', 'confirmed', 'in_progress', 'complete', 'invoiced'];
+          const order = STATUSES;
           const fresh = await db.getJob(s.jobId);
           const target = phase === 'pre' ? 'in_progress' : 'complete';
           if (order.indexOf(fresh.status) < order.indexOf(target)) {
@@ -4002,14 +4018,37 @@
           const dec = job.data?.declined || {};
           const reasonLabel = (DECLINE_REASONS.find(([v]) => v === dec.reason) || [null, dec.reason])[1] || '';
           const when = dec.at ? new Date(dec.at).toLocaleString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
-          html += `<div class="acc-confirmed-banner" style="background:#fee2e2;border-color:#fecaca;color:#991b1b">✕ <strong>Quote declined</strong>${reasonLabel ? ' — ' + escapeHtml(reasonLabel) : ''} · ${escapeHtml(when)}${dec.note ? '<br/><span style="font-weight:400">' + escapeHtml(dec.note) + '</span>' : ''}</div>
-            <button class="btn btn-secondary" id="acc-reopen">Re-open Quote</button>`;
+          const prior = dec.prior_acceptance || null;
+          const backTo = prior ? (dec.prior_status || 'confirmed') : 'quoted';
+          const reversedNote = prior
+            ? `<br/><span style="font-weight:400">Acceptance reversed — was ${escapeHtml(STATUS_LABEL[backTo] || backTo)}${dec.prior_acceptance.confirmed_by ? ', accepted by ' + escapeHtml(dec.prior_acceptance.confirmed_by) : ''}</span>`
+            : '';
+          html += `<div class="acc-confirmed-banner" style="background:#fee2e2;border-color:#fecaca;color:#991b1b">✕ <strong>Quote declined</strong>${reasonLabel ? ' — ' + escapeHtml(reasonLabel) : ''} · ${escapeHtml(when)}${dec.note ? '<br/><span style="font-weight:400">' + escapeHtml(dec.note) + '</span>' : ''}${reversedNote}</div>
+            <button class="btn btn-secondary" id="acc-reopen">${prior ? 'Restore Acceptance' : 'Re-open Quote'}</button>`;
           mount.innerHTML = html;
           $('#acc-reopen').addEventListener('click', async () => {
-            if (!confirm('Re-open this quote? It returns to Quoted status.')) return;
-            await db.saveJob(this.jobId, { declined: null }, { status: 'quoted' });
-            ui.toast('Quote re-opened');
-            router.jobPage(this.main);
+            if (!confirm(prior
+              ? `Restore this job? The previous acceptance is reinstated and status returns to ${STATUS_LABEL[backTo] || backTo}.`
+              : 'Re-open this quote? It returns to Quoted status.')) return;
+            try {
+              const fresh = await db.getJob(this.jobId);
+              const history = (fresh.data?.status_history) || [];
+              history.push({
+                status: backTo,
+                changed_by: session.profile.name,
+                changed_at: new Date().toISOString(),
+                note: prior ? 'Decline reversed — acceptance restored' : 'Quote re-opened',
+              });
+              await db.saveJob(this.jobId, {
+                declined: null,
+                acceptance: prior,
+                status_history: history,
+              }, { status: backTo });
+              ui.toast(prior ? 'Acceptance restored' : 'Quote re-opened');
+              router.jobPage(this.main);
+            } catch (err) {
+              ui.toast('Failed: ' + (err.message || 'error'));
+            }
           });
           return;
         }
@@ -4028,7 +4067,7 @@
         }
         html += `<div style="display:flex;gap:10px;flex-wrap:wrap">
           <button class="btn btn-confirm" id="acc-confirm" ${hasQuote ? '' : 'disabled'}>${isConfirmed ? 'Update Acceptance' : 'Confirm Acceptance'}</button>
-          ${isConfirmed ? '' : `<button class="btn btn-secondary" id="acc-decline" style="background:#fee2e2;color:#991b1b" ${hasQuote ? '' : 'disabled'}>Mark as Declined</button>`}
+          <button class="btn btn-secondary" id="acc-decline" style="background:#fee2e2;color:#991b1b" ${hasQuote ? '' : 'disabled'}>${isConfirmed ? 'Undo Acceptance &amp; Decline' : 'Mark as Declined'}</button>
         </div>`;
 
         // Job card (only meaningful once there's a quote)
@@ -4071,7 +4110,7 @@
               technician_card: { generated_at: acc.confirmed_at, text: card },
             });
             // advance status only if not already past confirmed
-            const order = ['quoted', 'confirmed', 'in_progress', 'complete', 'invoiced'];
+            const order = STATUSES;
             if (order.indexOf(fresh.status) < order.indexOf('confirmed')) {
               await db.advanceStatus(this.jobId, 'confirmed');
             }
@@ -4108,20 +4147,23 @@
       },
 
       openDeclineModal(job) {
+        const acc = job.data?.acceptance || {};
+        const wasConfirmed = !!acc.confirmed_at;
         const mount = $('#modal-mount');
         mount.innerHTML = `
           <div class="modal-backdrop" id="dec-backdrop">
             <div class="modal">
-              <div class="m-head"><h2>Mark as Declined</h2><p>${escapeHtml(job.quote_number || '')} — record why the quote didn't proceed.</p></div>
+              <div class="m-head"><h2>${wasConfirmed ? 'Undo Acceptance &amp; Decline' : 'Mark as Declined'}</h2><p>${escapeHtml(job.quote_number || '')} — record why the ${wasConfirmed ? 'job is no longer going ahead' : "quote didn't proceed"}.</p></div>
               <div class="m-body">
+                ${wasConfirmed ? `<div class="acc-blocked" style="background:#fef3c7;border-color:#fde68a;color:#92400e">This job is currently <strong>${escapeHtml(STATUS_LABEL[job.status] || job.status)}</strong>. Declining reverses the acceptance and moves it to Declined. The acceptance record is kept and can be restored later.</div>` : ''}
                 <div class="field"><label>Reason</label>
                   <select id="dec-reason">${DECLINE_REASONS.map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select>
                 </div>
-                <div class="field"><label>Note (optional)</label><textarea id="dec-note" rows="3" placeholder="Any detail worth recording"></textarea></div>
+                <div class="field"><label>Note ${wasConfirmed ? '' : '(optional)'}</label><textarea id="dec-note" rows="3" placeholder="${wasConfirmed ? 'Why is it being cancelled after acceptance?' : 'Any detail worth recording'}"></textarea></div>
               </div>
               <div class="m-foot">
                 <button class="btn btn-secondary" id="dec-cancel">Cancel</button>
-                <button class="btn" id="dec-confirm" style="background:#991b1b;color:#fff;width:auto">Mark Declined</button>
+                <button class="btn" id="dec-confirm" style="background:#991b1b;color:#fff;width:auto">${wasConfirmed ? 'Undo &amp; Decline' : 'Mark Declined'}</button>
               </div>
             </div>
           </div>`;
@@ -4131,14 +4173,39 @@
         $('#dec-confirm').addEventListener('click', async () => {
           const reason = $('#dec-reason').value;
           const note = $('#dec-note').value.trim();
+          if (wasConfirmed && !note) { ui.toast('Add a note explaining why the accepted job is being declined'); return; }
+          if (wasConfirmed && !confirm(`Undo acceptance for ${job.quote_number || 'this job'}? It moves from ${STATUS_LABEL[job.status] || job.status} to Declined.`)) return;
+          const btn = $('#dec-confirm');
+          btn.disabled = true; btn.textContent = 'Saving…';
           try {
-            await db.saveJob(this.jobId, {
-              declined: { reason, note, at: new Date().toISOString(), by: session.profile.name },
-            }, { status: 'declined' });
+            const fresh = await db.getJob(this.jobId);
+            const priorAcc = fresh.data?.acceptance || null;
+            const declined = {
+              reason, note,
+              at: new Date().toISOString(),
+              by: session.profile.name,
+            };
+            const patch = { declined };
+            if (wasConfirmed) {
+              declined.prior_status = fresh.status;
+              declined.prior_acceptance = priorAcc;
+              declined.reversed_acceptance = true;
+              patch.acceptance = null;
+            }
+            const history = (fresh.data?.status_history) || [];
+            history.push({
+              status: 'declined',
+              changed_by: session.profile.name,
+              changed_at: declined.at,
+              note: wasConfirmed ? `Acceptance undone from ${STATUS_LABEL[fresh.status] || fresh.status} — declined` : 'Marked declined',
+            });
+            patch.status_history = history;
+            await db.saveJob(this.jobId, patch, { status: 'declined' });
             close();
-            ui.toast('Quote marked declined');
+            ui.toast(wasConfirmed ? 'Acceptance undone — job declined' : 'Quote marked declined');
             router.jobPage(this.main);
           } catch (err) {
+            btn.disabled = false; btn.textContent = wasConfirmed ? 'Undo & Decline' : 'Mark Declined';
             ui.toast('Failed: ' + (err.message || 'error'));
           }
         });
@@ -4355,6 +4422,93 @@
             const out = await res.json().catch(() => ({}));
             if (!res.ok || out.error) throw new Error(out.detail || out.error || `Send failed (${res.status})`);
             close(); ui.toast('Acceptance email sent to ' + to);
+          } catch (err) {
+            errEl.textContent = sendErrorMessage(err.message || 'Send failed'); errEl.classList.remove('hidden');
+            btn.disabled = false; btn.textContent = 'Send Email';
+          }
+        });
+      },
+    };
+
+    /* ============================================================
+       REVIEW REQUEST EMAIL
+       Fires when a job is moved to Rehung / Completed. Thank-you message
+       plus a Google review button. Wording lives in Admin → Email
+       Templates ('review-request-body'); the link lives in the same tab
+       ('google-review-link'). Reuses send-quote-email with no PDF.
+       ============================================================ */
+    const REVIEW_BODY_DEFAULT = `Thanks for choosing {company}. Your curtains and blinds have been cleaned, rehung and the job is now complete.
+
+We hope you're happy with the result. If we've done a good job, a quick Google review would mean a lot to us — it's the main way new customers find us.
+
+If anything isn't right, just reply to this email and we'll sort it out.`;
+
+    const reviewEmail = {
+      open(job) {
+        const companyName = session.company?.name || 'Dr Drapes Curtain Clinic';
+        const cc = session.company?.contact_email || '';
+        const link = (session.settings['google-review-link'] || '').trim();
+        const greeting = job.customer_name ? `Hi ${firstName(job.customer_name)},` : 'Hi,';
+        const defaultSubject = `Thank you from ${companyName}`;
+        const tpl = session.settings['review-request-body'] || REVIEW_BODY_DEFAULT;
+        const bodyText = tpl
+          .replace(/\{company\}/g, companyName)
+          .replace(/\{ref\}/g, job.quote_number || '')
+          .replace(/\{name\}/g, firstName(job.customer_name || ''));
+        const defaultBody = `${greeting}\n\n${bodyText}`.trim();
+
+        const mount = $('#modal-mount');
+        mount.innerHTML = `
+          <div class="modal-backdrop" id="rv-backdrop">
+            <div class="modal compose">
+              <div class="m-head"><h2>Send Thank You &amp; Review Request</h2><p>Job is complete — ask the customer for a Google review.</p></div>
+              <div class="m-body">
+                <div class="modal-error hidden" id="rv-error"></div>
+                ${link ? '' : `<div class="modal-error" style="background:#fef3c7;border-color:#fde68a;color:#92400e">No Google review link set. Add it in Admin → Email Templates, or the review button won't appear.</div>`}
+                <div class="field"><label>To</label><input id="rv-to" value="${escapeAttr(job.customer_email || '')}" placeholder="customer@email.com" /></div>
+                <div class="field"><label>CC (always included)</label><div class="cc-locked"><span class="lock">🔒</span> ${escapeHtml(cc || 'No company CC set')}</div></div>
+                <div class="field"><label>Subject</label><input id="rv-subject" value="${escapeAttr(defaultSubject)}" /></div>
+                <div class="field"><label>Message</label><textarea id="rv-body" rows="9">${escapeHtml(defaultBody)}</textarea></div>
+                <p class="section-hint">A "Leave a Google review" button is added automatically underneath your message.</p>
+              </div>
+              <div class="m-foot">
+                <button class="btn btn-secondary" id="rv-skip">Skip</button>
+                <button class="btn btn-email" id="rv-send" style="width:auto">Send Email</button>
+              </div>
+            </div>
+          </div>`;
+
+        const close = () => { mount.innerHTML = ''; };
+        $('#rv-skip').addEventListener('click', close);
+        $('#rv-backdrop').addEventListener('click', (e) => { if (e.target.id === 'rv-backdrop') close(); });
+
+        $('#rv-send').addEventListener('click', async () => {
+          const to = $('#rv-to').value.trim();
+          const errEl = $('#rv-error'); errEl.classList.add('hidden');
+          if (!to || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) { errEl.textContent = 'Enter a valid email address.'; errEl.classList.remove('hidden'); return; }
+          const btn = $('#rv-send'); btn.disabled = true; btn.textContent = 'Sending…';
+          try {
+            const outro = (session.settings['email-outro'] || '').trim();
+            const body_html =
+              '<div style="font-family:Arial,sans-serif;font-size:14px;color:#222;white-space:pre-wrap">' + escapeHtml($('#rv-body').value) + '</div>'
+              + (link
+                ? `<div style="margin:24px 0"><a href="${escapeAttr(link)}" style="display:inline-block;background:#0f766e;color:#ffffff;text-decoration:none;font-family:Arial,sans-serif;font-size:15px;font-weight:bold;padding:13px 26px;border-radius:6px">Leave a Google review</a></div>`
+                : '')
+              + (outro
+                ? '<div style="font-family:Arial,sans-serif;font-size:14px;color:#222;white-space:pre-wrap;margin-top:18px">' + escapeHtml(outro) + '</div>'
+                : '');
+            const { data: { session: s } } = await sb.auth.getSession();
+            const res = await fetch(`${SUPABASE_URL}/functions/v1/send-quote-email`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${s.access_token}`, 'apikey': SUPABASE_ANON_KEY },
+              body: JSON.stringify({ job_id: job.id, to, subject: $('#rv-subject').value, body_html }),
+            });
+            const out = await res.json().catch(() => ({}));
+            if (!res.ok || out.error) throw new Error(out.detail || out.error || `Send failed (${res.status})`);
+            try {
+              await db.saveJob(job.id, { review_request: { sent_at: new Date().toISOString(), to, sent_by: session.profile.name } });
+            } catch (_) { /* logging only — never block the send */ }
+            close(); ui.toast('Review request sent to ' + to);
           } catch (err) {
             errEl.textContent = sendErrorMessage(err.message || 'Send failed'); errEl.classList.remove('hidden');
             btn.disabled = false; btn.textContent = 'Send Email';
@@ -4678,7 +4832,7 @@
       let declinedMonthVal = 0, declinedMonthCount = 0;
       const m = { quotedVal: 0, quotedCount: 0, confirmedVal: 0, confirmedCount: 0, invoicedVal: 0, invoicedCount: 0, newJobs: 0 };
       const w = { invoicedVal: 0, invoicedCount: 0, newJobs: 0 };
-      const order = ['quoted', 'confirmed', 'in_progress', 'complete', 'invoiced'];
+      const order = STATUSES;
 
       jobs.forEach((j) => {
         byStatus[j.status] = (byStatus[j.status] || 0) + 1;
@@ -4706,7 +4860,9 @@
           const cAt = statusChangedAt(j, 'confirmed');
           if (cAt >= monthStart) { m.confirmedVal += t; m.confirmedCount++; }
         }
-        if (j.status === 'invoiced') {
+        // invoiced value counts once a job has reached Invoiced — it stays counted
+        // after it moves on to Rehung / Completed.
+        if (sIdx >= order.indexOf('invoiced')) {
           const iAt = statusChangedAt(j, 'invoiced');
           if (iAt >= monthStart) { m.invoicedVal += t; m.invoicedCount++; }
           if (iAt >= weekStart) { w.invoicedVal += t; w.invoicedCount++; }
@@ -4770,7 +4926,7 @@
         quotedVal += t; quotedCount++;
         byStatus[st] = (byStatus[st] || 0) + 1;
         if (won) { confirmedVal += t; confirmedCount++; wonCount++; }
-        if (st === 'invoiced') { invoicedVal += t; invoicedCount++; }
+        if (sIdx >= order.indexOf('invoiced')) { invoicedVal += t; invoicedCount++; }
         if (declined) { declinedVal += t; declinedCount++; }
         if (st === 'quoted') pendingCount++;
 
