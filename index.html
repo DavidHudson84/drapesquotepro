@@ -197,6 +197,22 @@
     .dash-band-title { font-family: 'Montserrat'; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 12px; }
     .dash-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
 
+    /* Reports */
+    .rep-controls { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 14px; margin-bottom: 24px; align-items: center; }
+    .rep-presets { display: flex; flex-wrap: wrap; gap: 8px; }
+    .rep-preset { padding: 7px 13px; border: 1px solid var(--line); background: var(--card); border-radius: 8px; font-size: 13px; font-weight: 600; color: var(--muted); cursor: pointer; }
+    .rep-preset.on { background: var(--navy-dark); color: #fff; border-color: var(--navy-dark); }
+    .rep-custom { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+    .rep-custom label { font-size: 13px; color: var(--muted); font-weight: 600; display: flex; align-items: center; gap: 6px; }
+    .rep-custom input[type="date"] { padding: 6px 8px; border: 1px solid var(--line); border-radius: 7px; font-size: 13px; }
+    .rep-check { cursor: pointer; }
+    .rep-two { display: grid; gap: 16px; grid-template-columns: 1fr 1fr; }
+    @media (max-width: 760px) { .rep-two { grid-template-columns: 1fr; } .rep-controls { flex-direction: column; align-items: stretch; } }
+    .rep-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    .rep-table th { text-align: left; font-size: 11.5px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 700; padding: 6px 8px; border-bottom: 2px solid var(--line); }
+    .rep-table td { padding: 8px; border-bottom: 1px solid var(--line); }
+    .rep-table tbody tr:last-child td { border-bottom: none; }
+
     .metric {
       background: var(--card); border-radius: var(--r); padding: 18px 20px;
       box-shadow: var(--shadow); border-top: 3px solid var(--navy-mid);
@@ -322,7 +338,7 @@
     .jobs-table { background: var(--card); border-radius: var(--r); box-shadow: var(--shadow); overflow: hidden; }
     .job-row {
       display: grid;
-      grid-template-columns: 110px 1fr 150px 120px 130px;
+      grid-template-columns: 110px 1fr 150px 100px 120px 130px;
       gap: 16px; align-items: center;
       padding: 16px 20px; border-bottom: 1px solid var(--line);
       cursor: pointer; transition: background .12s;
@@ -333,11 +349,17 @@
     .job-row .cust { font-weight: 600; }
     .job-row .cust small { display: block; color: var(--muted); font-weight: 400; font-size: 12.5px; }
     .job-row .addr { color: var(--muted); font-size: 13px; }
+    .job-row .date { color: var(--muted); font-size: 12.5px; white-space: nowrap; }
     .job-row .amt { font-family: 'Montserrat'; font-weight: 700; text-align: right; }
     .row-arch-wrap { display: inline-block; }
     .row-arch { font-family: 'Open Sans'; font-weight: 600; font-size: 11px; color: var(--muted); cursor: pointer; margin-left: 8px; padding: 2px 7px; border-radius: 5px; background: #eef0f6; white-space: nowrap; }
     .row-arch:hover { background: #e3e6f1; color: var(--navy-mid); }
     .job-row .hdr { font-weight: 700; font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+    .job-row .hdr[data-sort] { cursor: pointer; user-select: none; }
+    .job-row .hdr[data-sort]:hover { color: var(--navy-mid); }
+    .job-row .hdr .sort-arrow { font-size: 9px; margin-left: 3px; opacity: .35; }
+    .job-row .hdr.sorted { color: var(--navy-mid); }
+    .job-row .hdr.sorted .sort-arrow { opacity: 1; }
     .job-row.head { cursor: default; background: #fafbfd; }
     .job-row.head:hover { background: #fafbfd; }
 
@@ -738,6 +760,7 @@
       <nav class="navbar" id="navbar">
         <a data-route="dashboard" class="active">Dashboard</a>
         <a data-route="jobs">Jobs</a>
+        <a data-route="reports">Reports</a>
         <a data-route="enquiries">Enquiries</a>
         <a data-route="admin" id="nav-admin" style="display:none">Admin</a>
       </nav>
@@ -762,6 +785,7 @@
        ============================================================ */
     import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
     import { jsPDF } from 'https://esm.sh/jspdf@2.5.1';
+    import Chart from 'https://esm.sh/chart.js@4.4.1/auto';
 
     /* ============================================================
        CONFIG
@@ -850,7 +874,7 @@
       async listJobs(includeArchived = false) {
         let query = sb
           .from('jobs')
-          .select('id, quote_number, drd_number, status, customer_name, customer_phone, customer_email, site_address, data, archived, updated_at')
+          .select('id, quote_number, drd_number, status, customer_name, customer_phone, customer_email, site_address, data, archived, created_at, updated_at')
           .order('updated_at', { ascending: false });
         if (!includeArchived) query = query.eq('archived', false);
         else query = query.eq('archived', true);
@@ -865,6 +889,16 @@
           .from('jobs')
           .select('id, status, data, created_at, updated_at')
           .eq('archived', false)
+          .order('created_at', { ascending: false });
+        if (error) throw error;
+        return data || [];
+      },
+
+      // Pull ALL jobs (archived + active) for the Reports section.
+      async listJobsAll() {
+        const { data, error } = await sb
+          .from('jobs')
+          .select('id, quote_number, drd_number, status, customer_name, data, archived, created_at, updated_at')
           .order('created_at', { ascending: false });
         if (error) throw error;
         return data || [];
@@ -1239,7 +1273,7 @@
       ['timing', 'Timing / not now'], ['no_response', 'No response'], ['other', 'Other'],
     ];
 
-    const route = { name: 'dashboard', jobId: null, filter: 'all', search: '' };
+    const route = { name: 'dashboard', jobId: null, filter: 'all', search: '', sortKey: 'date', sortDir: 'desc' };
 
     const router = {
       async go(name, opts = {}) {
@@ -1258,6 +1292,7 @@
           if (route.name === 'dashboard') return await router.dashboard(main);
           if (route.name === 'jobs') return await router.jobsList(main);
           if (route.name === 'job') return await router.jobPage(main);
+          if (route.name === 'reports') return await router.reports(main);
           if (route.name === 'enquiries') return await router.enquiries(main);
           if (route.name === 'admin') {
             if (session.profile.role !== 'admin') { route.name = 'dashboard'; return await router.dashboard(main); }
@@ -1390,6 +1425,7 @@
             const q = route.search.toLowerCase();
             return (j.quote_number || '').toLowerCase().includes(q)
               || (j.drd_number || '').toLowerCase().includes(q)
+              || (j.data?.po_number || '').toLowerCase().includes(q)
               || (j.customer_name || '').toLowerCase().includes(q)
               || (j.site_address || '').toLowerCase().includes(q);
           }
@@ -1402,7 +1438,41 @@
           `<span class="chip ${route.filter === s ? 'active' : ''}" data-filter="${s}">${s === 'all' ? 'All' : (s === 'archived' ? 'Archived' : STATUS_LABEL[s])}</span>`
         ).join('');
 
-        const rows = filtered.length ? filtered.map((j) => {
+        // ---- sorting (click headers to toggle asc/desc) ----
+        const sortKey = route.sortKey || 'date';
+        const sortDir = route.sortDir || 'desc';
+        const jobDate = (j) => new Date(j.created_at || j.updated_at || 0).getTime();
+        const SORT_VAL = {
+          dq: (j) => (j.quote_number || '').toLowerCase(),
+          customer: (j) => (j.customer_name || '').toLowerCase(),
+          address: (j) => (j.site_address || '').toLowerCase(),
+          date: (j) => jobDate(j),
+          status: (j) => { const i = STATUSES.indexOf(j.status); return i < 0 ? 99 : i; },
+          total: (j) => Number(j.data?.quote?.total || 0),
+        };
+        const getVal = SORT_VAL[sortKey] || SORT_VAL.date;
+        const sorted = filtered.slice().sort((a, b) => {
+          const va = getVal(a), vb = getVal(b);
+          let c;
+          if (typeof va === 'string' || typeof vb === 'string') c = String(va).localeCompare(String(vb));
+          else c = va - vb;
+          if (c === 0) c = jobDate(b) - jobDate(a); // stable tie-break: newest first
+          return sortDir === 'asc' ? c : -c;
+        });
+
+        const hdr = (key, label, extraStyle = '') => {
+          const on = sortKey === key;
+          const arrow = on ? (sortDir === 'asc' ? '▲' : '▼') : '▲';
+          return `<div class="hdr ${on ? 'sorted' : ''}" data-sort="${key}" style="${extraStyle}">${label}<span class="sort-arrow">${arrow}</span></div>`;
+        };
+
+        const fmtRowDate = (j) => {
+          const t = j.created_at || j.updated_at;
+          if (!t) return '—';
+          return new Date(t).toLocaleDateString('en-AU', { day: '2-digit', month: 'short', year: '2-digit' });
+        };
+
+        const rows = sorted.length ? sorted.map((j) => {
           const total = j.data?.quote?.total;
           const amt = total ? '$' + Number(total).toLocaleString('en-AU', { minimumFractionDigits: 2 }) : '—';
           const archBtn = archivedView
@@ -1413,6 +1483,7 @@
               <div class="dq">${escapeHtml(j.quote_number || '—')}</div>
               <div class="cust">${escapeHtml(j.customer_name || 'No name')}<small>${escapeHtml(j.customer_phone || '')}</small></div>
               <div class="addr">${escapeHtml(j.site_address || '—')}</div>
+              <div class="date">${fmtRowDate(j)}</div>
               <div><span class="status-pill s-${j.status}">${STATUS_LABEL[j.status] || j.status}</span></div>
               <div class="amt">${amt} <span class="row-arch-wrap">${archBtn}</span></div>
             </div>`;
@@ -1421,18 +1492,25 @@
         main.innerHTML = `
           <div class="page-head"><h1>Jobs</h1><p>${filtered.length} ${archivedView ? 'archived' : 'of ' + jobs.length} job${jobs.length === 1 ? '' : 's'}</p></div>
           <div class="list-controls">
-            <input class="search-box" id="job-search" placeholder="Search DRD ref, Fergus, customer, address…" value="${escapeHtml(route.search)}" />
+            <input class="search-box" id="job-search" placeholder="Search DRD ref, Fergus, PO, customer, address…" value="${escapeHtml(route.search)}" />
             ${archivedView ? '' : '<button class="btn-new" id="new-job-btn">+ New Job</button>'}
           </div>
           <div class="filter-chips" style="margin-bottom:16px">${chips}</div>
           <div class="jobs-table">
             <div class="job-row head">
-              <div class="hdr">DRD</div><div class="hdr">Customer</div><div class="hdr">Address</div><div class="hdr">Status</div><div class="hdr" style="text-align:right">Total</div>
+              ${hdr('dq', 'DRD')}${hdr('customer', 'Customer')}${hdr('address', 'Address')}${hdr('date', 'Date')}${hdr('status', 'Status')}${hdr('total', 'Total', 'text-align:right')}
             </div>
             ${rows}
           </div>`;
 
         // wire
+        document.querySelectorAll('.hdr[data-sort]').forEach((h) =>
+          h.addEventListener('click', () => {
+            const k = h.dataset.sort;
+            if (route.sortKey === k) route.sortDir = (route.sortDir === 'asc' ? 'desc' : 'asc');
+            else { route.sortKey = k; route.sortDir = (k === 'date' || k === 'total') ? 'desc' : 'asc'; }
+            router.jobsList(main);
+          }));
         const nb = $('#new-job-btn'); if (nb) nb.addEventListener('click', openNewJobModal);
         const sb_ = $('#job-search');
         sb_.addEventListener('input', debounce((e) => { route.search = e.target.value; router.jobsList(main); }, 250));
@@ -1479,7 +1557,7 @@
             <div class="top">
               <div>
                 <h1>${escapeHtml(job.customer_name || 'No name')}</h1>
-                <div class="dq-big">${escapeHtml(job.quote_number || '—')}${job.drd_number ? ` &nbsp;·&nbsp; <span style="color:var(--muted);font-weight:600">Fergus: ${escapeHtml(job.drd_number)}</span>` : ''}</div>
+                <div class="dq-big">${escapeHtml(job.quote_number || '—')}${job.drd_number ? ` &nbsp;·&nbsp; <span style="color:var(--muted);font-weight:600">Fergus: ${escapeHtml(job.drd_number)}</span>` : ''}${job.data?.po_number ? ` &nbsp;·&nbsp; <span style="color:var(--muted);font-weight:600">PO: ${escapeHtml(job.data.po_number)}</span>` : ''}</div>
                 <div class="meta">${escapeHtml(job.customer_phone || '')}${job.customer_phone && job.site_address ? ' · ' : ''}${escapeHtml(job.site_address || '')}</div>
               </div>
               <span class="status-pill s-${job.status}" style="align-self:center">${STATUS_LABEL[job.status]}</span>
@@ -1532,7 +1610,7 @@
             site_address: $('#c-addr').value.trim() || null,
             drd_number: $('#c-fergus').value.trim() || null,
           };
-          await db.saveJob(job.id, {}, cols);
+          await db.saveJob(job.id, { po_number: $('#c-po').value.trim() || null }, cols);
           ui.toast('Customer details saved');
           router.jobPage(main);
         });
@@ -1682,6 +1760,257 @@
             } catch (_) {}
           });
         });
+      },
+
+      /* ---------- REPORTS ---------- */
+      async reports(main) {
+        main.innerHTML = `
+          <div class="page-head"><h1>Reports</h1><p>Loading job data…</p></div>
+          <div class="empty-card"><div class="spin" style="margin:0 auto;border-top-color:var(--navy-mid);border-color:#ddd"></div></div>`;
+
+        let allJobs;
+        try { allJobs = await db.listJobsAll(); }
+        catch (e) {
+          main.innerHTML = `<div class="empty-card"><h3>Couldn't load reports</h3><p>${escapeHtml(e.message || 'Error')}</p></div>`;
+          return;
+        }
+
+        const today = new Date();
+        const monthStart = (y, m) => new Date(y, m, 1, 0, 0, 0, 0);
+        const monthEnd = (y, m) => new Date(y, m + 1, 0, 23, 59, 59, 999);
+        const fmtLocal = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+        // persisted report state across re-renders
+        const state = route._rep || (route._rep = {
+          preset: 'this_month',
+          from: monthStart(today.getFullYear(), today.getMonth()),
+          to: monthEnd(today.getFullYear(), today.getMonth()),
+          exclArchived: false,
+        });
+
+        function applyPreset(p) {
+          const n = new Date();
+          const y = n.getFullYear(), m = n.getMonth();
+          if (p === 'this_week') {
+            const ws = new Date(n); ws.setDate(n.getDate() - n.getDay()); ws.setHours(0, 0, 0, 0);
+            const we = new Date(ws); we.setDate(ws.getDate() + 6); we.setHours(23, 59, 59, 999);
+            state.from = ws; state.to = we;
+          }
+          else if (p === 'last_week') {
+            const ws = new Date(n); ws.setDate(n.getDate() - n.getDay() - 7); ws.setHours(0, 0, 0, 0);
+            const we = new Date(ws); we.setDate(ws.getDate() + 6); we.setHours(23, 59, 59, 999);
+            state.from = ws; state.to = we;
+          }
+          else if (p === 'this_month') { state.from = monthStart(y, m); state.to = monthEnd(y, m); }
+          else if (p === 'last_month') { state.from = monthStart(y, m - 1); state.to = monthEnd(y, m - 1); }
+          else if (p === 'this_quarter') { const qs = Math.floor(m / 3) * 3; state.from = monthStart(y, qs); state.to = monthEnd(y, qs + 2); }
+          else if (p === 'this_year') { state.from = new Date(y, 0, 1, 0, 0, 0, 0); state.to = new Date(y, 11, 31, 23, 59, 59, 999); }
+          else if (p === 'all_time') { state.from = new Date(2000, 0, 1); state.to = new Date(y, 11, 31, 23, 59, 59, 999); }
+          state.preset = p;
+        }
+
+        const PRESET_LABEL = {
+          this_week: 'This week', last_week: 'Last week', this_month: 'This month',
+          last_month: 'Last month', this_quarter: 'This quarter', this_year: 'This year',
+          all_time: 'All time', custom: 'Custom range',
+        };
+        const dshort = (d) => d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+        const rangeLabel = () => state.preset === 'all_time'
+          ? 'All time'
+          : `${PRESET_LABEL[state.preset] || 'Custom range'}: ${dshort(state.from)} – ${dshort(state.to)}`;
+
+        let chart = null;
+        const money0 = (n) => '$' + Math.round(Number(n || 0)).toLocaleString('en-AU');
+
+        const render = () => {
+          const includeArchived = !state.exclArchived;
+          const rep = computeReport(allJobs, state.from, state.to, includeArchived);
+          const trend = computeReportTrend(allJobs, includeArchived, 12);
+
+          const presetBtn = (id, label) =>
+            `<button class="rep-preset ${state.preset === id ? 'on' : ''}" data-preset="${id}">${label}</button>`;
+
+          const rangeLabel = state.preset === 'all_time'
+            ? 'All time'
+            : `${dshort(state.from)} – ${dshort(state.to)}`;
+
+          const statusRows = STATUSES.concat(['declined']).map((st) =>
+            `<tr><td>${STATUS_LABEL[st] || st}</td><td style="text-align:right">${rep.byStatus[st] || 0}</td></tr>`).join('');
+
+          const staffRowsHtml = rep.staffRows.length ? rep.staffRows.map(([who, s]) => {
+            const decided = s.wonCount + s.declinedCount;
+            const conv = decided > 0 ? Math.round(s.wonCount / decided * 100) : 0;
+            return `<tr>
+              <td>${escapeHtml(firstName(who))}</td>
+              <td style="text-align:right">${s.count}</td>
+              <td style="text-align:right">${money0(s.quotedVal)}</td>
+              <td style="text-align:right">${money0(s.confirmedVal)}</td>
+              <td style="text-align:right">${conv}%</td>
+            </tr>`;
+          }).join('') : `<tr><td colspan="5" style="color:var(--muted)">No jobs in range</td></tr>`;
+
+          const custRowsHtml = rep.topCustomers.length ? rep.topCustomers.map(([name, val]) =>
+            `<tr><td>${escapeHtml(name)}</td><td style="text-align:right">${money0(val)}</td></tr>`).join('')
+            : `<tr><td colspan="2" style="color:var(--muted)">No jobs in range</td></tr>`;
+
+          const REASON_LABEL = Object.fromEntries(DECLINE_REASONS);
+          const reasonRowsHtml = rep.reasonRows.length ? rep.reasonRows.map(([r, o]) =>
+            `<tr><td>${escapeHtml(REASON_LABEL[r] || r)}</td><td style="text-align:right">${o.count}</td><td style="text-align:right">${money0(o.val)}</td></tr>`).join('')
+            : `<tr><td colspan="3" style="color:var(--muted)">No declines in range</td></tr>`;
+
+          main.innerHTML = `
+            <div class="page-head"><h1>Reports</h1><p>${rangeLabel} · ${rep.cohortCount} quote${rep.cohortCount === 1 ? '' : 's'} raised${state.exclArchived ? ' · archived excluded' : ''}</p></div>
+
+            <div class="rep-controls">
+              <div class="rep-presets">
+                ${presetBtn('this_week', 'This week')}
+                ${presetBtn('last_week', 'Last week')}
+                ${presetBtn('this_month', 'This month')}
+                ${presetBtn('last_month', 'Last month')}
+                ${presetBtn('this_quarter', 'This quarter')}
+                ${presetBtn('this_year', 'This year')}
+                ${presetBtn('all_time', 'All time')}
+              </div>
+              <div class="rep-custom">
+                <label>From <input type="date" id="rep-from" value="${fmtLocal(state.from)}"></label>
+                <label>To <input type="date" id="rep-to" value="${fmtLocal(state.to)}"></label>
+                <label class="rep-check"><input type="checkbox" id="rep-excl" ${state.exclArchived ? 'checked' : ''}> Exclude archived</label>
+                <button class="btn btn-secondary" id="rep-pdf">Export PDF</button>
+                <button class="btn btn-secondary" id="rep-csv">Export CSV</button>
+              </div>
+            </div>
+
+            <div class="dash-band">
+              <div class="dash-band-title">Summary</div>
+              <div class="dash-grid">
+                <div class="metric"><div class="m-label">Quoted</div><div class="m-value">${money0(rep.quotedVal)}</div><div class="m-sub">${rep.quotedCount} quote${rep.quotedCount === 1 ? '' : 's'}</div></div>
+                <div class="metric teal"><div class="m-label">Confirmed</div><div class="m-value">${money0(rep.confirmedVal)}</div><div class="m-sub">${rep.confirmedCount} job${rep.confirmedCount === 1 ? '' : 's'}</div></div>
+                <div class="metric green"><div class="m-label">Invoiced</div><div class="m-value">${money0(rep.invoicedVal)}</div><div class="m-sub">${rep.invoicedCount} job${rep.invoicedCount === 1 ? '' : 's'}</div></div>
+                <div class="metric"><div class="m-label">Win rate</div><div class="m-value">${rep.winRate}%</div><div class="m-sub">${rep.wonCount} won · ${rep.declinedCount} declined · ${rep.pendingCount} pending</div></div>
+                <div class="metric"><div class="m-label">Average quote</div><div class="m-value">${money0(rep.avgQuote)}</div><div class="m-sub">across quotes raised</div></div>
+              </div>
+            </div>
+
+            <div class="dash-band">
+              <div class="dash-band-title">Trend — last 12 months</div>
+              <div style="position:relative;height:300px"><canvas id="rep-chart"></canvas></div>
+            </div>
+
+            <div class="rep-two">
+              <div class="dash-band">
+                <div class="dash-band-title">By staff (quotes raised in range)</div>
+                <table class="rep-table">
+                  <thead><tr><th>Staff</th><th style="text-align:right">Quotes</th><th style="text-align:right">Quoted</th><th style="text-align:right">Confirmed</th><th style="text-align:right">Conv.</th></tr></thead>
+                  <tbody>${staffRowsHtml}</tbody>
+                </table>
+              </div>
+              <div class="dash-band">
+                <div class="dash-band-title">By status</div>
+                <table class="rep-table">
+                  <thead><tr><th>Status</th><th style="text-align:right">Jobs</th></tr></thead>
+                  <tbody>${statusRows}</tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="rep-two">
+              <div class="dash-band">
+                <div class="dash-band-title">Top 10 customers by quoted value</div>
+                <table class="rep-table">
+                  <thead><tr><th>Customer</th><th style="text-align:right">Quoted</th></tr></thead>
+                  <tbody>${custRowsHtml}</tbody>
+                </table>
+              </div>
+              <div class="dash-band">
+                <div class="dash-band-title">Decline reasons</div>
+                <table class="rep-table">
+                  <thead><tr><th>Reason</th><th style="text-align:right">Count</th><th style="text-align:right">$ lost</th></tr></thead>
+                  <tbody>${reasonRowsHtml}</tbody>
+                </table>
+              </div>
+            </div>
+          `;
+
+          // chart
+          if (chart) { try { chart.destroy(); } catch (_) {} chart = null; }
+          const ctx = $('#rep-chart');
+          if (ctx) {
+            chart = new Chart(ctx, {
+              type: 'line',
+              data: {
+                labels: trend.map((b) => b.label),
+                datasets: [
+                  { label: 'Quoted', data: trend.map((b) => Math.round(b.quoted)), borderColor: '#1f3a5f', backgroundColor: 'rgba(31,58,95,.08)', tension: .3, fill: true },
+                  { label: 'Confirmed', data: trend.map((b) => Math.round(b.confirmed)), borderColor: '#0d9488', backgroundColor: 'rgba(13,148,136,.06)', tension: .3, fill: true },
+                  { label: 'Invoiced', data: trend.map((b) => Math.round(b.invoiced)), borderColor: '#16a34a', backgroundColor: 'rgba(22,163,74,.06)', tension: .3, fill: true },
+                ],
+              },
+              options: {
+                responsive: true, maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                  legend: { position: 'bottom' },
+                  tooltip: { callbacks: { label: (c) => `${c.dataset.label}: ${money0(c.parsed.y)}` } },
+                },
+                scales: { y: { ticks: { callback: (v) => money0(v) } } },
+              },
+            });
+          }
+
+          wire();
+        };
+
+        const wire = () => {
+          document.querySelectorAll('.rep-preset').forEach((b) =>
+            b.addEventListener('click', () => { applyPreset(b.dataset.preset); render(); }));
+
+          const fromI = $('#rep-from'), toI = $('#rep-to');
+          const onDate = () => {
+            if (fromI.value) { const [y, m, d] = fromI.value.split('-').map(Number); state.from = new Date(y, m - 1, d, 0, 0, 0, 0); }
+            if (toI.value) { const [y, m, d] = toI.value.split('-').map(Number); state.to = new Date(y, m - 1, d, 23, 59, 59, 999); }
+            state.preset = 'custom'; render();
+          };
+          if (fromI) fromI.addEventListener('change', onDate);
+          if (toI) toI.addEventListener('change', onDate);
+
+          const excl = $('#rep-excl');
+          if (excl) excl.addEventListener('change', (e) => { state.exclArchived = e.target.checked; render(); });
+
+          const pdfBtn = $('#rep-pdf');
+          if (pdfBtn) pdfBtn.addEventListener('click', () => {
+            pdfBtn.disabled = true; pdfBtn.textContent = 'Building…';
+            try {
+              const rep = computeReport(allJobs, state.from, state.to, !state.exclArchived);
+              const slug = (PRESET_LABEL[state.preset] || 'Custom').replace(/\s+/g, '');
+              reportPdf.download(rep, {
+                rangeLabel: rangeLabel(),
+                exclArchived: state.exclArchived,
+                generatedBy: session.profile?.name || '',
+                filename: `DrapesQuotePro_Report_${slug}_${fmtLocal(new Date())}.pdf`,
+              });
+            } catch (e) {
+              console.error(e); ui.toast('Could not build PDF');
+            } finally {
+              pdfBtn.disabled = false; pdfBtn.textContent = 'Export PDF';
+            }
+          });
+
+          const csv = $('#rep-csv');
+          if (csv) csv.addEventListener('click', () => {
+            const includeArchived = !state.exclArchived;
+            const rep = computeReport(allJobs, state.from, state.to, includeArchived);
+            const headers = ['quote_number', 'drd_number', 'po_number', 'customer_name', 'status', 'total', 'created_at', 'confirmed_at', 'invoiced_at', 'declined_reason', 'created_by', 'archived'];
+            const esc = (v) => { const s = String(v ?? ''); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+            const lines = [headers.join(',')].concat(rep.rows.map((r) => headers.map((h) => esc(r[h])).join(',')));
+            const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = `DrapesQuotePro_Report_${fmtLocal(new Date())}.csv`;
+            a.click(); URL.revokeObjectURL(url);
+          });
+        };
+
+        render();
       },
 
       // ============================================================
@@ -2021,6 +2350,7 @@
           <div class="field"><label>Email</label><input id="c-email" value="${escapeAttr(job.customer_email)}" /></div>
           <div class="field"><label>Site address</label><input id="c-addr" value="${escapeAttr(job.site_address)}" /></div>
           <div class="field"><label>Fergus number (manual, after approval)</label><input id="c-fergus" value="${escapeAttr(job.drd_number)}" placeholder="DRD-… from Fergus" /></div>
+          <div class="field"><label>Purchase Order number</label><input id="c-po" value="${escapeAttr(job.data?.po_number)}" placeholder="PO / reference (optional)" /></div>
         </div>
         <div style="margin-top:14px"><button class="btn btn-secondary" id="save-customer">Save details</button></div>`;
     }
@@ -2577,6 +2907,149 @@
     };
 
     /* ============================================================
+       REPORT PDF — branded summary for the chosen reporting period.
+       ============================================================ */
+    const reportPdf = {
+      build(rep, meta) {
+        const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+        const PW = 210, PH = 297, M = 16;
+        const CW = PW - M * 2;
+        let y = 16;
+        const blue = BRAND.blue, pink = BRAND.pink, grey = [110, 110, 120], ink = [40, 40, 55];
+        const line = (x1, y1, x2, y2, col = [220, 222, 232], w = 0.3) => {
+          doc.setDrawColor(...col); doc.setLineWidth(w); doc.line(x1, y1, x2, y2);
+        };
+        const m0 = (n) => '$' + Math.round(Number(n || 0)).toLocaleString('en-AU');
+        const pageBreak = (need) => {
+          if (y + need > PH - 20) { doc.addPage(); y = 18; return true; }
+          return false;
+        };
+
+        // ---------- HEADER ----------
+        let logoBottom = y;
+        try {
+          const logoW = 52, logoH = logoW / BRAND.logoAspect;
+          doc.addImage(BRAND.logo, 'PNG', M, y, logoW, logoH);
+          logoBottom = y + logoH;
+        } catch (_) {}
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(20); doc.setTextColor(...blue);
+        doc.text('REPORT', PW - M, y + 6, { align: 'right' });
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...grey);
+        doc.text('Generated ' + fmtDate(new Date()), PW - M, y + 12, { align: 'right' });
+        if (meta.generatedBy) doc.text(clip(meta.generatedBy, 34), PW - M, y + 16.5, { align: 'right' });
+
+        y = logoBottom + 7;
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(...blue);
+        doc.text(meta.rangeLabel || '', M, y);
+        y += 5;
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...grey);
+        doc.text(`${rep.cohortCount} quote${rep.cohortCount === 1 ? '' : 's'} raised in period   ·   ${meta.exclArchived ? 'archived excluded' : 'archived included'}`, M, y);
+        y += 4;
+        line(M, y, PW - M, y, pink, 0.8);
+        y += 10;
+
+        // ---------- SUMMARY TILES ----------
+        const tiles = [
+          ['QUOTED', m0(rep.quotedVal), `${rep.quotedCount} quote${rep.quotedCount === 1 ? '' : 's'}`],
+          ['CONFIRMED', m0(rep.confirmedVal), `${rep.confirmedCount} job${rep.confirmedCount === 1 ? '' : 's'}`],
+          ['INVOICED', m0(rep.invoicedVal), `${rep.invoicedCount} job${rep.invoicedCount === 1 ? '' : 's'}`],
+          ['WIN RATE', rep.winRate + '%', `${rep.wonCount} won / ${rep.declinedCount} lost`],
+          ['AVG QUOTE', m0(rep.avgQuote), 'per quote raised'],
+        ];
+        const tw = (CW - 4 * 3) / 5, th = 22;
+        tiles.forEach((t, i) => {
+          const x = M + i * (tw + 3);
+          doc.setFillColor(246, 247, 251); doc.rect(x, y, tw, th, 'F');
+          doc.setDrawColor(...blue); doc.setLineWidth(0.7); doc.line(x, y, x + tw, y);
+          doc.setFont('helvetica', 'bold'); doc.setFontSize(6.5); doc.setTextColor(...grey);
+          doc.text(t[0], x + 2.5, y + 5.5);
+          doc.setFont('helvetica', 'bold'); doc.setFontSize(11.5); doc.setTextColor(...blue);
+          doc.text(clip(t[1], 12), x + 2.5, y + 13);
+          doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5); doc.setTextColor(...grey);
+          doc.text(clip(t[2], 26), x + 2.5, y + 18.5);
+        });
+        y += th + 12;
+
+        // ---------- generic table renderer ----------
+        const table = (title, headers, aligns, widths, rows, emptyMsg) => {
+          pageBreak(26);
+          doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(...blue);
+          doc.text(title, M, y); y += 4.5;
+          line(M, y, PW - M, y, blue, 0.5); y += 5;
+
+          const xs = []; let acc = M;
+          widths.forEach((w) => { xs.push(acc); acc += w; });
+
+          doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); doc.setTextColor(...grey);
+          headers.forEach((h, i) => {
+            const x = aligns[i] === 'right' ? xs[i] + widths[i] : xs[i];
+            doc.text(h, x, y, { align: aligns[i] === 'right' ? 'right' : 'left' });
+          });
+          y += 2; line(M, y, PW - M, y); y += 4.5;
+
+          if (!rows.length) {
+            doc.setFont('helvetica', 'italic'); doc.setFontSize(8.5); doc.setTextColor(...grey);
+            doc.text(emptyMsg || 'No data in this period', M, y);
+            y += 11; return;
+          }
+          doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(...ink);
+          rows.forEach((r) => {
+            if (pageBreak(10)) {
+              doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(...ink);
+            }
+            r.forEach((cell, i) => {
+              const x = aligns[i] === 'right' ? xs[i] + widths[i] : xs[i];
+              doc.text(String(cell), x, y, { align: aligns[i] === 'right' ? 'right' : 'left' });
+            });
+            y += 3.5; line(M, y, PW - M, y, [238, 239, 246], 0.2); y += 4;
+          });
+          y += 6;
+        };
+
+        // ---------- BY STAFF ----------
+        table('By staff', ['STAFF', 'QUOTES', 'QUOTED', 'CONFIRMED', 'CONV.'],
+          ['left', 'right', 'right', 'right', 'right'], [58, 24, 34, 34, 28],
+          rep.staffRows.map(([who, s]) => {
+            const decided = s.wonCount + s.declinedCount;
+            const conv = decided > 0 ? Math.round(s.wonCount / decided * 100) : 0;
+            return [clip(firstName(who), 22), s.count, m0(s.quotedVal), m0(s.confirmedVal), conv + '%'];
+          }), 'No jobs in this period');
+
+        // ---------- BY STATUS ----------
+        table('By status', ['STATUS', 'JOBS'], ['left', 'right'], [140, 38],
+          STATUSES.concat(['declined'])
+            .filter((st) => rep.byStatus[st])
+            .map((st) => [STATUS_LABEL[st] || st, rep.byStatus[st]]),
+          'No jobs in this period');
+
+        // ---------- TOP CUSTOMERS ----------
+        table('Top customers by quoted value', ['CUSTOMER', 'QUOTED'], ['left', 'right'], [140, 38],
+          rep.topCustomers.map(([n, v]) => [clip(n, 52), m0(v)]),
+          'No jobs in this period');
+
+        // ---------- DECLINE REASONS ----------
+        const REASON_LABEL = Object.fromEntries(DECLINE_REASONS);
+        table('Decline reasons', ['REASON', 'COUNT', '$ LOST'], ['left', 'right', 'right'], [110, 30, 38],
+          rep.reasonRows.map(([r, o]) => [REASON_LABEL[r] || r, o.count, m0(o.val)]),
+          'No declines in this period');
+
+        // ---------- FOOTER on every page ----------
+        const pages = doc.getNumberOfPages();
+        for (let p = 1; p <= pages; p++) {
+          doc.setPage(p);
+          doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(...grey);
+          doc.text('Dr Drapes Curtain Clinic   ·   1300 652 866   ·   drdrapes@hudsongroup.com.au', M, PH - 10);
+          doc.text(`Page ${p} of ${pages}`, PW - M, PH - 10, { align: 'right' });
+        }
+        return doc;
+      },
+
+      download(rep, meta) {
+        this.build(rep, meta).save(meta.filename || 'DrapesQuotePro_Report.pdf');
+      },
+    };
+
+    /* ============================================================
        QUOTE PDF  (jsPDF, real text — sharp & selectable)
        Layout: header (logo + DRD ref) → customer/site → insurer
        (if any) → quote grouped by room → repairs → extras →
@@ -2611,6 +3084,7 @@
         doc.text(job.quote_number || '', PW - M, y + 13, { align: 'right' });
         doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...grey);
         doc.text(fmtDate(new Date()), PW - M, y + 18, { align: 'right' });
+        if (job.data?.po_number) { doc.text('PO: ' + clip(job.data.po_number, 28), PW - M, y + 23, { align: 'right' }); }
 
         // Contact line — bold, under the logo, above the divider (logo already shows the name)
         let cinfoY = logoBottom + 6;
@@ -3676,6 +4150,7 @@
         const L = [];
         L.push(`JOB CARD — ${job.quote_number || ''}`);
         if (job.drd_number) L.push(`Fergus: ${job.drd_number}`);
+        if (job.data?.po_number) L.push(`PO: ${job.data.po_number}`);
         L.push(`Customer: ${job.customer_name || ''}`);
         if (job.customer_phone) L.push(`Phone: ${job.customer_phone}`);
         if (job.site_address) L.push(`Address: ${job.site_address}`);
@@ -4261,6 +4736,111 @@
         avgJobSize, toChase, toSchedule,
         declinedMonthVal: round2(declinedMonthVal), declinedMonthCount,
       };
+    }
+
+    /* ---------- REPORTS: pure aggregation ---------- */
+    // Cohort = jobs created within [from,to] (respecting the archived toggle).
+    // All period metrics are computed over that cohort so the numbers tie out.
+    function computeReport(jobs, from, to, includeArchived) {
+      const order = STATUSES;
+      const confIdx = order.indexOf('confirmed');
+      const total = (j) => Number(j.data?.quote?.total || 0);
+      const createdAt = (j) => new Date(j.created_at || j.updated_at || 0);
+      const creator = (j) => j.data?.created_by || (j.data?.status_history || [])[0]?.changed_by || '—';
+      const statusAt = (j, st) => {
+        const h = (j.data?.status_history || []).filter((x) => x.status === st);
+        return h.length ? new Date(h[h.length - 1].changed_at) : null;
+      };
+
+      const pool = jobs.filter((j) => includeArchived || !j.archived);
+      const cohort = pool.filter((j) => { const c = createdAt(j); return c >= from && c <= to; });
+
+      let quotedVal = 0, quotedCount = 0, confirmedVal = 0, confirmedCount = 0;
+      let invoicedVal = 0, invoicedCount = 0, declinedVal = 0, declinedCount = 0;
+      let wonCount = 0, pendingCount = 0;
+      const staff = {}, cust = {}, reasons = {}, byStatus = {}, rows = [];
+
+      cohort.forEach((j) => {
+        const t = total(j);
+        const st = j.status;
+        const sIdx = order.indexOf(st);
+        const won = sIdx >= confIdx;
+        const declined = st === 'declined';
+
+        quotedVal += t; quotedCount++;
+        byStatus[st] = (byStatus[st] || 0) + 1;
+        if (won) { confirmedVal += t; confirmedCount++; wonCount++; }
+        if (st === 'invoiced') { invoicedVal += t; invoicedCount++; }
+        if (declined) { declinedVal += t; declinedCount++; }
+        if (st === 'quoted') pendingCount++;
+
+        const who = creator(j);
+        const S = staff[who] || (staff[who] = { count: 0, quotedVal: 0, wonCount: 0, declinedCount: 0, confirmedVal: 0 });
+        S.count++; S.quotedVal += t;
+        if (won) { S.wonCount++; S.confirmedVal += t; }
+        if (declined) S.declinedCount++;
+
+        const cn = (j.customer_name || 'No name').trim();
+        cust[cn] = (cust[cn] || 0) + t;
+
+        if (declined) {
+          const r = j.data?.declined?.reason || 'other';
+          const R = reasons[r] || (reasons[r] = { count: 0, val: 0 });
+          R.count++; R.val += t;
+        }
+
+        const cf = statusAt(j, 'confirmed'), iv = statusAt(j, 'invoiced');
+        rows.push({
+          quote_number: j.quote_number || '', drd_number: j.drd_number || '',
+          po_number: j.data?.po_number || '', customer_name: j.customer_name || '',
+          status: st, total: t, created_at: createdAt(j).toISOString(),
+          confirmed_at: cf ? cf.toISOString() : '', invoiced_at: iv ? iv.toISOString() : '',
+          declined_reason: declined ? (j.data?.declined?.reason || 'other') : '',
+          created_by: who, archived: j.archived ? 'yes' : 'no',
+        });
+      });
+
+      const decided = wonCount + declinedCount;
+      const winRate = decided > 0 ? Math.round(wonCount / decided * 100) : 0;
+      const avgQuote = quotedCount > 0 ? round2(quotedVal / quotedCount) : 0;
+      const topCustomers = Object.entries(cust).sort((a, b) => b[1] - a[1]).slice(0, 10);
+      const staffRows = Object.entries(staff).sort((a, b) => b[1].quotedVal - a[1].quotedVal);
+      const reasonRows = Object.entries(reasons).sort((a, b) => b[1].val - a[1].val);
+
+      return {
+        cohortCount: cohort.length,
+        quotedVal: round2(quotedVal), quotedCount,
+        confirmedVal: round2(confirmedVal), confirmedCount,
+        invoicedVal: round2(invoicedVal), invoicedCount,
+        declinedVal: round2(declinedVal), declinedCount,
+        wonCount, pendingCount, winRate, avgQuote,
+        byStatus, topCustomers, staffRows, reasonRows, rows,
+      };
+    }
+
+    // Trailing-N-month trend (independent of the summary date range).
+    function computeReportTrend(jobs, includeArchived, months = 12) {
+      const total = (j) => Number(j.data?.quote?.total || 0);
+      const createdAt = (j) => new Date(j.created_at || j.updated_at || 0);
+      const statusAt = (j, st) => {
+        const h = (j.data?.status_history || []).filter((x) => x.status === st);
+        return h.length ? new Date(h[h.length - 1].changed_at) : null;
+      };
+      const pool = jobs.filter((j) => includeArchived || !j.archived);
+      const now = new Date();
+      const buckets = [];
+      for (let i = months - 1; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        buckets.push({ key: d.getFullYear() + '-' + d.getMonth(), label: d.toLocaleDateString('en-AU', { month: 'short', year: '2-digit' }), quoted: 0, confirmed: 0, invoiced: 0 });
+      }
+      const idxOf = (d) => buckets.findIndex((b) => b.key === d.getFullYear() + '-' + d.getMonth());
+      pool.forEach((j) => {
+        const t = total(j);
+        const ci = idxOf(createdAt(j)); if (ci >= 0) buckets[ci].quoted += t;
+        const cf = statusAt(j, 'confirmed'); if (cf) { const k = idxOf(cf); if (k >= 0) buckets[k].confirmed += t; }
+        const iv = statusAt(j, 'invoiced'); if (iv) { const k = idxOf(iv); if (k >= 0) buckets[k].invoiced += t; }
+      });
+      return buckets;
     }
 
     // Roll up an entire quote object → subtotal/gst/total.
