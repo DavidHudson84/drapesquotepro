@@ -705,6 +705,10 @@
     .btn-secondary { background: #eef0f6; color: var(--navy-mid); }
     .btn-secondary:hover { background: #e3e6f1; }
     .modal-error { background: #fef2f2; color: var(--red); border: 1px solid #fecaca; border-radius: var(--r-sm); padding: 9px 12px; font-size: 13px; margin-bottom: 12px; }
+    .modal-match { background: #eff6ff; color: #1e3a8a; border: 1px solid #bfdbfe; border-radius: var(--r-sm); padding: 9px 12px; font-size: 13px; margin-bottom: 12px; line-height: 1.5; }
+    .modal-match b { font-weight: 700; }
+    .modal-match .mm-jobs { margin-top: 5px; color: #1e40af; font-size: 12px; }
+    .modal-match.mm-warn { background: #fffbeb; color: #92400e; border-color: #fde68a; }
 
     .toast {
       position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
@@ -871,11 +875,120 @@
         } catch (_) { /* non-critical */ }
       },
 
+      // ---------- CUSTOMERS & SITES ----------
+      // Matching mirrors the Postgres generated columns exactly. If you change
+      // one you must change the other, or the app and the database will
+      // disagree about who is who.
+      normPhone(s) {
+        const d = String(s || '').replace(/\D/g, '');
+        if (/^61[0-9]{9}$/.test(d)) return '0' + d.slice(2);
+        return d || null;
+      },
+      normEmail(s) {
+        return String(s || '').trim().toLowerCase() || null;
+      },
+      normAddress(s) {
+        return String(s || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || null;
+      },
+
+      // Find an existing customer by phone OR email. Phone is checked first
+      // because capture is higher, but a hit on either is equally valid.
+      async findCustomer({ phone, email }) {
+        const ph = db.normPhone(phone);
+        const em = db.normEmail(email);
+        if (!ph && !em) return null;
+        const ors = [];
+        if (ph) ors.push(`phone_norm.eq.${ph}`);
+        if (em) ors.push(`email_norm.eq.${em}`);
+        const { data, error } = await sb
+          .from('customers')
+          .select('id, name, business_name, customer_type, phone, email, notes, marketing_consent, fergus_customer_id')
+          .eq('archived', false)
+          .or(ors.join(','))
+          .limit(2);
+        if (error) throw error;
+        if (!data || !data.length) return null;
+        // Two different customers matched (phone points at one, email another).
+        // Don't guess — hand both back and let a human decide.
+        if (data.length > 1) return { conflict: true, matches: data };
+        return data[0];
+      },
+
+      // Every job this customer has had, newest first.
+      async customerHistory(customerId) {
+        const { data, error } = await sb
+          .from('jobs')
+          .select('id, quote_number, drd_number, status, site_address, archived, created_at')
+          .eq('customer_id', customerId)
+          .order('created_at', { ascending: false });
+        if (error) throw error;
+        return data || [];
+      },
+
+      async getCustomer(customerId) {
+        const { data, error } = await sb.from('customers').select('*').eq('id', customerId).single();
+        if (error) throw error;
+        return data;
+      },
+
+      async updateCustomer(customerId, patch) {
+        const { data, error } = await sb.from('customers')
+          .update({ ...patch, updated_at: new Date().toISOString() })
+          .eq('id', customerId).select().single();
+        if (error) throw error;
+        return data;
+      },
+
+      // Find or create the customer, then find or create the site under them.
+      // Returns { customer_id, site_id } ready to write onto a job row.
+      async resolveCustomerAndSite(fields, existingCustomerId = null) {
+        const cid = session.profile.company_id;
+        let customer = null;
+
+        if (existingCustomerId) {
+          customer = await db.getCustomer(existingCustomerId);
+        } else {
+          const found = await db.findCustomer({ phone: fields.customer_phone, email: fields.customer_email });
+          if (found && !found.conflict) customer = found;
+        }
+
+        if (!customer) {
+          const { data, error } = await sb.from('customers').insert({
+            company_id: cid,
+            name: (fields.customer_name || '').trim() || 'Unnamed customer',
+            phone: (fields.customer_phone || '').trim() || null,
+            email: (fields.customer_email || '').trim() || null,
+          }).select().single();
+          if (error) throw error;
+          customer = data;
+        }
+
+        let siteId = null;
+        const addr = (fields.site_address || '').trim();
+        if (addr) {
+          const norm = db.normAddress(addr);
+          const { data: found, error: e1 } = await sb.from('sites')
+            .select('id').eq('customer_id', customer.id).eq('address_norm', norm).limit(1);
+          if (e1) throw e1;
+          if (found && found.length) {
+            siteId = found[0].id;
+          } else {
+            const { data: made, error: e2 } = await sb.from('sites')
+              .insert({ company_id: cid, customer_id: customer.id, address_line: addr })
+              .select('id').single();
+            if (e2) throw e2;
+            siteId = made.id;
+          }
+        }
+
+        return { customer_id: customer.id, site_id: siteId };
+      },
+
       // ---------- JOBS ----------
       async listJobs(includeArchived = false) {
         let query = sb
           .from('jobs')
-          .select('id, quote_number, drd_number, status, customer_name, customer_phone, customer_email, site_address, data, archived, created_at, updated_at')
+          .select('id, quote_number, drd_number, legacy_reference, customer_id, site_id, status, customer_name, customer_phone, customer_email, site_address, data, archived, created_at, updated_at')
           .order('updated_at', { ascending: false });
         if (!includeArchived) query = query.eq('archived', false);
         else query = query.eq('archived', true);
@@ -1059,6 +1172,18 @@
             : {},
           status_history: [{ status: 'quoted', changed_by: session.profile.name, changed_at: new Date().toISOString(), note: 'Converted from enquiry' }],
         };
+        let link = { customer_id: null, site_id: null };
+        try {
+          link = await db.resolveCustomerAndSite({
+            customer_name: enq.customer_name,
+            customer_phone: enq.customer_phone,
+            customer_email: enq.customer_email,
+            site_address: enq.site_address,
+          });
+        } catch (err) {
+          console.error('Customer link failed, job created unlinked:', err);
+        }
+
         const row = {
           company_id: session.profile.company_id,
           quote_number: ref,
@@ -1067,6 +1192,8 @@
           customer_phone: enq.customer_phone || null,
           customer_email: enq.customer_email || null,
           site_address: enq.site_address || null,
+          customer_id: link.customer_id,
+          site_id: link.site_id,
           data,
         };
         const { data: created, error } = await sb.from('jobs').insert(row).select().single();
@@ -1088,7 +1215,7 @@
       async nextQuoteNumber() {
         const { data, error } = await sb.rpc('next_quote_number');
         if (error) throw error;
-        return data; // 'DRD-1001' etc
+        return data; // 'DRQ-1001' etc
       },
 
       async createJob(fields) {
@@ -1111,6 +1238,15 @@
           note: 'Job created',
         }];
 
+        // Attach to a customer + site record. If this fails the job must
+        // still be created — an unlinked job is recoverable, a lost job isn't.
+        let link = { customer_id: null, site_id: null };
+        try {
+          link = await db.resolveCustomerAndSite(fields, fields.customer_id || null);
+        } catch (err) {
+          console.error('Customer link failed, job created unlinked:', err);
+        }
+
         const row = {
           company_id: session.profile.company_id,
           quote_number: ref,                 // customer-facing reference
@@ -1119,6 +1255,8 @@
           customer_phone: fields.customer_phone || null,
           customer_email: fields.customer_email || null,
           site_address: fields.site_address || null,
+          customer_id: link.customer_id,
+          site_id: link.site_id,
           data,
         };
         const { data: created, error } = await sb.from('jobs').insert(row).select().single();
@@ -1427,6 +1565,7 @@
             const q = route.search.toLowerCase();
             return (j.quote_number || '').toLowerCase().includes(q)
               || (j.drd_number || '').toLowerCase().includes(q)
+              || (j.legacy_reference || '').toLowerCase().includes(q)
               || (j.data?.po_number || '').toLowerCase().includes(q)
               || (j.customer_name || '').toLowerCase().includes(q)
               || (j.site_address || '').toLowerCase().includes(q);
@@ -4624,14 +4763,16 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
       mount.innerHTML = `
         <div class="modal-backdrop" id="nj-backdrop">
           <div class="modal">
-            <div class="m-head"><h2>New Job</h2><p>A DRD reference number is assigned when you create the job.</p></div>
+            <div class="m-head"><h2>New Job</h2><p>A DRQ quote number is assigned when you create the job. The DRD number comes from Fergus once the job is approved.</p></div>
             <div class="m-body">
               <div class="modal-error hidden" id="nj-error"></div>
+              <div class="modal-match hidden" id="nj-match"></div>
               <div class="field"><label>Customer name *</label><input id="nj-name" placeholder="e.g. Sarah Mitchell" /></div>
               <div class="row2">
-                <div class="field"><label>Phone</label><input id="nj-phone" placeholder="0411 234 567" /></div>
-                <div class="field"><label>Email</label><input id="nj-email" placeholder="name@email.com" /></div>
+                <div class="field"><label>Phone *</label><input id="nj-phone" placeholder="0411 234 567" /></div>
+                <div class="field"><label>Email *</label><input id="nj-email" placeholder="name@email.com" /></div>
               </div>
+              <div style="font-size:12px;color:var(--muted);margin:-6px 0 12px">At least one of phone or email is required — it's how repeat customers get matched.</div>
               <div class="field"><label>Site address</label><input id="nj-addr" placeholder="12 Elm Ct, Williamstown VIC 3016" /></div>
               <div class="field"><label>Job type</label>
                 <select id="nj-type">
@@ -4656,10 +4797,57 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
       $('#nj-backdrop').addEventListener('click', (e) => { if (e.target.id === 'nj-backdrop') close(); });
       $('#nj-name').focus();
 
+      // Which existing customer this job will attach to, if any.
+      let matchedId = null;
+
+      const lookup = async () => {
+        const phone = $('#nj-phone')?.value.trim();
+        const email = $('#nj-email')?.value.trim();
+        const box = $('#nj-match');
+        if (!box) return;
+        matchedId = null;
+        if (!phone && !email) { box.classList.add('hidden'); return; }
+        try {
+          const hit = await db.findCustomer({ phone, email });
+          if (!hit) { box.classList.add('hidden'); return; }
+
+          // Phone points at one customer, email at another. Don't pick.
+          if (hit.conflict) {
+            box.className = 'modal-match mm-warn';
+            box.innerHTML = `<b>Two different customers match.</b> The phone belongs to
+              ${escapeHtml(hit.matches[0].name)} and the email to ${escapeHtml(hit.matches[1].name)}.
+              This job will be created as a new customer — sort the duplicate out afterwards.`;
+            return;
+          }
+
+          const hist = await db.customerHistory(hit.id);
+          const last = hist[0];
+          matchedId = hit.id;
+          box.className = 'modal-match';
+          box.innerHTML = `<b>Existing customer — ${escapeHtml(hit.name)}</b>${
+              hit.customer_type && hit.customer_type !== 'domestic'
+                ? ` <span style="opacity:.75">(${escapeHtml(hit.customer_type)})</span>` : ''}
+            <div class="mm-jobs">${hist.length} previous job${hist.length === 1 ? '' : 's'}${
+              last ? ` · last ${fmtDate(last.created_at)}${last.site_address ? ' · ' + escapeHtml(clip(last.site_address, 38)) : ''}` : ''}
+              <br>${hist.slice(0, 4).map((h) => escapeHtml(h.quote_number)).join(', ')}${hist.length > 4 ? '…' : ''}</div>`;
+        } catch (err) {
+          console.error('Customer lookup failed:', err);
+          box.classList.add('hidden');
+        }
+      };
+
+      $('#nj-phone').addEventListener('blur', lookup);
+      $('#nj-email').addEventListener('blur', lookup);
+
       $('#nj-create').addEventListener('click', async () => {
         const name = $('#nj-name').value.trim();
         const errEl = $('#nj-error');
         if (!name) { errEl.textContent = 'Customer name is required.'; errEl.classList.remove('hidden'); return; }
+        if (!$('#nj-phone').value.trim() && !$('#nj-email').value.trim()) {
+          errEl.textContent = 'Enter a phone number or an email address — without one this job can never be matched to a repeat customer.';
+          errEl.classList.remove('hidden'); return;
+        }
+        errEl.classList.add('hidden');
         const btn = $('#nj-create');
         btn.disabled = true; btn.textContent = 'Creating…';
         try {
@@ -4667,6 +4855,7 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
             customer_name: name,
             customer_phone: $('#nj-phone').value.trim(),
             customer_email: $('#nj-email').value.trim(),
+            customer_id: matchedId,
             site_address: $('#nj-addr').value.trim(),
             job_type: $('#nj-type').value,
             insurer_name: $('#nj-insurer').value.trim(),
