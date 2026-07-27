@@ -338,7 +338,7 @@
     .jobs-table { background: var(--card); border-radius: var(--r); box-shadow: var(--shadow); overflow: hidden; }
     .job-row {
       display: grid;
-      grid-template-columns: 110px 1fr 150px 100px 120px 130px;
+      grid-template-columns: 105px 105px 1fr 150px 100px 120px 130px;
       gap: 16px; align-items: center;
       padding: 16px 20px; border-bottom: 1px solid var(--line);
       cursor: pointer; transition: background .12s;
@@ -346,6 +346,7 @@
     .job-row:last-child { border-bottom: none; }
     .job-row:hover { background: #f8f9fc; }
     .job-row .dq { font-family: 'Montserrat'; font-weight: 800; color: var(--navy-mid); font-size: 14px; }
+    .job-row .fergus { font-family: 'Montserrat'; font-weight: 600; color: var(--muted); font-size: 13px; }
     .job-row .cust { font-weight: 600; }
     .job-row .cust small { display: block; color: var(--muted); font-weight: 400; font-size: 12.5px; }
     .job-row .addr { color: var(--muted); font-size: 13px; }
@@ -880,9 +881,12 @@
       // one you must change the other, or the app and the database will
       // disagree about who is who.
       normPhone(s) {
-        const d = String(s || '').replace(/\D/g, '');
-        if (/^61[0-9]{9}$/.test(d)) return '0' + d.slice(2);
-        return d || null;
+        let d = String(s || '').replace(/\D/g, '');
+        if (!d) return null;
+        if (d.startsWith('0011')) d = d.slice(4);            // intl dial-out prefix
+        if (/^61[0-9]{9}$/.test(d)) d = '0' + d.slice(2);    // +61 4xx / +61 3 form
+        if (/^[2-9][0-9]{8}$/.test(d)) d = '0' + d;          // leading zero dropped
+        return d;
       },
       normEmail(s) {
         return String(s || '').trim().toLowerCase() || null;
@@ -891,27 +895,35 @@
         return String(s || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || null;
       },
 
-      // Find an existing customer by phone OR email. Phone is checked first
-      // because capture is higher, but a hit on either is equally valid.
+      // Find an existing customer by phone OR email. Deliberately two plain
+      // queries rather than one compound `or` filter — values go through as
+      // parameters instead of being interpolated into a filter string, and we
+      // learn which field produced which match.
       async findCustomer({ phone, email }) {
         const ph = db.normPhone(phone);
         const em = db.normEmail(email);
         if (!ph && !em) return null;
-        const ors = [];
-        if (ph) ors.push(`phone_norm.eq.${ph}`);
-        if (em) ors.push(`email_norm.eq.${em}`);
-        const { data, error } = await sb
-          .from('customers')
-          .select('id, name, business_name, customer_type, phone, email, notes, marketing_consent, fergus_customer_id')
-          .eq('archived', false)
-          .or(ors.join(','))
-          .limit(2);
-        if (error) throw error;
-        if (!data || !data.length) return null;
-        // Two different customers matched (phone points at one, email another).
-        // Don't guess — hand both back and let a human decide.
-        if (data.length > 1) return { conflict: true, matches: data };
-        return data[0];
+
+        const COLS = 'id, name, business_name, customer_type, phone, email, notes, marketing_consent, fergus_customer_id';
+        const byField = async (col, val) => {
+          if (!val) return null;
+          const { data, error } = await sb
+            .from('customers').select(COLS)
+            .eq('archived', false).eq(col, val).limit(1);
+          if (error) throw error;
+          return (data && data[0]) || null;
+        };
+
+        const [byPhone, byEmail] = await Promise.all([
+          byField('phone_norm', ph),
+          byField('email_norm', em),
+        ]);
+
+        if (byPhone && byEmail && byPhone.id !== byEmail.id) {
+          // Phone says one person, email says another. Don't guess.
+          return { conflict: true, byPhone, byEmail };
+        }
+        return byPhone || byEmail || null;
       },
 
       // Every job this customer has had, newest first.
@@ -1585,6 +1597,12 @@
         const jobDate = (j) => new Date(j.created_at || j.updated_at || 0).getTime();
         const SORT_VAL = {
           dq: (j) => (j.quote_number || '').toLowerCase(),
+          // Sort on the numeric part so DRD-3092 sits before DRD-3160b.
+          // Jobs with no Fergus number sort to the bottom either way.
+          fergus: (j) => {
+            const m = String(j.drd_number || '').match(/([0-9]+)/);
+            return m ? Number(m[1]) : Number.MAX_SAFE_INTEGER;
+          },
           customer: (j) => (j.customer_name || '').toLowerCase(),
           address: (j) => (j.site_address || '').toLowerCase(),
           date: (j) => jobDate(j),
@@ -1622,6 +1640,7 @@
           return `
             <div class="job-row" data-job="${j.id}">
               <div class="dq">${escapeHtml(j.quote_number || '—')}</div>
+              <div class="fergus">${escapeHtml(j.drd_number || '—')}</div>
               <div class="cust">${escapeHtml(j.customer_name || 'No name')}<small>${escapeHtml(j.customer_phone || '')}</small></div>
               <div class="addr">${escapeHtml(j.site_address || '—')}</div>
               <div class="date">${fmtRowDate(j)}</div>
@@ -1633,13 +1652,13 @@
         main.innerHTML = `
           <div class="page-head"><h1>Jobs</h1><p>${filtered.length} ${archivedView ? 'archived' : 'of ' + jobs.length} job${jobs.length === 1 ? '' : 's'}</p></div>
           <div class="list-controls">
-            <input class="search-box" id="job-search" placeholder="Search DRD ref, Fergus, PO, customer, address…" value="${escapeHtml(route.search)}" />
+            <input class="search-box" id="job-search" placeholder="Search DRQ, DRD, PO, customer, address…" value="${escapeHtml(route.search)}" />
             ${archivedView ? '' : '<button class="btn-new" id="new-job-btn">+ New Job</button>'}
           </div>
           <div class="filter-chips" style="margin-bottom:16px">${chips}</div>
           <div class="jobs-table">
             <div class="job-row head">
-              ${hdr('dq', 'DRD')}${hdr('customer', 'Customer')}${hdr('address', 'Address')}${hdr('date', 'Date')}${hdr('status', 'Status')}${hdr('total', 'Total', 'text-align:right')}
+              ${hdr('dq', 'DRQ')}${hdr('fergus', 'DRD')}${hdr('customer', 'Customer')}${hdr('address', 'Address')}${hdr('date', 'Date')}${hdr('status', 'Status')}${hdr('total', 'Total', 'text-align:right')}
             </div>
             ${rows}
           </div>`;
@@ -4815,7 +4834,7 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
           if (hit.conflict) {
             box.className = 'modal-match mm-warn';
             box.innerHTML = `<b>Two different customers match.</b> The phone belongs to
-              ${escapeHtml(hit.matches[0].name)} and the email to ${escapeHtml(hit.matches[1].name)}.
+              ${escapeHtml(hit.byPhone.name)} and the email to ${escapeHtml(hit.byEmail.name)}.
               This job will be created as a new customer — sort the duplicate out afterwards.`;
             return;
           }
@@ -4828,11 +4847,13 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
               hit.customer_type && hit.customer_type !== 'domestic'
                 ? ` <span style="opacity:.75">(${escapeHtml(hit.customer_type)})</span>` : ''}
             <div class="mm-jobs">${hist.length} previous job${hist.length === 1 ? '' : 's'}${
-              last ? ` · last ${fmtDate(last.created_at)}${last.site_address ? ' · ' + escapeHtml(clip(last.site_address, 38)) : ''}` : ''}
+              last ? ` · last ${fmtDate(new Date(last.created_at))}${last.site_address ? ' · ' + escapeHtml(clip(last.site_address, 38)) : ''}` : ''}
               <br>${hist.slice(0, 4).map((h) => escapeHtml(h.quote_number)).join(', ')}${hist.length > 4 ? '…' : ''}</div>`;
         } catch (err) {
           console.error('Customer lookup failed:', err);
-          box.classList.add('hidden');
+          box.className = 'modal-match mm-warn';
+          box.innerHTML = `Could not check for an existing customer. The job will still save, but it may not link to their history.
+            <div class="mm-jobs" style="color:#92400e">${escapeHtml(err?.message || err?.hint || String(err))}</div>`;
         }
       };
 
