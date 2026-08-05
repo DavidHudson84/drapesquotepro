@@ -195,6 +195,8 @@
        ============================================================ */
     .dash-band { margin-bottom: 26px; }
     .dash-band-title { font-family: 'Montserrat'; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 12px; }
+    .dash-band-title .bt-note { display: block; font-family: inherit; font-size: 11.5px; font-weight: 600; text-transform: none; letter-spacing: 0; color: var(--muted); opacity: .8; margin-top: 3px; }
+    .rep-flag { display: flex; gap: 10px; align-items: flex-start; background: #fef3c7; border: 1px solid #fde68a; color: #92400e; border-radius: 8px; padding: 10px 14px; font-size: 13.5px; margin-bottom: 18px; }
     .dash-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
 
     /* Reports */
@@ -997,37 +999,49 @@
       },
 
       // ---------- JOBS ----------
+      // Supabase/PostgREST silently caps a single response at 1,000 rows.
+      // pageAll() walks the result set in 1,000-row pages so nothing is ever
+      // dropped, no matter how big the job table gets.
+      async pageAll(builder, pageSize = 1000, hardCap = 100000) {
+        const out = [];
+        for (let start = 0; start < hardCap; start += pageSize) {
+          const { data, error } = await builder().range(start, start + pageSize - 1);
+          if (error) throw error;
+          const batch = data || [];
+          out.push(...batch);
+          if (batch.length < pageSize) break;
+        }
+        return out;
+      },
+
       async listJobs(includeArchived = false) {
-        let query = sb
-          .from('jobs')
-          .select('id, quote_number, drd_number, legacy_reference, customer_id, site_id, status, customer_name, customer_phone, customer_email, site_address, data, archived, created_at, updated_at')
-          .order('updated_at', { ascending: false });
-        if (!includeArchived) query = query.eq('archived', false);
-        else query = query.eq('archived', true);
-        const { data, error } = await query;
-        if (error) throw error;
-        return data || [];
+        return db.pageAll(() => {
+          let q = sb
+            .from('jobs')
+            .select('id, quote_number, drd_number, legacy_reference, customer_id, site_id, status, customer_name, customer_phone, customer_email, site_address, data, archived, created_at, updated_at')
+            .order('updated_at', { ascending: false })
+            .order('id', { ascending: true });
+          return includeArchived ? q.eq('archived', true) : q.eq('archived', false);
+        });
       },
 
       // Pull non-archived jobs with created_at for time-window stats.
       async listJobsForStats() {
-        const { data, error } = await sb
+        return db.pageAll(() => sb
           .from('jobs')
           .select('id, status, data, created_at, updated_at')
           .eq('archived', false)
-          .order('created_at', { ascending: false });
-        if (error) throw error;
-        return data || [];
+          .order('created_at', { ascending: false })
+          .order('id', { ascending: true }));
       },
 
       // Pull ALL jobs (archived + active) for the Reports section.
       async listJobsAll() {
-        const { data, error } = await sb
+        return db.pageAll(() => sb
           .from('jobs')
           .select('id, quote_number, drd_number, status, customer_name, data, archived, created_at, updated_at')
-          .order('created_at', { ascending: false });
-        if (error) throw error;
-        return data || [];
+          .order('created_at', { ascending: false })
+          .order('id', { ascending: true }));
       },
 
       async setArchived(jobId, archived) {
@@ -1753,8 +1767,14 @@
           step.addEventListener('click', async () => {
             const target = step.dataset.status;
             if (target === job.status) return;
-            const ok = confirm(`Change status to "${STATUS_LABEL[target]}"?`);
-            if (!ok) return;
+            // Reporting dates invoiced revenue off the Invoiced step. Skipping
+            // straight to Rehung leaves the job's value undateable.
+            const hasInvoiced = (job.data?.status_history || []).some((h) => h.status === 'invoiced');
+            if (target === 'rehung' && !hasInvoiced) {
+              if (!confirm('This job has not been marked Invoiced.\n\nIf you skip that step its value will not appear in any period on Reports. Mark it Invoiced first, or continue anyway?')) return;
+            } else {
+              if (!confirm(`Change status to "${STATUS_LABEL[target]}"?`)) return;
+            }
             await db.advanceStatus(job.id, target);
             ui.toast(`Status → ${STATUS_LABEL[target]}`);
             // Job finished on site → offer the thank-you / Google review email.
@@ -1999,8 +2019,18 @@
             ? 'All time'
             : `${dshort(state.from)} – ${dshort(state.to)}`;
 
-          const statusRows = STATUSES.concat(['declined']).map((st) =>
-            `<tr><td>${STATUS_LABEL[st] || st}</td><td style="text-align:right">${rep.byStatus[st] || 0}</td></tr>`).join('');
+          // Every status in the known order, plus any status found in the data
+          // that isn't in the list (e.g. draft) so the table ties back to the
+          // quote count instead of silently dropping rows.
+          const knownSt = STATUSES.concat(['declined']);
+          const extraSt = Object.keys(rep.byStatus).filter((st) => !knownSt.includes(st)).sort();
+          const statusRows = knownSt.concat(extraSt).map((st) =>
+            `<tr><td>${STATUS_LABEL[st] || (st.charAt(0).toUpperCase() + st.slice(1))}</td><td style="text-align:right">${rep.byStatus[st] || 0}</td></tr>`)
+            .join('') + `<tr style="font-weight:700"><td>Total</td><td style="text-align:right">${rep.cohortCount}</td></tr>`;
+
+          const flagHtml = rep.act.noInvoiceEvent
+            ? `<div class="rep-flag"><strong>Data check:</strong> ${rep.act.noInvoiceEvent} job${rep.act.noInvoiceEvent === 1 ? ' is' : 's are'} sitting at Invoiced or Rehung with no Invoiced step ever recorded, so ${rep.act.noInvoiceEvent === 1 ? 'it' : 'they'} can't be dated to a period. Open the job and step it through Invoiced to fix.</div>`
+            : '';
 
           const staffRowsHtml = rep.staffRows.length ? rep.staffRows.map(([who, s]) => {
             const decided = s.wonCount + s.declinedCount;
@@ -2024,7 +2054,7 @@
             : `<tr><td colspan="3" style="color:var(--muted)">No declines in range</td></tr>`;
 
           main.innerHTML = `
-            <div class="page-head"><h1>Reports</h1><p>${rangeLabel} · ${rep.cohortCount} quote${rep.cohortCount === 1 ? '' : 's'} raised${state.exclArchived ? ' · archived excluded' : ''}</p></div>
+            <div class="page-head"><h1>Reports</h1><p>${rangeLabel} · ${money0(rep.act.invoicedVal)} invoiced · ${rep.cohortCount} quote${rep.cohortCount === 1 ? '' : 's'} raised${state.exclArchived ? ' · archived excluded' : ''}</p></div>
 
             <div class="rep-controls">
               <div class="rep-presets">
@@ -2045,13 +2075,26 @@
               </div>
             </div>
 
+            ${flagHtml}
+
             <div class="dash-band">
-              <div class="dash-band-title">Summary</div>
+              <div class="dash-band-title">Money in this period
+                <span class="bt-note">What actually happened between these dates, whenever the job was quoted.</span>
+              </div>
               <div class="dash-grid">
-                <div class="metric"><div class="m-label">Quoted</div><div class="m-value">${money0(rep.quotedVal)}</div><div class="m-sub">${rep.quotedCount} quote${rep.quotedCount === 1 ? '' : 's'}</div></div>
-                <div class="metric teal"><div class="m-label">Confirmed</div><div class="m-value">${money0(rep.confirmedVal)}</div><div class="m-sub">${rep.confirmedCount} job${rep.confirmedCount === 1 ? '' : 's'}</div></div>
-                <div class="metric green"><div class="m-label">Invoiced</div><div class="m-value">${money0(rep.invoicedVal)}</div><div class="m-sub">${rep.invoicedCount} job${rep.invoicedCount === 1 ? '' : 's'}</div></div>
-                <div class="metric"><div class="m-label">Win rate</div><div class="m-value">${rep.winRate}%</div><div class="m-sub">${rep.wonCount} won · ${rep.declinedCount} declined · ${rep.pendingCount} pending</div></div>
+                <div class="metric green"><div class="m-label">Invoiced</div><div class="m-value">${money0(rep.act.invoicedVal)}</div><div class="m-sub">${rep.act.invoicedCount} job${rep.act.invoicedCount === 1 ? '' : 's'} invoiced</div></div>
+                <div class="metric teal"><div class="m-label">Confirmed</div><div class="m-value">${money0(rep.act.confirmedVal)}</div><div class="m-sub">${rep.act.confirmedCount} job${rep.act.confirmedCount === 1 ? '' : 's'} accepted</div></div>
+                <div class="metric red"><div class="m-label">Lost</div><div class="m-value">${money0(rep.act.declinedVal)}</div><div class="m-sub">${rep.act.declinedCount} quote${rep.act.declinedCount === 1 ? '' : 's'} declined</div></div>
+              </div>
+            </div>
+
+            <div class="dash-band">
+              <div class="dash-band-title">Quotes raised in this period
+                <span class="bt-note">Only quotes dated between these dates, tracked through to their outcome.</span>
+              </div>
+              <div class="dash-grid">
+                <div class="metric"><div class="m-label">Quoted</div><div class="m-value">${money0(rep.quotedVal)}</div><div class="m-sub">${rep.quotedCount} quote${rep.quotedCount === 1 ? '' : 's'} raised</div></div>
+                <div class="metric"><div class="m-label">Win rate</div><div class="m-value">${rep.winRate}%</div><div class="m-sub">${rep.wonCount} won · ${rep.declinedCount} lost · ${rep.pendingCount} still open</div></div>
                 <div class="metric"><div class="m-label">Average quote</div><div class="m-value">${money0(rep.avgQuote)}</div><div class="m-sub">across quotes raised</div></div>
               </div>
             </div>
@@ -3122,27 +3165,42 @@
         line(M, y, PW - M, y, pink, 0.8);
         y += 10;
 
-        // ---------- SUMMARY TILES ----------
-        const tiles = [
-          ['QUOTED', m0(rep.quotedVal), `${rep.quotedCount} quote${rep.quotedCount === 1 ? '' : 's'}`],
-          ['CONFIRMED', m0(rep.confirmedVal), `${rep.confirmedCount} job${rep.confirmedCount === 1 ? '' : 's'}`],
-          ['INVOICED', m0(rep.invoicedVal), `${rep.invoicedCount} job${rep.invoicedCount === 1 ? '' : 's'}`],
+        // ---------- SUMMARY TILES (two lenses) ----------
+        const act = rep.act || { invoicedVal: 0, invoicedCount: 0, confirmedVal: 0, confirmedCount: 0, declinedVal: 0, declinedCount: 0 };
+        const tileBand = (heading, note, tiles) => {
+          doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(...blue);
+          doc.text(heading, M, y);
+          doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(...grey);
+          doc.text(note, M + doc.getTextWidth(heading) * 1.02 + 3, y);
+          y += 4.5;
+          const n = tiles.length;
+          const tw = (CW - (n - 1) * 3) / n, th = 22;
+          tiles.forEach((t, i) => {
+            const x = M + i * (tw + 3);
+            doc.setFillColor(246, 247, 251); doc.rect(x, y, tw, th, 'F');
+            doc.setDrawColor(...blue); doc.setLineWidth(0.7); doc.line(x, y, x + tw, y);
+            doc.setFont('helvetica', 'bold'); doc.setFontSize(6.5); doc.setTextColor(...grey);
+            doc.text(t[0], x + 2.5, y + 5.5);
+            doc.setFont('helvetica', 'bold'); doc.setFontSize(13); doc.setTextColor(...blue);
+            doc.text(clip(t[1], 12), x + 2.5, y + 13.5);
+            doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5); doc.setTextColor(...grey);
+            doc.text(clip(t[2], 30), x + 2.5, y + 18.5);
+          });
+          y += th + 9;
+        };
+
+        tileBand('MONEY IN THIS PERIOD', '(dated to when it happened)', [
+          ['INVOICED', m0(act.invoicedVal), `${act.invoicedCount} job${act.invoicedCount === 1 ? '' : 's'} invoiced`],
+          ['CONFIRMED', m0(act.confirmedVal), `${act.confirmedCount} job${act.confirmedCount === 1 ? '' : 's'} accepted`],
+          ['LOST', m0(act.declinedVal), `${act.declinedCount} quote${act.declinedCount === 1 ? '' : 's'} declined`],
+        ]);
+
+        tileBand('QUOTES RAISED IN THIS PERIOD', '(dated to the quote)', [
+          ['QUOTED', m0(rep.quotedVal), `${rep.quotedCount} quote${rep.quotedCount === 1 ? '' : 's'} raised`],
           ['WIN RATE', rep.winRate + '%', `${rep.wonCount} won / ${rep.declinedCount} lost`],
           ['AVG QUOTE', m0(rep.avgQuote), 'per quote raised'],
-        ];
-        const tw = (CW - 4 * 3) / 5, th = 22;
-        tiles.forEach((t, i) => {
-          const x = M + i * (tw + 3);
-          doc.setFillColor(246, 247, 251); doc.rect(x, y, tw, th, 'F');
-          doc.setDrawColor(...blue); doc.setLineWidth(0.7); doc.line(x, y, x + tw, y);
-          doc.setFont('helvetica', 'bold'); doc.setFontSize(6.5); doc.setTextColor(...grey);
-          doc.text(t[0], x + 2.5, y + 5.5);
-          doc.setFont('helvetica', 'bold'); doc.setFontSize(11.5); doc.setTextColor(...blue);
-          doc.text(clip(t[1], 12), x + 2.5, y + 13);
-          doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5); doc.setTextColor(...grey);
-          doc.text(clip(t[2], 26), x + 2.5, y + 18.5);
-        });
-        y += th + 12;
+        ]);
+        y += 3;
 
         // ---------- generic table renderer ----------
         const table = (title, headers, aligns, widths, rows, emptyMsg) => {
@@ -3190,10 +3248,12 @@
           }), 'No jobs in this period');
 
         // ---------- BY STATUS ----------
-        table('By status', ['STATUS', 'JOBS'], ['left', 'right'], [140, 38],
-          STATUSES.concat(['declined'])
-            .filter((st) => rep.byStatus[st])
-            .map((st) => [STATUS_LABEL[st] || st, rep.byStatus[st]]),
+        const stKnown = STATUSES.concat(['declined']);
+        const stAll = stKnown.concat(Object.keys(rep.byStatus).filter((s) => !stKnown.includes(s)).sort());
+        table('By status (quotes raised in period)', ['STATUS', 'JOBS'], ['left', 'right'], [140, 38],
+          stAll.filter((st) => rep.byStatus[st])
+            .map((st) => [STATUS_LABEL[st] || (st.charAt(0).toUpperCase() + st.slice(1)), rep.byStatus[st]])
+            .concat([['Total', rep.cohortCount]]),
           'No jobs in this period');
 
         // ---------- TOP CUSTOMERS ----------
@@ -5033,6 +5093,12 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
         const h = (j.data?.status_history || []).filter((x) => x.status === st);
         return h.length ? new Date(h[h.length - 1].changed_at) : createdAt(j);
       };
+      // strict version: null when the step was never recorded, so a job can
+      // never be dated to the wrong period by falling back to its quote date.
+      const statusEventAt = (j, st) => {
+        const h = (j.data?.status_history || []).filter((x) => x.status === st);
+        return h.length ? new Date(h[h.length - 1].changed_at) : null;
+      };
 
       const byStatus = {};
       let pipelineVal = 0, pipelineCount = 0;
@@ -5066,14 +5132,13 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
         if (ca >= monthStart) m.newJobs++;
         if (ca >= weekStart) w.newJobs++;
         if (ca >= monthStart && !declined) { m.quotedVal += t; m.quotedCount++; }
-        if (sIdx >= order.indexOf('confirmed')) {
-          const cAt = statusChangedAt(j, 'confirmed');
-          if (cAt >= monthStart) { m.confirmedVal += t; m.confirmedCount++; }
-        }
-        // invoiced value counts once a job has reached Invoiced — it stays counted
-        // after it moves on to Rehung / Completed.
-        if (sIdx >= order.indexOf('invoiced')) {
-          const iAt = statusChangedAt(j, 'invoiced');
+        // Confirmed / invoiced are dated to the status change itself, matching
+        // the Reports "Money in this period" band. A job quoted months ago but
+        // invoiced today is today's money.
+        const cAt = statusEventAt(j, 'confirmed');
+        if (cAt && cAt >= monthStart) { m.confirmedVal += t; m.confirmedCount++; }
+        const iAt = statusEventAt(j, 'invoiced');
+        if (iAt) {
           if (iAt >= monthStart) { m.invoicedVal += t; m.invoicedCount++; }
           if (iAt >= weekStart) { w.invoicedVal += t; w.invoicedCount++; }
         }
@@ -5104,9 +5169,19 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
       };
     }
 
-    /* ---------- REPORTS: pure aggregation ---------- */
-    // Cohort = jobs created within [from,to] (respecting the archived toggle).
-    // All period metrics are computed over that cohort so the numbers tie out.
+    /* ---------- REPORTS: pure aggregation ----------
+       Two separate lenses, because they answer two different questions:
+
+       1. COHORT  — quotes RAISED in [from,to], dated by created_at.
+          Answers "how much did we quote, and how much of it did we win?"
+          Win rate, average quote, staff conversion and decline reasons all
+          belong here: they only make sense against the quotes that were
+          actually raised in the period.
+
+       2. ACTIVITY — what HAPPENED in [from,to], dated by the status change
+          itself. A job quoted in June and invoiced in August is August money.
+          Answers "how much did we confirm and invoice this period?"
+    */
     function computeReport(jobs, from, to, includeArchived) {
       const order = STATUSES;
       const confIdx = order.indexOf('confirmed');
@@ -5117,10 +5192,31 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
         const h = (j.data?.status_history || []).filter((x) => x.status === st);
         return h.length ? new Date(h[h.length - 1].changed_at) : null;
       };
+      const inRange = (d) => !!d && d >= from && d <= to;
 
       const pool = jobs.filter((j) => includeArchived || !j.archived);
       const cohort = pool.filter((j) => { const c = createdAt(j); return c >= from && c <= to; });
 
+      // ----- LENS 2: activity in period (event-dated, whole pool) -----
+      let actConfirmedVal = 0, actConfirmedCount = 0;
+      let actInvoicedVal = 0, actInvoicedCount = 0;
+      let actDeclinedVal = 0, actDeclinedCount = 0;
+      let noInvoiceEvent = 0; // data-integrity check
+      pool.forEach((j) => {
+        const t = total(j);
+        const sIdx = order.indexOf(j.status);
+        if (inRange(statusAt(j, 'confirmed'))) { actConfirmedVal += t; actConfirmedCount++; }
+        const iv = statusAt(j, 'invoiced');
+        if (inRange(iv)) { actInvoicedVal += t; actInvoicedCount++; }
+        // sitting at Invoiced or beyond but no Invoiced event ever recorded
+        if (!iv && sIdx >= order.indexOf('invoiced')) noInvoiceEvent++;
+        if (j.status === 'declined') {
+          const dAt = j.data?.declined?.at ? new Date(j.data.declined.at) : null;
+          if (inRange(dAt)) { actDeclinedVal += t; actDeclinedCount++; }
+        }
+      });
+
+      // ----- LENS 1: quotes raised in period -----
       let quotedVal = 0, quotedCount = 0, confirmedVal = 0, confirmedCount = 0;
       let invoicedVal = 0, invoicedCount = 0, declinedVal = 0, declinedCount = 0;
       let wonCount = 0, pendingCount = 0;
@@ -5181,6 +5277,13 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
         declinedVal: round2(declinedVal), declinedCount,
         wonCount, pendingCount, winRate, avgQuote,
         byStatus, topCustomers, staffRows, reasonRows, rows,
+        // activity lens — dated to when the status change actually happened
+        act: {
+          confirmedVal: round2(actConfirmedVal), confirmedCount: actConfirmedCount,
+          invoicedVal: round2(actInvoicedVal), invoicedCount: actInvoicedCount,
+          declinedVal: round2(actDeclinedVal), declinedCount: actDeclinedCount,
+          noInvoiceEvent,
+        },
       };
     }
 
