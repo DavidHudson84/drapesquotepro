@@ -723,6 +723,90 @@
       z-index: 2000;
     }
     .toast.show { opacity: 1; transform: translateX(-50%) translateY(-4px); }
+
+    /* ============================================================
+       ITEMS · TAKEDOWN · PRODUCTION · REHANG
+       Big tap targets — this is used on a phone in a driveway and
+       on a tablet in the plant, not just on a desk.
+       ============================================================ */
+    .it-tabs { display: flex; gap: 4px; flex-wrap: wrap; border-bottom: 2px solid var(--line); margin-bottom: 16px; }
+    .it-tab {
+      padding: 10px 16px; font-family: 'Montserrat'; font-weight: 700; font-size: 13.5px;
+      color: var(--muted); border-bottom: 3px solid transparent; margin-bottom: -2px; cursor: pointer;
+      user-select: none; border-radius: 6px 6px 0 0;
+    }
+    .it-tab:hover { color: var(--navy-mid); }
+    .it-tab.active { color: var(--navy-dark); border-bottom-color: var(--navy-mid); }
+    .it-tab .it-count { font-size: 11px; color: var(--muted); font-weight: 600; margin-left: 5px; }
+
+    .it-bar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+    .it-prog { flex: 1; min-width: 160px; }
+    .it-prog-track { height: 8px; background: #e9ebf2; border-radius: 99px; overflow: hidden; }
+    .it-prog-fill { height: 100%; background: var(--teal); border-radius: 99px; transition: width .25s; }
+    .it-prog-label { font-size: 12px; color: var(--muted); margin-top: 5px; font-weight: 600; }
+
+    .it-room { font-family: 'Montserrat'; font-weight: 700; font-size: 13px; text-transform: uppercase;
+      letter-spacing: .05em; color: var(--navy-mid); margin: 18px 0 8px; }
+    .it-room:first-child { margin-top: 0; }
+
+    .it-row {
+      border: 1.5px solid var(--line); border-radius: var(--r-sm); background: #fff;
+      padding: 12px 14px; margin-bottom: 10px; display: flex; gap: 12px; align-items: flex-start;
+    }
+    .it-row.done { background: #f0fdf9; border-color: #99e6d5; }
+    .it-row.issue { background: #fffbeb; border-color: #fde68a; }
+    .it-tick {
+      width: 40px; height: 40px; min-width: 40px; border-radius: 8px; border: 2px solid #cbd0e0;
+      background: #fff; font-size: 20px; line-height: 1; color: transparent; flex-shrink: 0;
+    }
+    .it-row.done .it-tick { background: var(--teal); border-color: var(--teal); color: #fff; }
+    .it-main { flex: 1; min-width: 0; }
+    .it-name { font-weight: 700; font-size: 14.5px; color: var(--navy-dark); }
+    .it-ref { font-family: ui-monospace, Menlo, monospace; font-size: 11.5px; color: var(--muted); font-weight: 600; }
+    .it-dims { font-size: 13px; color: var(--muted); margin-top: 2px; }
+    .it-flags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+    .it-flag { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 99px; background: #eef0f6; color: var(--navy-mid); }
+    .it-flag.mould { background: #fef3c7; color: #92400e; }
+    .it-flag.bag { background: #e0e7ff; color: #3730a3; }
+    .it-flag.loc { background: #dcfce7; color: #166534; }
+    .it-meta { font-size: 11.5px; color: var(--muted); margin-top: 6px; }
+    .it-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; margin-top: 10px; }
+    .it-fields input, .it-fields select {
+      width: 100%; padding: 9px 11px; border: 1.5px solid var(--line); border-radius: 6px; font-size: 13.5px;
+    }
+    .it-fields input:focus, .it-fields select:focus { outline: none; border-color: var(--navy-mid); }
+    .it-fields label { display: block; font-size: 10.5px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .04em; color: var(--muted); margin-bottom: 3px; }
+    .it-pieces { width: 68px; text-align: center; font-weight: 700; }
+
+    .it-extra { border: 1.5px dashed #cbd0e0; background: #fafbfe; }
+    .it-empty { color: var(--muted); font-size: 14px; padding: 18px 0; }
+    .it-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+    .btn-print { background: var(--navy-mid); color: #fff; font-weight: 700; padding: 11px 20px; border-radius: var(--r-sm); }
+    .btn-print:hover { filter: brightness(1.1); }
+    .it-note {
+      background: #eff6ff; border: 1px solid #bfdbfe; color: #1e3a8a; border-radius: var(--r-sm);
+      padding: 10px 13px; font-size: 13px; margin-bottom: 14px; line-height: 1.5;
+    }
+    .it-note.warn { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+
+    /* Activity timeline */
+    .act-list { list-style: none; }
+    .act-item { display: flex; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+    .act-item:last-child { border-bottom: none; }
+    .act-dot { width: 9px; height: 9px; border-radius: 99px; background: var(--navy-mid); margin-top: 7px; flex-shrink: 0; }
+    .act-dot.prod { background: var(--teal); }
+    .act-dot.take { background: #6366f1; }
+    .act-dot.hang { background: var(--green); }
+    .act-body { flex: 1; min-width: 0; }
+    .act-what { font-size: 14px; font-weight: 600; color: var(--navy-dark); }
+    .act-when { font-size: 12px; color: var(--muted); margin-top: 1px; }
+
+    @media (max-width: 700px) {
+      .it-row { flex-wrap: wrap; }
+      .it-fields { grid-template-columns: 1fr 1fr; }
+      .it-tab { padding: 9px 11px; font-size: 12.5px; }
+    }
   </style>
 </head>
 <body>
@@ -1743,8 +1827,10 @@
           ${section('quote', 'Quote', true, `<div id="qb-mount"></div>`)}
           ${section('acceptance', 'Acceptance & Job Card', false, `<div id="acc-mount"></div>`)}
           ${section('pre', 'Pre-Inspection', false, `<div id="pre-mount"></div>`)}
+          ${section('items', 'Items · Takedown · Production · Rehang', ['confirmed','in_progress','complete','invoiced','rehung'].includes(job.status), `<div id="items-mount"></div>`)}
           ${section('post', 'Post-Inspection', false, `<div id="post-mount"></div>`)}
           ${section('notes', 'Internal Notes', false, internalNotesHtml(job))}
+          ${section('activity', 'Activity — who did what, when', false, activityHtml(job))}
         `;
 
         // wire
@@ -1757,6 +1843,8 @@
         // initialise inspection forms (pre + post)
         inspection.init('pre', job, main);
         inspection.init('post', job, main);
+        // items / takedown / production / rehang
+        jobItems.init(job, main);
 
         // collapsible sections
         document.querySelectorAll('.job-section .sec-head').forEach((h) =>
@@ -2229,7 +2317,8 @@
         const tab = route.adminTab || 'staff';
         const tabs = [
           ['staff', 'Staff'], ['prices', 'Prices'], ['emails', 'Email Templates'],
-          ['terms', 'Terms of Trade'], ['targets', 'Targets'], ['company', 'Company'],
+          ['terms', 'Terms of Trade'], ['targets', 'Targets'],
+          ['production', 'Production'], ['company', 'Company'],
         ];
         main.innerHTML = `
           <div class="page-head"><h1>Admin</h1><p>Manage staff, prices, email templates, terms, dashboard targets and company details.</p></div>
@@ -2248,6 +2337,7 @@
         if (tab === 'emails') return adminEmails.render(body);
         if (tab === 'terms') return adminTerms.render(body);
         if (tab === 'targets') return adminTargets.render(body);
+        if (tab === 'production') return adminProduction.render(body);
         if (tab === 'company') return adminCompany.render(body);
       },
     };
@@ -2312,6 +2402,51 @@
             i.addEventListener('input', (e) => { state.names[+i.dataset.sni] = e.target.value; ctl.markDirty(); }));
           document.querySelectorAll('[data-snrm]').forEach((b) =>
             b.addEventListener('click', () => { state.names.splice(+b.dataset.snrm, 1); draw(); ctl.markDirty(); }));
+        };
+        draw();
+      },
+    };
+
+    const adminProduction = {
+      async render(body) {
+        const locs = String(session.settings['storage-locations'] || '').split(',').map((s) => s.trim()).filter(Boolean);
+        const state = { locs: locs.slice(), tags: session.settings['print-item-tags'] === 'on' };
+        const draw = () => {
+          body.innerHTML = `
+            <div class="admin-section">
+              <h3>Storage locations</h3>
+              <p class="section-hint">Where cleaned stock is racked. The plant picks from this list when logging production, and the rehang sheet is sorted by it so whoever pulls the stock walks the racks once. Keep the naming consistent — free text here turns into useless data within a month.</p>
+              <div id="loc-list">
+                ${state.locs.map((n, i) => `
+                  <div class="field" style="display:flex;gap:8px;margin-bottom:8px">
+                    <input value="${escapeAttr(n)}" data-loci="${i}" style="flex:1" placeholder="Rack 3 / Bay B" />
+                    <button class="btn btn-secondary" data-locrm="${i}" style="background:#fee2e2;color:#991b1b">Remove</button>
+                  </div>`).join('')}
+              </div>
+              <button class="btn btn-secondary" id="add-loc" style="margin-top:8px">+ Add location</button>
+            </div>
+            <div class="admin-section">
+              <h3>Item tags</h3>
+              <p class="section-hint">Every item already carries a unique tag reference (DRQ-1234-01, -02 and so on). Turn this on to print those tags on the takedown and rehang sheets once you have picked a tagging method that survives a clean cycle. Off by default — sheets show simple item numbers instead.</p>
+              <label class="acc-terms"><input type="checkbox" id="tag-toggle" ${state.tags ? 'checked' : ''} /> Print item tag references on job sheets</label>
+            </div>
+            <div class="admin-section">
+              <h3>Bag numbering</h3>
+              <p class="section-hint">Bags are numbered per job — Bag 1, 2, 3 within each job — so a bag is always readable alongside its job number. Nothing to configure here; this note is a reminder of the convention so the plant stays consistent.</p>
+            </div>`;
+          const bar = adminStatusBar(async () => {
+            await db.setSetting('storage-locations', state.locs.map((n) => n.trim()).filter(Boolean).join(','));
+            await db.setSetting('print-item-tags', state.tags ? 'on' : 'off');
+            await db.refreshSettings();
+          });
+          body.insertAdjacentHTML('beforeend', bar.html);
+          const ctl = bar.wire();
+          $('#add-loc').addEventListener('click', () => { state.locs.push(''); draw(); ctl.markDirty(); });
+          document.querySelectorAll('[data-loci]').forEach((i) =>
+            i.addEventListener('input', (e) => { state.locs[+i.dataset.loci] = e.target.value; ctl.markDirty(); }));
+          document.querySelectorAll('[data-locrm]').forEach((b) =>
+            b.addEventListener('click', () => { state.locs.splice(+b.dataset.locrm, 1); draw(); ctl.markDirty(); }));
+          $('#tag-toggle').addEventListener('change', (e) => { state.tags = e.target.checked; ctl.markDirty(); });
         };
         draw();
       },
@@ -4323,10 +4458,21 @@
             // save acceptance + generate & store the job card, advance to confirmed
             const fresh = await db.getJob(this.jobId);
             const card = this.buildCard(fresh);
-            await db.saveJob(this.jobId, {
+            // Acceptance is the point the quote becomes physical work. Explode
+            // the quote lines into individual item records here — takedown,
+            // production and rehang all read and write to these same records.
+            const patch = {
               acceptance: acc,
               technician_card: { generated_at: acc.confirmed_at, text: card },
-            });
+            };
+            const existingItems = fresh.data?.items || [];
+            if (!existingItems.length) {
+              patch.items = buildItemsFromQuote(fresh);
+              patch.items_generated_at = acc.confirmed_at;
+            } else {
+              patch.items = syncItemsWithQuote(fresh, existingItems);
+            }
+            await db.saveJob(this.jobId, patch);
             // advance status only if not already past confirmed
             const order = STATUSES;
             if (order.indexOf(fresh.status) < order.indexOf('confirmed')) {
@@ -4505,6 +4651,761 @@
         return L.join('\n');
       },
     };
+
+
+    /* ============================================================
+       JOB ITEMS — TAKEDOWN · PRODUCTION · REHANG
+       ------------------------------------------------------------
+       On acceptance the quote is exploded into a list of individual
+       item records held in data.items. Every stage after acceptance
+       reads and writes the SAME records:
+         takedown   → taken, pieces_taken, condition, who/when
+         production → prod_done, method, bag, location, issue, who/when
+         rehang     → rehung, who/when
+       The printed sheets are just views of this list, so the rehang
+       sheet can carry the bag and storage location the plant entered.
+       ============================================================ */
+
+    // Cleaning methods offered in Production. Edit here to change the list.
+    const PROD_METHODS = [
+      'Dry clean', 'Wet clean', 'Ultrasonic', 'Hand clean',
+      'On-site clean', 'Blind clean', 'Repair only',
+    ];
+
+    const pad2 = (n) => String(n).padStart(2, '0');
+
+    // Quotes are measured per track/window, but a line often covers several
+    // physical panels ("2 pieces", "Left + Right - 2 pieces"). Pull that count
+    // out of the note so the driver's sheet shows what he'll actually handle.
+    function parsePieces(note) {
+      const m = String(note || '').match(/(\d+)\s*(?:pc|pcs|piece|pieces|panel|panels)\b/i);
+      const n = m ? parseInt(m[1], 10) : 1;
+      return n > 0 && n < 100 ? n : 1;
+    }
+
+    function itemDims(it) {
+      if (it.cat === 'custom') return '';
+      const calc = computeLine(it);
+      const mode = CATALOG[it.cat]?.mode;
+      if (mode === 'blind') return `${calc.widthM.toFixed(2)}m W × ${calc.dropM.toFixed(2)}m H (${calc.sqm} m²)`;
+      if (['curtain', 'sheer', 'velvet'].includes(mode)) return `${calc.widthM.toFixed(2)}m W × ${calc.dropM.toFixed(2)}m H`;
+      return `${calc.widthM.toFixed(2)}m W`;
+    }
+
+    // Build the item list from the saved quote. Pure — takes a job, returns rows.
+    function buildItemsFromQuote(job) {
+      const q = job.data?.quote || {};
+      const prefix = job.quote_number || 'ITEM';
+      const out = [];
+      let seq = 0;
+      (q.rooms || []).forEach((room) => {
+        (room.items || []).forEach((it) => {
+          // Custom lines are usually charges, not things ("7 day turnaround",
+          // "leader"). They have no measurements, so they'd be dead tick rows.
+          // They still print on the sheet under Other Quoted Lines.
+          if (it.cat === 'custom') return;
+          seq += 1;
+          out.push({
+            ref: `${prefix}-${pad2(seq)}`,
+            seq,
+            room: room.name || 'Room',
+            cat: it.cat,
+            label: it.cat === 'custom' ? (it.label || 'Custom item') : (CATALOG[it.cat]?.label || it.cat),
+            dims: itemDims(it),
+            mould: !!it.mould,
+            note: it.item_note || '',
+            pieces: parsePieces(it.item_note),
+            extra: false,
+            // takedown
+            taken: false, pieces_taken: null, taken_at: null, taken_by: null, condition: '',
+            // production
+            prod_done: false, done_at: null, done_by: null, method: '', issue: '',
+            bag: '', location: '',
+            // rehang
+            rehung: false, rehung_at: null, rehung_by: null,
+          });
+        });
+      });
+      return out;
+    }
+
+    // Re-sync an existing list against a revised quote. Anything already
+    // ticked, bagged or noted is preserved by matching on room + label + dims.
+    function syncItemsWithQuote(job, existing) {
+      const fresh = buildItemsFromQuote(job);
+      const pool = (existing || []).filter((x) => !x.extra);
+      const key = (x) => `${x.room}|${x.label}|${x.dims}|${x.note}`;
+      const used = new Set();
+      const merged = fresh.map((f) => {
+        const idx = pool.findIndex((p, i) => !used.has(i) && key(p) === key(f));
+        if (idx === -1) return f;
+        used.add(idx);
+        const p = pool[idx];
+        return {
+          ...f,
+          taken: p.taken, pieces_taken: p.pieces_taken, taken_at: p.taken_at,
+          taken_by: p.taken_by, condition: p.condition, pieces: p.pieces ?? f.pieces,
+          prod_done: p.prod_done, done_at: p.done_at, done_by: p.done_by,
+          method: p.method, issue: p.issue, bag: p.bag, location: p.location,
+          rehung: p.rehung, rehung_at: p.rehung_at, rehung_by: p.rehung_by,
+        };
+      });
+      // Keep anything the driver added on site — it was never in the quote.
+      const extras = (existing || []).filter((x) => x.extra).map((x, i) => ({
+        ...x, seq: merged.length + i + 1,
+        ref: `${job.quote_number || 'ITEM'}-${pad2(merged.length + i + 1)}`,
+      }));
+      return merged.concat(extras);
+    }
+
+    function storageLocations() {
+      return String(session.settings['storage-locations'] || '')
+        .split(',').map((s) => s.trim()).filter(Boolean);
+    }
+    const showItemTags = () => session.settings['print-item-tags'] === 'on';
+
+    const jobItems = {
+      jobId: null, main: null, job: null,
+      items: [], tab: 'takedown', dirty: false,
+
+      init(job, main) {
+        this.jobId = job.id; this.main = main; this.job = job;
+        this.items = deepClone(job.data?.items || []) || [];
+        this.dirty = false;
+        // Sensible default tab for where the job actually is.
+        if (['complete', 'invoiced', 'rehung'].includes(job.status)) this.tab = 'rehang';
+        else if (job.status === 'in_progress') this.tab = 'production';
+        else this.tab = 'takedown';
+        this.render();
+      },
+
+      counts() {
+        const t = this.items.length;
+        return {
+          total: t,
+          taken: this.items.filter((x) => x.taken).length,
+          done: this.items.filter((x) => x.prod_done).length,
+          hung: this.items.filter((x) => x.rehung).length,
+          pieces: this.items.reduce((a, x) => a + (Number(x.pieces) || 1), 0),
+          piecesTaken: this.items.reduce((a, x) => a + (x.taken ? (Number(x.pieces_taken ?? x.pieces) || 0) : 0), 0),
+        };
+      },
+
+      render() {
+        const mount = $('#items-mount');
+        if (!mount) return;
+        const accepted = !!this.job.data?.acceptance?.confirmed_at;
+
+        if (!this.items.length) {
+          mount.innerHTML = !accepted
+            ? `<div class="it-empty">The item list is created when the quote is accepted. Confirm acceptance first.</div>`
+            : `<div class="it-note">This job was accepted before item tracking existed. Build the list from the saved quote to start using takedown and production.</div>
+               <button class="btn btn-confirm" id="it-generate">Build item list from quote</button>`;
+          const g = $('#it-generate');
+          if (g) g.addEventListener('click', () => this.generate());
+          return;
+        }
+
+        const c = this.counts();
+        const tabs = [
+          ['takedown', 'Takedown', `${c.taken}/${c.total}`],
+          ['production', 'Production', `${c.done}/${c.total}`],
+          ['rehang', 'Rehang', `${c.hung}/${c.total}`],
+        ].map(([k, l, n]) =>
+          `<div class="it-tab ${this.tab === k ? 'active' : ''}" data-ittab="${k}">${l}<span class="it-count">${n}</span></div>`
+        ).join('');
+
+        const prog = this.tab === 'takedown' ? [c.taken, 'taken']
+          : this.tab === 'production' ? [c.done, 'cleaned'] : [c.hung, 'rehung'];
+        const pct = c.total ? Math.round(prog[0] / c.total * 100) : 0;
+
+        mount.innerHTML = `
+          <div class="it-tabs">${tabs}</div>
+          <div class="it-bar">
+            <div class="it-prog">
+              <div class="it-prog-track"><div class="it-prog-fill" style="width:${pct}%"></div></div>
+              <div class="it-prog-label">${prog[0]} of ${c.total} items ${prog[1]} · ${c.pieces} pieces expected</div>
+            </div>
+          </div>
+          <div id="it-body"></div>
+          <div class="it-actions">
+            <button class="btn btn-save-quote" id="it-save">Save${this.dirty ? ' changes' : 'd'}</button>
+            <button class="btn btn-print" id="it-print-take">Print takedown sheet</button>
+            <button class="btn btn-print" id="it-print-hang">Print rehang sheet</button>
+            <button class="btn btn-secondary" id="it-resync">Re-sync with quote</button>
+          </div>`;
+
+        this.renderBody();
+
+        document.querySelectorAll('[data-ittab]').forEach((el) =>
+          el.addEventListener('click', () => { this.tab = el.dataset.ittab; this.render(); }));
+        $('#it-save').addEventListener('click', () => this.save());
+        $('#it-print-take').addEventListener('click', () => sheets.takedown(this.job, this.items));
+        $('#it-print-hang').addEventListener('click', () => sheets.rehang(this.job, this.items));
+        $('#it-resync').addEventListener('click', async () => {
+          if (!confirm('Rebuild the item list from the current quote?\n\nTicks, bags, locations and notes are kept where items still match. Items removed from the quote are dropped.')) return;
+          const fresh = await db.getJob(this.jobId);
+          this.items = syncItemsWithQuote(fresh, this.items);
+          this.markDirty(); this.render();
+        });
+      },
+
+      markDirty() { this.dirty = true; const b = $('#it-save'); if (b) b.textContent = 'Save changes'; },
+
+      renderBody() {
+        const body = $('#it-body');
+        if (!body) return;
+        const t = this.tab;
+
+        // Rehang works off where the stock physically is, not the quote order —
+        // one walk of the racks instead of five.
+        const list = t === 'rehang'
+          ? this.items.slice().sort((a, b) =>
+              String(a.location || 'zzz').localeCompare(String(b.location || 'zzz')) ||
+              String(a.bag || '').localeCompare(String(b.bag || '')) || a.seq - b.seq)
+          : this.items;
+
+        const groupKey = (x) => t === 'rehang' ? (x.location || 'No location recorded') : x.room;
+        const groups = [];
+        list.forEach((x) => {
+          const k = groupKey(x);
+          const g = groups.find((gg) => gg[0] === k);
+          if (g) g[1].push(x); else groups.push([k, [x]]);
+        });
+
+        let html = '';
+        if (t === 'production' && !storageLocations().length) {
+          html += `<div class="it-note warn">No storage locations set up yet. Add them under Admin → Production so the plant picks from a list instead of typing.</div>`;
+        }
+        if (t === 'rehang' && this.items.some((x) => !x.location)) {
+          html += `<div class="it-note warn">Some items have no storage location recorded — they'll print at the bottom of the rehang sheet under "No location recorded".</div>`;
+        }
+
+        groups.forEach(([room, rows]) => {
+          html += `<div class="it-room">${escapeHtml(room)}</div>`;
+          rows.forEach((it) => { html += this.rowHtml(it, t); });
+        });
+
+        if (t === 'takedown') {
+          html += `<button class="btn btn-secondary" id="it-add-extra" style="margin-top:6px">+ Add item found on site</button>`;
+        }
+        body.innerHTML = html;
+        this.wireBody();
+      },
+
+      rowHtml(it, t) {
+        const i = this.items.indexOf(it);
+        const done = t === 'takedown' ? it.taken : t === 'production' ? it.prod_done : it.rehung;
+        const cls = ['it-row'];
+        if (done) cls.push('done');
+        if (t === 'production' && it.issue) cls.push('issue');
+        if (it.extra) cls.push('it-extra');
+
+        const flags = [];
+        if (it.mould) flags.push('<span class="it-flag mould">Mould treatment</span>');
+        if (it.extra) flags.push('<span class="it-flag">Found on site</span>');
+        if (Number(it.pieces) > 1) flags.push(`<span class="it-flag">${it.pieces} pieces</span>`);
+        if (it.bag) flags.push(`<span class="it-flag bag">Bag ${escapeHtml(it.bag)}</span>`);
+        if (it.location) flags.push(`<span class="it-flag loc">${escapeHtml(it.location)}</span>`);
+
+        let meta = '';
+        if (t === 'takedown' && it.taken_at) meta = `Taken ${fmtStamp(it.taken_at)} by ${escapeHtml(it.taken_by || '')}`;
+        if (t === 'production' && it.done_at) meta = `Cleaned ${fmtStamp(it.done_at)} by ${escapeHtml(it.done_by || '')}`;
+        if (t === 'rehang' && it.rehung_at) meta = `Rehung ${fmtStamp(it.rehung_at)} by ${escapeHtml(it.rehung_by || '')}`;
+
+        let fields = '';
+        if (t === 'takedown') {
+          fields = `<div class="it-fields">
+            <div><label>Pieces taken</label><input class="it-pieces" type="number" min="0" data-f="pieces_taken" data-i="${i}" value="${it.pieces_taken ?? ''}" placeholder="${it.pieces}" /></div>
+            <div style="grid-column:span 2"><label>Condition on collection</label><input data-f="condition" data-i="${i}" value="${escapeAttr(it.condition)}" placeholder="Marks, tears, sun damage…" /></div>
+          </div>`;
+        } else if (t === 'production') {
+          const locs = storageLocations();
+          fields = `<div class="it-fields">
+            <div><label>Method</label><select data-f="method" data-i="${i}">
+              <option value="">—</option>
+              ${PROD_METHODS.map((m) => `<option value="${escapeAttr(m)}" ${it.method === m ? 'selected' : ''}>${escapeHtml(m)}</option>`).join('')}
+            </select></div>
+            <div><label>Bag</label><input data-f="bag" data-i="${i}" value="${escapeAttr(it.bag)}" placeholder="1" /></div>
+            <div><label>Storage location</label>${locs.length
+              ? `<select data-f="location" data-i="${i}"><option value="">—</option>${locs.map((l) => `<option value="${escapeAttr(l)}" ${it.location === l ? 'selected' : ''}>${escapeHtml(l)}</option>`).join('')}${it.location && !locs.includes(it.location) ? `<option value="${escapeAttr(it.location)}" selected>${escapeHtml(it.location)}</option>` : ''}</select>`
+              : `<input data-f="location" data-i="${i}" value="${escapeAttr(it.location)}" placeholder="Rack 3 / Bay B" />`}</div>
+            <div style="grid-column:span 2"><label>Issue / note</label><input data-f="issue" data-i="${i}" value="${escapeAttr(it.issue)}" placeholder="Anything wrong with this piece" /></div>
+          </div>`;
+        }
+
+        return `<div class="${cls.join(' ')}">
+          <button class="it-tick" data-tick="${i}">✓</button>
+          <div class="it-main">
+            <div class="it-name">${escapeHtml(it.label)} <span class="it-ref">${showItemTags() ? escapeHtml(it.ref) : '#' + it.seq}</span></div>
+            ${it.dims ? `<div class="it-dims">${escapeHtml(it.dims)}</div>` : ''}
+            ${it.note ? `<div class="it-dims">${escapeHtml(it.note)}</div>` : ''}
+            ${t === 'rehang' ? `<div class="it-dims">${escapeHtml(it.room)}</div>` : ''}
+            ${flags.length ? `<div class="it-flags">${flags.join('')}</div>` : ''}
+            ${it.condition && t !== 'takedown' ? `<div class="it-meta">Condition on collection: ${escapeHtml(it.condition)}</div>` : ''}
+            ${it.issue && t === 'rehang' ? `<div class="it-meta">Issue: ${escapeHtml(it.issue)}</div>` : ''}
+            ${meta ? `<div class="it-meta">${meta}</div>` : ''}
+            ${fields}
+          </div>
+        </div>`;
+      },
+
+      wireBody() {
+        const t = this.tab;
+        document.querySelectorAll('[data-tick]').forEach((b) =>
+          b.addEventListener('click', () => {
+            const it = this.items[+b.dataset.tick];
+            const now = new Date().toISOString();
+            const who = session.profile.name;
+            if (t === 'takedown') {
+              it.taken = !it.taken;
+              it.taken_at = it.taken ? now : null;
+              it.taken_by = it.taken ? who : null;
+              if (it.taken && it.pieces_taken == null) it.pieces_taken = it.pieces;
+            } else if (t === 'production') {
+              it.prod_done = !it.prod_done;
+              it.done_at = it.prod_done ? now : null;
+              it.done_by = it.prod_done ? who : null;
+            } else {
+              it.rehung = !it.rehung;
+              it.rehung_at = it.rehung ? now : null;
+              it.rehung_by = it.rehung ? who : null;
+            }
+            this.markDirty();
+            this.render();
+          }));
+
+        document.querySelectorAll('[data-f]').forEach((el) =>
+          el.addEventListener('change', (e) => {
+            const it = this.items[+el.dataset.i];
+            const f = el.dataset.f;
+            it[f] = f === 'pieces_taken'
+              ? (e.target.value === '' ? null : Math.max(0, parseInt(e.target.value, 10) || 0))
+              : e.target.value;
+            this.markDirty();
+            if (['bag', 'location', 'issue'].includes(f)) this.renderBody();
+          }));
+
+        const add = $('#it-add-extra');
+        if (add) add.addEventListener('click', () => this.addExtra());
+      },
+
+      addExtra() {
+        const rooms = [...new Set(this.items.map((x) => x.room))];
+        const mount = $('#modal-mount');
+        mount.innerHTML = `
+          <div class="modal-backdrop" id="ie-backdrop">
+            <div class="modal">
+              <div class="m-head"><h2>Item found on site</h2><p>Not on the quote — record it so it can be added to the job value.</p></div>
+              <div class="m-body">
+                <div class="field"><label>Room</label><input id="ie-room" list="ie-rooms" placeholder="Lounge" />
+                  <datalist id="ie-rooms">${rooms.map((r) => `<option value="${escapeAttr(r)}"></option>`).join('')}</datalist></div>
+                <div class="field"><label>Type</label><select id="ie-cat">${Object.entries(CATALOG).map(([k, v]) => `<option value="${k}">${escapeHtml(v.label)}</option>`).join('')}</select></div>
+                <div class="row2">
+                  <div class="field"><label>Width (m or mm)</label><input id="ie-w" placeholder="2.4" /></div>
+                  <div class="field"><label>Drop (m or mm)</label><input id="ie-d" placeholder="2.2" /></div>
+                </div>
+                <div class="row2">
+                  <div class="field"><label>Pieces</label><input id="ie-p" type="number" min="1" value="1" /></div>
+                  <div class="field"><label>Note</label><input id="ie-n" placeholder="Optional" /></div>
+                </div>
+              </div>
+              <div class="m-foot">
+                <button class="btn btn-secondary" id="ie-cancel">Cancel</button>
+                <button class="btn btn-confirm" id="ie-add" style="width:auto">Add item</button>
+              </div>
+            </div>
+          </div>`;
+        const close = () => { mount.innerHTML = ''; };
+        $('#ie-cancel').addEventListener('click', close);
+        $('#ie-backdrop').addEventListener('click', (e) => { if (e.target.id === 'ie-backdrop') close(); });
+        $('#ie-add').addEventListener('click', () => {
+          const cat = $('#ie-cat').value;
+          const stub = { cat, width: $('#ie-w').value, drop: $('#ie-d').value };
+          const seq = this.items.length + 1;
+          this.items.push({
+            ref: `${this.job.quote_number || 'ITEM'}-${pad2(seq)}`,
+            seq,
+            room: $('#ie-room').value.trim() || 'Found on site',
+            cat,
+            label: CATALOG[cat]?.label || cat,
+            dims: cat === 'custom' ? '' : itemDims(stub),
+            mould: false,
+            note: $('#ie-n').value.trim(),
+            pieces: Math.max(1, parseInt($('#ie-p').value, 10) || 1),
+            extra: true,
+            taken: false, pieces_taken: null, taken_at: null, taken_by: null, condition: '',
+            prod_done: false, done_at: null, done_by: null, method: '', issue: '',
+            bag: '', location: '',
+            rehung: false, rehung_at: null, rehung_by: null,
+          });
+          close();
+          this.markDirty();
+          this.render();
+          ui.toast('Item added — remember to price it on the quote');
+        });
+      },
+
+      async generate() {
+        const btn = $('#it-generate');
+        if (btn) { btn.disabled = true; btn.textContent = 'Building…'; }
+        try {
+          const fresh = await db.getJob(this.jobId);
+          this.items = buildItemsFromQuote(fresh);
+          if (!this.items.length) { ui.toast('No quote lines to build from'); return; }
+          await db.saveJob(this.jobId, { items: this.items, items_generated_at: new Date().toISOString() });
+          this.job = await db.getJob(this.jobId);
+          this.dirty = false;
+          ui.toast(`${this.items.length} items created`);
+          this.render();
+        } catch (err) {
+          ui.toast('Failed: ' + (err.message || 'error'));
+          if (btn) { btn.disabled = false; btn.textContent = 'Build item list from quote'; }
+        }
+      },
+
+      async save() {
+        const btn = $('#it-save');
+        btn.disabled = true; btn.textContent = 'Saving…';
+        try {
+          await db.saveJob(this.jobId, { items: this.items });
+          this.job = await db.getJob(this.jobId);
+          this.dirty = false;
+          ui.toast('Saved');
+          this.render();
+        } catch (err) {
+          ui.toast('Save failed: ' + (err.message || 'error'));
+          btn.disabled = false; btn.textContent = 'Save changes';
+        }
+      },
+    };
+
+    function fmtStamp(iso) {
+      if (!iso) return '';
+      return new Date(iso).toLocaleString('en-AU', {
+        day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+      });
+    }
+
+    /* ============================================================
+       PRINTED SHEETS — takedown & rehang
+       Deliberately no pricing. These go on site and into the plant.
+       ============================================================ */
+    const sheets = {
+      _frame(doc, job, title, subtitle) {
+        const PW = 210, M = 12;
+        const blue = BRAND.blue, pink = BRAND.pink, grey = [110, 110, 120], ink = [30, 30, 45];
+        let y = 14;
+        try {
+          const logoW = 44, logoH = logoW / BRAND.logoAspect;
+          doc.addImage(BRAND.logo, 'PNG', M, y, logoW, logoH);
+          y += logoH;
+        } catch (_) { y += 12; }
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(19); doc.setTextColor(...blue);
+        doc.text(title, PW - M, 20, { align: 'right' });
+        doc.setFontSize(12); doc.setTextColor(...ink);
+        doc.text(job.quote_number || '', PW - M, 27, { align: 'right' });
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...grey);
+        doc.text(fmtDate(new Date()), PW - M, 32, { align: 'right' });
+
+        y += 4;
+        doc.setDrawColor(...pink); doc.setLineWidth(0.8); doc.line(M, y, PW - M, y);
+        y += 7;
+
+        // Customer block — everything the driver needs to find the place.
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(13); doc.setTextColor(...blue);
+        doc.text(clip(job.customer_name || '', 52), M, y);
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(...ink);
+        y += 5.5;
+        if (job.site_address) { doc.text(clip(job.site_address, 78), M, y); y += 5; }
+        const line2 = [job.customer_phone, job.drd_number ? 'Fergus ' + job.drd_number : '', job.data?.po_number ? 'PO ' + job.data.po_number : '']
+          .filter(Boolean).join('   ·   ');
+        if (line2) { doc.text(line2, M, y); y += 5; }
+        if (subtitle) {
+          doc.setFontSize(9); doc.setTextColor(...grey);
+          doc.text(subtitle, M, y); y += 5;
+        }
+        y += 2;
+        doc.setDrawColor(220, 222, 232); doc.setLineWidth(0.3); doc.line(M, y, PW - M, y);
+        return y + 6;
+      },
+
+      _rowLines(doc, cols, y, h) {
+        doc.setDrawColor(228, 230, 240); doc.setLineWidth(0.2);
+        doc.line(12, y + h - 3, 198, y + h - 3);
+      },
+
+      _box(doc, x, y, s = 5) {
+        doc.setDrawColor(120, 124, 145); doc.setLineWidth(0.4);
+        doc.rect(x, y, s, s);
+      },
+
+      _signoff(doc, y, lines) {
+        const M = 12, PW = 210;
+        if (y > 258) { doc.addPage(); y = 20; }
+        doc.setDrawColor(...BRAND.blue); doc.setLineWidth(0.5); doc.line(M, y, PW - M, y);
+        y += 4.5;
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(9.5); doc.setTextColor(...BRAND.blue);
+        doc.text('SIGN OFF', M, y); y += 5;
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); doc.setTextColor(30, 30, 45);
+        lines.forEach((l) => {
+          doc.text(l[0], M, y);
+          doc.setDrawColor(150, 154, 175); doc.setLineWidth(0.3);
+          doc.line(M + l[1], y + 1, l[2], y + 1);
+          if (l[3]) {
+            doc.text(l[3], l[2] + 6, y);
+            doc.line(l[2] + 6 + l[4], y + 1, 198, y + 1);
+          }
+          y += 7.5;
+        });
+        return y;
+      },
+
+      // ---------- TAKEDOWN SHEET ----------
+      takedown(job, items) {
+        const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+        const M = 12, PW = 210;
+        const q = job.data?.quote || {};
+        const notes = [];
+        if (q.insurer_name || q.claim_number) notes.push('Insurance: ' + [q.insurer_name, q.claim_number].filter(Boolean).join(' / '));
+        let y = this._frame(doc, job, 'TAKEDOWN SHEET', notes.join('   ·   '));
+
+        const tags = showItemTags();
+        const C = { ref: M, item: 32, size: 90, pcs: 126, tick: 140, cond: 152 };
+
+        const header = () => {
+          doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(110, 110, 120);
+          doc.text(tags ? 'TAG' : 'NO.', C.ref, y);
+          doc.text('ITEM', C.item, y);
+          doc.text('SIZE', C.size, y);
+          doc.text('PCS', C.pcs, y);
+          doc.text('TAKEN', C.tick, y);
+          doc.text('CONDITION ON COLLECTION', C.cond, y);
+          y += 2; doc.setDrawColor(...BRAND.blue); doc.setLineWidth(0.4); doc.line(M, y, PW - M, y); y += 5;
+        };
+        const space = (need) => { if (y + need > 262) { doc.addPage(); y = 20; header(); } };
+
+        header();
+        const rooms = [];
+        (items || []).forEach((it) => {
+          const g = rooms.find((r) => r[0] === it.room);
+          if (g) g[1].push(it); else rooms.push([it.room, [it]]);
+        });
+
+        rooms.forEach(([room, rows]) => {
+          space(16);
+          doc.setFont('helvetica', 'bold'); doc.setFontSize(10.5); doc.setTextColor(...BRAND.blue);
+          doc.text(String(room).toUpperCase(), M, y); y += 6;
+          rows.forEach((it) => {
+            space(11);
+            doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); doc.setTextColor(30, 30, 45);
+            doc.text(tags ? it.ref : '#' + it.seq, C.ref, y);
+            doc.setFont('helvetica', 'bold');
+            doc.text(clip(it.label, 30), C.item, y);
+            doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(90, 90, 105);
+            doc.text(clip(it.dims, 24), C.size, y);
+            doc.setFontSize(10); doc.setTextColor(30, 30, 45);
+            doc.text(String(it.pieces || 1), C.pcs + 2, y);
+            this._box(doc, C.tick + 2, y - 4);
+            // extras worth flagging to the driver
+            const sub = [];
+            if (it.mould) sub.push('MOULD TREATMENT');
+            if (it.note) sub.push(it.note);
+            if (sub.length) {
+              doc.setFontSize(8); doc.setTextColor(...BRAND.pink);
+              doc.text(clip(sub.join(' · '), 52), C.item, y + 3.6);
+            }
+            doc.setDrawColor(200, 204, 220); doc.setLineWidth(0.25);
+            doc.line(C.cond, y + 1, 198, y + 1);
+            y += sub.length ? 11 : 8.5;
+            doc.setDrawColor(232, 234, 242); doc.line(M, y - 2.5, 198, y - 2.5);
+          });
+          y += 3;
+        });
+
+        // Repairs, hardware and any custom lines — the driver needs to know
+        // a track is being replaced or a leader is coming back with it.
+        const q2 = job.data?.quote || {};
+        const extraLines = [];
+        (q2.rooms || []).forEach((rm) => {
+          (rm.items || []).filter((x) => x.cat === 'custom').forEach((x) => {
+            extraLines.push(`${rm.name || 'Room'}: ${x.label || 'Custom item'}`);
+          });
+          (rm.repairs || []).forEach((r) => {
+            const lbl = (REPAIRS.find(([k]) => k === r.key) || [null, r.key])[1];
+            extraLines.push(`${rm.name || 'Room'}: ${lbl} x${parseInt(r.qty, 10) || 0}`);
+          });
+        });
+        (q2.repairs || []).forEach((r) => {
+          const lbl = (REPAIRS.find(([k]) => k === r.key) || [null, r.key])[1];
+          extraLines.push(`Whole job: ${lbl} x${parseInt(r.qty, 10) || 0}`);
+        });
+        if (extraLines.length) {
+          space(14 + extraLines.length * 5);
+          doc.setFont('helvetica', 'bold'); doc.setFontSize(10.5); doc.setTextColor(...BRAND.blue);
+          doc.text('REPAIRS, HARDWARE & OTHER QUOTED LINES', M, y); y += 6;
+          doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(30, 30, 45);
+          extraLines.forEach((l) => {
+            this._box(doc, M, y - 3.5, 4);
+            doc.text(clip(l, 95), M + 7, y);
+            y += 6;
+          });
+          y += 2;
+        }
+        if (q2.notes) {
+          space(16);
+          doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(...BRAND.blue);
+          doc.text('QUOTE NOTES', M, y); y += 4.5;
+          doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(60, 60, 75);
+          const wrapped = doc.splitTextToSize(String(q2.notes), 186);
+          doc.text(wrapped, M, y); y += wrapped.length * 4 + 3;
+        }
+
+        // Found-on-site rows — this is where extra revenue gets captured.
+        // Reserved as one block with the sign-off so a short job never breaks
+        // onto a second page carrying nothing but signature lines.
+        const TAIL = 68;
+        if (y + TAIL > 288) { doc.addPage(); y = 20; }
+        y += 1;
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(10.5); doc.setTextColor(...BRAND.pink);
+        doc.text('FOUND ON SITE — NOT QUOTED', M, y);
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(110, 110, 120);
+        doc.text('room · item · size · pieces — the office will add it to the job', M + 66, y);
+        y += 5;
+        for (let i = 0; i < 4; i += 1) {
+          doc.setDrawColor(180, 184, 205); doc.setLineWidth(0.3);
+          doc.line(M, y, 198, y); y += 7;
+        }
+
+        y += 2;
+        this._signoff(doc, y, [
+          ['Items expected: ' + (items || []).length + '        Items taken:', 62, 92, 'Bags used:', 24],
+          ['Photos taken:', 26, 60, 'Driver:', 18],
+          ['Customer name:', 30, 92, 'Signature:', 24],
+        ]);
+
+        doc.setFont('helvetica', 'italic'); doc.setFontSize(7.5); doc.setTextColor(130, 130, 145);
+        doc.text('Customer signature confirms the items listed were collected and the condition notes above are agreed.', M, 291);
+
+        doc.save(`${job.quote_number || 'Job'}-Takedown.pdf`);
+      },
+
+      // ---------- REHANG SHEET ----------
+      rehang(job, items) {
+        const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+        const M = 12, PW = 210;
+        let y = this._frame(doc, job, 'REHANG SHEET', 'Sorted by storage location — pull the racks in this order.');
+
+        const tags = showItemTags();
+        const C = { ref: M, room: 30, item: 62, bag: 116, loc: 134, tick: 180 };
+        const header = () => {
+          doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(110, 110, 120);
+          doc.text(tags ? 'TAG' : 'NO.', C.ref, y);
+          doc.text('ROOM', C.room, y);
+          doc.text('ITEM', C.item, y);
+          doc.text('BAG', C.bag, y);
+          doc.text('LOCATION', C.loc, y);
+          doc.text('HUNG', C.tick, y);
+          y += 2; doc.setDrawColor(...BRAND.blue); doc.setLineWidth(0.4); doc.line(M, y, PW - M, y); y += 5;
+        };
+        const space = (need) => { if (y + need > 262) { doc.addPage(); y = 20; header(); } };
+        header();
+
+        const sorted = (items || []).slice().sort((a, b) =>
+          String(a.location || 'zzzz').localeCompare(String(b.location || 'zzzz')) ||
+          String(a.bag || '').localeCompare(String(b.bag || '')) || a.seq - b.seq);
+
+        const groups = [];
+        sorted.forEach((it) => {
+          const k = it.location || 'NO LOCATION RECORDED';
+          const g = groups.find((gg) => gg[0] === k);
+          if (g) g[1].push(it); else groups.push([k, [it]]);
+        });
+
+        groups.forEach(([loc, rows]) => {
+          space(16);
+          doc.setFont('helvetica', 'bold'); doc.setFontSize(10.5); doc.setTextColor(...BRAND.blue);
+          doc.text(String(loc).toUpperCase(), M, y); y += 6;
+          rows.forEach((it) => {
+            space(11);
+            doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); doc.setTextColor(30, 30, 45);
+            doc.text(tags ? it.ref : '#' + it.seq, C.ref, y);
+            doc.setFontSize(9);
+            doc.text(clip(it.room, 16), C.room, y);
+            doc.setFont('helvetica', 'bold'); doc.setFontSize(9.5);
+            doc.text(clip(it.label, 26), C.item, y);
+            doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5);
+            doc.text(it.bag ? String(it.bag) : '—', C.bag, y);
+            doc.setFontSize(8.5); doc.setTextColor(90, 90, 105);
+            doc.text(clip(it.location || '—', 22), C.loc, y);
+            this._box(doc, C.tick + 3, y - 4);
+            const sub = [];
+            if (Number(it.pieces) > 1) sub.push(it.pieces + ' pieces');
+            if (it.issue) sub.push('ISSUE: ' + it.issue);
+            if (it.note) sub.push(it.note);
+            if (sub.length) {
+              doc.setFontSize(8); doc.setTextColor(...BRAND.pink);
+              doc.text(clip(sub.join(' · '), 58), C.item, y + 3.6);
+            }
+            y += sub.length ? 11 : 8.5;
+            doc.setDrawColor(232, 234, 242); doc.setLineWidth(0.25); doc.line(M, y - 2.5, 198, y - 2.5);
+          });
+          y += 3;
+        });
+
+        y += 4;
+        this._signoff(doc, y, [
+          ['Items to rehang: ' + (items || []).length + '        Items hung:', 62, 92, 'Bags returned:', 30],
+          ['Not returned / reason:', 40, 198, '', 0],
+          ['Installer:', 20, 92, 'Customer signature:', 40],
+        ]);
+
+        doc.save(`${job.quote_number || 'Job'}-Rehang.pdf`);
+      },
+    };
+
+    /* ============================================================
+       ACTIVITY — who did what, when
+       Merges the job's status history with the timestamps recorded
+       against individual items. Nothing is written twice; this is a
+       read-only view of records the app already keeps.
+       ============================================================ */
+    function buildActivity(job) {
+      const out = [];
+      (job.data?.status_history || []).forEach((h) => {
+        out.push({
+          at: h.changed_at, who: h.changed_by, kind: 'status',
+          what: `Status → ${STATUS_LABEL[h.status] || h.status}${h.note && h.note !== 'Status changed' ? ' — ' + h.note : ''}`,
+        });
+      });
+      const a = job.data?.acceptance;
+      if (a?.confirmed_at) out.push({ at: a.confirmed_at, who: a.confirmed_by, kind: 'status', what: `Quote accepted via ${a.how || 'verbal'}` });
+      const d = job.data?.declined;
+      if (d?.at) out.push({ at: d.at, who: d.by, kind: 'status', what: `Quote declined — ${d.reason || ''}${d.note ? ': ' + d.note : ''}` });
+      (job.data?.quote?.email_log || []).forEach((e) => {
+        out.push({ at: e.sent_at, who: e.sent_by || null, kind: 'status', what: `Quote emailed to ${e.to || ''}` });
+      });
+      (job.data?.items || []).forEach((it) => {
+        const nm = `${it.label} (${showItemTags() ? it.ref : '#' + it.seq}, ${it.room})`;
+        if (it.taken_at) out.push({ at: it.taken_at, who: it.taken_by, kind: 'take', what: `Taken down — ${nm}` });
+        if (it.done_at) out.push({ at: it.done_at, who: it.done_by, kind: 'prod', what: `Cleaned${it.method ? ' (' + it.method + ')' : ''}${it.bag ? ', bag ' + it.bag : ''}${it.location ? ', ' + it.location : ''} — ${nm}` });
+        if (it.rehung_at) out.push({ at: it.rehung_at, who: it.rehung_by, kind: 'hang', what: `Rehung — ${nm}` });
+      });
+      return out.filter((x) => x.at).sort((a1, b1) => new Date(b1.at) - new Date(a1.at));
+    }
+
+    function activityHtml(job) {
+      const rows = buildActivity(job);
+      if (!rows.length) return `<div class="it-empty">Nothing recorded yet.</div>`;
+      return `<ul class="act-list">${rows.map((r) => `
+        <li class="act-item">
+          <span class="act-dot ${r.kind === 'status' ? '' : r.kind}"></span>
+          <div class="act-body">
+            <div class="act-what">${escapeHtml(r.what)}</div>
+            <div class="act-when">${escapeHtml(fmtStamp(r.at))}${r.who ? ' · ' + escapeHtml(r.who) : ''}</div>
+          </div>
+        </li>`).join('')}</ul>`;
+    }
 
     // Turn common Resend/function errors into something readable.
     function sendErrorMessage(raw) {
