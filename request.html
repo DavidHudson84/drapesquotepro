@@ -122,6 +122,13 @@
   .foot { text-align: center; font-size: 12px; color: var(--muted); margin-top: 18px; }
   /* hidden honeypot field for basic bot defence */
   .hp { position: absolute; left: -9999px; top: -9999px; }
+
+  /* ---------- Embed mode (?embed=1) — form sits inside another site ---------- */
+  body.embed { background: transparent; padding: 0; }
+  body.embed .wrap { max-width: none; }
+  body.embed .card { background: transparent; box-shadow: none; border-radius: 0; padding: 0; }
+  body.embed #logo, body.embed .foot { display: none; }
+  body.embed.no-header h1, body.embed.no-header .sub { display: none; }
 </style>
 </head>
 <body>
@@ -493,7 +500,7 @@
       }));
   }
 
-  function showErr(msg) { const e = document.getElementById('err'); e.textContent = msg; e.classList.add('show'); window.scrollTo(0, 0); }
+  function showErr(msg) { const e = document.getElementById('err'); e.textContent = msg; e.classList.add('show'); window.scrollTo(0, 0); embedScrollTop(); }
 
   document.getElementById('submit').addEventListener('click', async () => {
     document.getElementById('err').classList.remove('show');
@@ -558,11 +565,39 @@
       if (!res.ok || out.error) throw new Error(out.error || `Something went wrong (${res.status})`);
       document.getElementById('form').style.display = 'none';
       document.getElementById('done').style.display = 'block';
+      embedScrollTop();
     } catch (err) {
       showErr(err.message || 'Could not send — please try again, or call us on 1300 652 866.');
       btn.disabled = false; btn.textContent = 'Send Request';
     }
   });
+
+  // ---------- Embed mode ----------
+  // request.html?embed=1 strips the page chrome and reports its height to the
+  // hosting page, so a WordPress iframe can grow and shrink with the form.
+  // Add &header=0 to also hide the "Request a Quote" heading and intro line.
+  function embedScrollTop() {}
+  (function () {
+    const qs = new URLSearchParams(location.search);
+    if (qs.get('embed') !== '1') return;
+    document.body.classList.add('embed');
+    if (qs.get('header') === '0') document.body.classList.add('no-header');
+
+    const post = (msg) => { try { parent.postMessage(Object.assign({ dqp: true }, msg), '*'); } catch (e) {} };
+    let last = 0;
+    const sendHeight = () => {
+      const h = Math.ceil(Math.max(
+        document.body.scrollHeight,
+        document.body.getBoundingClientRect().height,
+        document.documentElement.scrollHeight));
+      if (h && Math.abs(h - last) > 1) { last = h; post({ type: 'height', height: h }); }
+    };
+    embedScrollTop = () => post({ type: 'scrolltop' });
+    if (window.ResizeObserver) new ResizeObserver(sendHeight).observe(document.body);
+    window.addEventListener('load', sendHeight);
+    setInterval(sendHeight, 500);
+    sendHeight();
+  })();
 </script>
 </body>
 </html>
