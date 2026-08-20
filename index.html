@@ -988,6 +988,20 @@
         return String(s || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || null;
       },
 
+      // Keep a site's parts in step with what was typed on the job page, so the
+      // Fergus match works from structured data rather than one blob of text.
+      async updateSite(siteId, p) {
+        if (!siteId) return;
+        const { error } = await sb.from('sites').update({
+          address_line: p.street || null,
+          suburb: p.suburb || null,
+          state: p.state || 'VIC',
+          postcode: p.postcode || null,
+          updated_at: new Date().toISOString(),
+        }).eq('id', siteId);
+        if (error) throw error;
+      },
+
       // Find an existing customer by phone OR email. Deliberately two plain
       // queries rather than one compound `or` filter — values go through as
       // parameters instead of being interpolated into a filter string, and we
@@ -1069,9 +1083,13 @@
         }
 
         let siteId = null;
-        const addr = (fields.site_address || '').trim();
+        const parts = fields.address || splitAddress(fields.site_address);
+        const addr = composeAddress(parts);
         if (addr) {
-          const norm = db.normAddress(addr);
+          // address_norm is generated from address_line + suburb + postcode, so
+          // the lookup key has to be built the same way. The composed line
+          // carries the state as well and would never match.
+          const norm = db.normAddress((parts.street || '') + (parts.suburb || '') + (parts.postcode || ''));
           const { data: found, error: e1 } = await sb.from('sites')
             .select('id').eq('customer_id', customer.id).eq('address_norm', norm).limit(1);
           if (e1) throw e1;
@@ -1079,7 +1097,13 @@
             siteId = found[0].id;
           } else {
             const { data: made, error: e2 } = await sb.from('sites')
-              .insert({ company_id: cid, customer_id: customer.id, address_line: addr })
+              .insert({
+                company_id: cid, customer_id: customer.id,
+                address_line: parts.street || null,
+                suburb: parts.suburb || null,
+                state: parts.state || 'VIC',
+                postcode: parts.postcode || null,
+              })
               .select('id').single();
             if (e2) throw e2;
             siteId = made.id;
@@ -1381,7 +1405,7 @@
           customer_name: fields.customer_name || null,
           customer_phone: fields.customer_phone || null,
           customer_email: fields.customer_email || null,
-          site_address: fields.site_address || null,
+          site_address: composeAddress(fields.address || splitAddress(fields.site_address)) || null,
           customer_id: link.customer_id,
           site_id: link.site_id,
           data,
@@ -1914,10 +1938,14 @@
             customer_name: $('#c-name').value.trim() || null,
             customer_phone: $('#c-phone').value.trim() || null,
             customer_email: $('#c-email').value.trim() || null,
-            site_address: $('#c-addr').value.trim() || null,
+            site_address: composeAddress(readAddressFields('c')) || null,
             drd_number: $('#c-fergus').value.trim() || null,
           };
           await db.saveJob(job.id, { po_number: $('#c-po').value.trim() || null }, cols);
+          // Keep the site record's parts in step, since that is what the Fergus
+          // match reads. A failure here must not lose the details just saved.
+          try { await db.updateSite(job.site_id, readAddressFields('c')); }
+          catch (err) { console.error('Site address update failed:', err); }
           ui.toast('Customer details saved');
           router.jobPage(main);
         });
@@ -2731,13 +2759,81 @@
         </div>`;
     }
 
+    /* ============================================================
+       ADDRESSES
+       Held as parts on the site record and composed into the one line that
+       every PDF, job card, list and email already renders. A single composer
+       keeps the format identical everywhere, and splitting the entry stops a
+       bare suburb being stored as though it were an address, which is what
+       once attached a job to a stranger's property in Fergus.
+       ============================================================ */
+    const AU_STATES = ['VIC', 'NSW', 'QLD', 'SA', 'WA', 'TAS', 'NT', 'ACT'];
+
+    function composeAddress(p) {
+      const street = (p.street || '').trim();
+      const suburb = (p.suburb || '').trim();
+      const state = (p.state || '').trim().toUpperCase();
+      const postcode = (p.postcode || '').trim();
+      // The state only means anything next to a suburb or postcode. Without one
+      // it would render as a bare "VIC" on a quote PDF.
+      const locality = (suburb || postcode)
+        ? [suburb, state, postcode].filter(Boolean).join(' ')
+        : '';
+      return [street, locality].filter(Boolean).join(', ');
+    }
+
+    // Older jobs hold one typed line. Pull it apart so the edit form opens
+    // populated, and so old records improve quietly as they get touched.
+    function splitAddress(line) {
+      let s = String(line || '').trim();
+      const out = { street: '', suburb: '', state: '', postcode: '' };
+      if (!s) { out.state = 'VIC'; return out; }
+      const pc = s.match(/\b(\d{4})\b\s*$/);
+      if (pc) { out.postcode = pc[1]; s = s.slice(0, pc.index).trim(); }
+      const st = s.match(/[,\s]+(VIC|VICTORIA|NSW|QLD|SA|WA|TAS|NT|ACT)\.?\s*$/i);
+      if (st) {
+        const raw = st[1].toUpperCase();
+        out.state = raw === 'VICTORIA' ? 'VIC' : raw;
+        s = s.slice(0, st.index).trim();
+      }
+      s = s.replace(/,\s*$/, '').trim();
+      const parts = s.split(',').map((x) => x.trim()).filter(Boolean);
+      if (parts.length >= 2) { out.suburb = parts.pop(); out.street = parts.join(', '); }
+      else if (/^\s*\d/.test(s)) { out.street = s; }   // starts with a number, so it is a street
+      else { out.suburb = s; }                          // no number: it was only ever a suburb
+      if (!out.state) out.state = 'VIC';
+      return out;
+    }
+
+    // The four inputs, shared by the New Job modal and the job page.
+    function addressFieldsHtml(prefix, p) {
+      const opts = AU_STATES.map((s) =>
+        `<option value="${s}"${(p.state || 'VIC') === s ? ' selected' : ''}>${s}</option>`).join('');
+      return `
+        <div class="field"><label>Street address *</label><input id="${prefix}-street" value="${escapeAttr(p.street)}" placeholder="12 Elm Court" /></div>
+        <div class="row2">
+          <div class="field"><label>Suburb *</label><input id="${prefix}-suburb" value="${escapeAttr(p.suburb)}" placeholder="Williamstown" /></div>
+          <div class="field"><label>Postcode</label><input id="${prefix}-postcode" value="${escapeAttr(p.postcode)}" placeholder="3016" /></div>
+        </div>
+        <div class="field"><label>State</label><select id="${prefix}-state">${opts}</select></div>`;
+    }
+
+    function readAddressFields(prefix) {
+      return {
+        street: $('#' + prefix + '-street').value.trim(),
+        suburb: $('#' + prefix + '-suburb').value.trim(),
+        state: $('#' + prefix + '-state').value,
+        postcode: $('#' + prefix + '-postcode').value.trim(),
+      };
+    }
+
     function customerDetailsHtml(job) {
       return `
         <div class="detail-grid">
           <div class="field"><label>Customer name</label><input id="c-name" value="${escapeAttr(job.customer_name)}" /></div>
           <div class="field"><label>Phone</label><input id="c-phone" value="${escapeAttr(job.customer_phone)}" /></div>
           <div class="field"><label>Email</label><input id="c-email" value="${escapeAttr(job.customer_email)}" /></div>
-          <div class="field"><label>Site address</label><input id="c-addr" value="${escapeAttr(job.site_address)}" /></div>
+          ${addressFieldsHtml('c', splitAddress(job.site_address))}
           <div class="field"><label>Fergus DRD number (filled automatically on acceptance)</label><input id="c-fergus" value="${escapeAttr(job.drd_number)}" placeholder="Created in Fergus when the quote is accepted" /></div>
           <div class="field"><label>Purchase Order number</label><input id="c-po" value="${escapeAttr(job.data?.po_number)}" placeholder="PO / reference (optional)" /></div>
         </div>
@@ -5918,7 +6014,7 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
                 <div class="field"><label>Email *</label><input id="nj-email" placeholder="name@email.com" /></div>
               </div>
               <div style="font-size:12px;color:var(--muted);margin:-6px 0 12px">At least one of phone or email is required — it's how repeat customers get matched.</div>
-              <div class="field"><label>Site address</label><input id="nj-addr" placeholder="12 Elm Ct, Williamstown VIC 3016" /></div>
+              ${addressFieldsHtml('nj', { street: '', suburb: '', state: 'VIC', postcode: '' })}
               <div class="field"><label>Job type</label>
                 <select id="nj-type">
                   <option value="fast_quote">Fast Quote</option>
@@ -5994,6 +6090,11 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
           errEl.textContent = 'Enter a phone number or an email address — without one this job can never be matched to a repeat customer.';
           errEl.classList.remove('hidden'); return;
         }
+        const njAddr = readAddressFields('nj');
+        if (!njAddr.street || !njAddr.suburb) {
+          errEl.textContent = 'Street address and suburb are both needed. They are what put the job at the right property in Fergus.';
+          errEl.classList.remove('hidden'); return;
+        }
         errEl.classList.add('hidden');
         const btn = $('#nj-create');
         btn.disabled = true; btn.textContent = 'Creating…';
@@ -6003,7 +6104,7 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
             customer_phone: $('#nj-phone').value.trim(),
             customer_email: $('#nj-email').value.trim(),
             customer_id: matchedId,
-            site_address: $('#nj-addr').value.trim(),
+            address: njAddr,
             job_type: $('#nj-type').value,
             insurer_name: $('#nj-insurer').value.trim(),
             claim_number: $('#nj-claim').value.trim(),
