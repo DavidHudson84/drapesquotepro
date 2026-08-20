@@ -1790,6 +1790,11 @@
             </div>`;
         }).join('') : `<div style="padding:40px;text-align:center;color:var(--muted)">No jobs ${archivedView ? 'archived' : (route.filter !== 'all' ? 'with this status' : 'yet')}. ${archivedView ? '' : 'Tap <strong>+ New Job</strong> to create one.'}</div>`;
 
+        // Rendering replaces the search box itself, which is why typing used to
+        // drop out and need another click. Remember focus and caret first.
+        const searchHadFocus = !!document.activeElement && document.activeElement.id === 'job-search';
+        const searchCaret = searchHadFocus ? document.activeElement.selectionStart : null;
+
         main.innerHTML = `
           <div class="page-head"><h1>Jobs</h1><p>${filtered.length} ${archivedView ? 'archived' : 'of ' + jobs.length} job${jobs.length === 1 ? '' : 's'}</p></div>
           <div class="list-controls">
@@ -1814,7 +1819,12 @@
           }));
         const nb = $('#new-job-btn'); if (nb) nb.addEventListener('click', openNewJobModal);
         const sb_ = $('#job-search');
-        sb_.addEventListener('input', debounce((e) => { route.search = e.target.value; router.jobsList(main); }, 250));
+        sb_.addEventListener('input', (e) => { route.search = e.target.value; runJobSearch(main); });
+        if (searchHadFocus) {
+          sb_.focus();
+          const end = sb_.value.length;
+          sb_.setSelectionRange(searchCaret === null ? end : searchCaret, searchCaret === null ? end : searchCaret);
+        }
         document.querySelectorAll('.chip[data-filter]').forEach((c) =>
           c.addEventListener('click', () => { route.filter = c.dataset.filter; router.jobsList(main); }));
         document.querySelectorAll('.job-row[data-job]').forEach((r) =>
@@ -6514,6 +6524,11 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
     function debounce(fn, ms) {
       let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
     }
+
+    // Deliberately module-level: the jobs list re-renders its own wiring, so a
+    // debounce created inside that render would start a fresh timer each time
+    // and never actually wait. 600ms is long enough to finish typing a name.
+    const runJobSearch = debounce((mount) => router.jobsList(mount), 600);
     function deepClone(o) { return JSON.parse(JSON.stringify(o ?? null)); }
     // Deep-merge source into a clone of target (objects merge, arrays/scalars replace).
     function deepMerge(target, source) {
