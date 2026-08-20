@@ -300,6 +300,7 @@
       padding: 0 22px; box-shadow: 0 1px 2px rgba(26,28,80,.04);
     }
     .navbar a {
+      display: inline-flex; align-items: center; gap: 7px;
       padding: 14px 16px; font-size: 14px; font-weight: 600;
       color: var(--muted); text-decoration: none;
       border-bottom: 2.5px solid transparent; cursor: pointer;
@@ -307,6 +308,12 @@
     }
     .navbar a:hover { color: var(--navy-mid); }
     .navbar a.active { color: var(--navy-dark); border-bottom-color: var(--red); }
+    /* Count of new enquiries, sitting on the Enquiries tab */
+    .nav-badge {
+      min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px;
+      background: var(--red); color: #fff;
+      font-size: 11.5px; font-weight: 700; line-height: 20px; text-align: center;
+    }
 
     /* ============================================================
        JOBS LIST
@@ -853,7 +860,7 @@
         <a data-route="dashboard" class="active">Dashboard</a>
         <a data-route="jobs">Jobs</a>
         <a data-route="reports">Reports</a>
-        <a data-route="enquiries">Enquiries</a>
+        <a data-route="enquiries">Enquiries<span class="nav-badge hidden" id="nav-enq-badge">0</span></a>
         <a data-route="admin" id="nav-admin" style="display:none">Admin</a>
       </nav>
 
@@ -1141,6 +1148,16 @@
           .order('submitted_at', { ascending: false });
         if (error) throw error;
         return data || [];
+      },
+
+      // Head-only count for the nav badge — no rows come back over the wire.
+      async countNewEnquiries() {
+        const { count, error } = await sb
+          .from('enquiries')
+          .select('id', { count: 'exact', head: true })
+          .eq('status', 'new');
+        if (error) throw error;
+        return count || 0;
       },
 
       async setEnquiryStatus(enquiryId, status) {
@@ -2010,6 +2027,8 @@
             </div>`;
         }).join('') : `<div class="empty-card"><h3>No ${f === 'all' ? '' : f} enquiries</h3><p>Customer submissions from your request form appear here.</p></div>`;
 
+        enqBadge.set(counts.new || 0);
+
         main.innerHTML = `
           <div class="page-head"><h1>Enquiries</h1><p>Customer request-form submissions</p></div>
           <div class="filter-chips" style="margin-bottom:16px">${chips}</div>
@@ -2021,7 +2040,7 @@
         document.querySelectorAll('[data-called]').forEach((b) =>
           b.addEventListener('click', async () => {
             await db.setEnquiryStatus(b.dataset.called, 'called');
-            ui.toast('Marked as called'); router.enquiries(main);
+            ui.toast('Marked as called'); enqBadge.refresh(); router.enquiries(main);
           }));
 
         document.querySelectorAll('[data-convert]').forEach((b) =>
@@ -2031,6 +2050,7 @@
               const enq = list.find((x) => x.id === b.dataset.convert);
               const job = await db.convertEnquiry(enq);
               ui.toast('Converted to job ' + job.quote_number);
+              enqBadge.refresh();
               route.jobId = job.id; router.go('job', { jobId: job.id });
             } catch (err) {
               ui.toast('Convert failed: ' + (err.message || 'error'));
@@ -6436,6 +6456,7 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
         $('#password').value = '';
         ui.showApp();
         router.go('dashboard');
+        enqBadge.start();
       } catch (err) {
         const msg = /invalid login credentials/i.test(err.message || '')
           ? 'Incorrect email or password.'
@@ -6445,6 +6466,35 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
         btn.disabled = false; btn.textContent = 'Sign in';
       }
     }
+
+    /* ============================================================
+       ENQUIRY BADGE
+       New enquiries arrive while nobody is looking at the Enquiries tab.
+       Show how many are still untouched right on the tab, refreshed on a
+       timer and whenever the tab is brought back to the front.
+       ============================================================ */
+    const enqBadge = {
+      timer: null,
+      set(n) {
+        const el = document.getElementById('nav-enq-badge');
+        if (!el) return;
+        el.textContent = n > 99 ? '99+' : n;
+        el.classList.toggle('hidden', !n);
+      },
+      async refresh() {
+        if (!session.profile) return;
+        let n;
+        try { n = await db.countNewEnquiries(); }
+        catch (_) { return; }          // never let a failed count break the nav
+        this.set(n);
+      },
+      start() {
+        this.refresh();
+        if (this.timer) clearInterval(this.timer);
+        this.timer = setInterval(() => this.refresh(), 60 * 1000);
+        document.addEventListener('visibilitychange', () => { if (!document.hidden) this.refresh(); });
+      },
+    };
 
     /* ============================================================
        VERSION WATCH
@@ -6496,7 +6546,7 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
     (async function boot() {
       try {
         const ok = await auth.resolveSession();
-        if (ok) { ui.showApp(); router.go('dashboard'); }
+        if (ok) { ui.showApp(); router.go('dashboard'); enqBadge.start(); }
         else { ui.showLogin(); }
         versionWatch.start();
       } catch (err) {
