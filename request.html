@@ -565,6 +565,7 @@
       if (!res.ok || out.error) throw new Error(out.error || `Something went wrong (${res.status})`);
       document.getElementById('form').style.display = 'none';
       document.getElementById('done').style.display = 'block';
+      embedSubmitted();
       embedScrollTop();
     } catch (err) {
       showErr(err.message || 'Could not send — please try again, or call us on 1300 652 866.');
@@ -576,7 +577,10 @@
   // request.html?embed=1 strips the page chrome and reports its height to the
   // hosting page, so a WordPress iframe can grow and shrink with the form.
   // Add &header=0 to also hide the "Request a Quote" heading and intro line.
+  // It also announces a successful submission, so the host page can record the
+  // conversion in Google Tag Manager or similar.
   function embedScrollTop() {}
+  function embedSubmitted() {}
   (function () {
     const qs = new URLSearchParams(location.search);
     if (qs.get('embed') !== '1') return;
@@ -593,6 +597,7 @@
       if (h && Math.abs(h - last) > 1) { last = h; post({ type: 'height', height: h }); }
     };
     embedScrollTop = () => post({ type: 'scrolltop' });
+    embedSubmitted = () => post({ type: 'submitted' });
     if (window.ResizeObserver) new ResizeObserver(sendHeight).observe(document.body);
     window.addEventListener('load', sendHeight);
     setInterval(sendHeight, 500);
