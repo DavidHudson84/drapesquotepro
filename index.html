@@ -1707,10 +1707,26 @@
       },
 
       /* ---------- JOBS LIST ---------- */
-      async jobsList(main) {
-        main.innerHTML = `<div class="empty-card"><div class="spin" style="margin:0 auto;border-top-color:var(--navy-mid);border-color:#ddd;border-top-color:var(--navy-mid)"></div></div>`;
+      // opts.rowsOnly repaints just the table from jobs already in memory.
+      // Searching used to blank the page to a spinner and refetch every job on
+      // each keystroke, which destroyed the very input being typed into. The
+      // search box and chips are now left alone and only the table is rebuilt.
+      async jobsList(main, opts = {}) {
         const archivedView = route.filter === 'archived';
-        const jobs = await db.listJobs(archivedView);
+        const viewKey = 'jobs-' + archivedView;
+        const repaint = !!opts.rowsOnly
+          && main.dataset.view === viewKey
+          && !!jobsCache && jobsCache.key === viewKey
+          && !!$('#jobs-table');
+
+        let jobs;
+        if (repaint) {
+          jobs = jobsCache.jobs;
+        } else {
+          main.innerHTML = `<div class="empty-card"><div class="spin" style="margin:0 auto;border-top-color:var(--navy-mid);border-color:#ddd;border-top-color:var(--navy-mid)"></div></div>`;
+          jobs = await db.listJobs(archivedView);
+          jobsCache = { key: viewKey, jobs };
+        }
 
         const filtered = jobs.filter((j) => {
           if (!archivedView && route.filter !== 'all' && j.status !== route.filter) return false;
@@ -1790,63 +1806,69 @@
             </div>`;
         }).join('') : `<div style="padding:40px;text-align:center;color:var(--muted)">No jobs ${archivedView ? 'archived' : (route.filter !== 'all' ? 'with this status' : 'yet')}. ${archivedView ? '' : 'Tap <strong>+ New Job</strong> to create one.'}</div>`;
 
-        // Rendering replaces the search box itself, which is why typing used to
-        // drop out and need another click. Remember focus and caret first.
-        const searchHadFocus = !!document.activeElement && document.activeElement.id === 'job-search';
-        const searchCaret = searchHadFocus ? document.activeElement.selectionStart : null;
+        const countText = `${filtered.length} ${archivedView ? 'archived' : 'of ' + jobs.length} job${jobs.length === 1 ? '' : 's'}`;
+        const headRow = `<div class="job-row head">
+              ${hdr('dq', 'DRQ')}${hdr('fergus', 'DRD')}${hdr('customer', 'Customer')}${hdr('address', 'Address')}${hdr('date', 'Date')}${hdr('status', 'Status')}${hdr('total', 'Total', 'text-align:right')}
+            </div>`;
 
+        // Everything inside the table, rewired whenever the table is rebuilt.
+        // Sorting and searching both go through the rows-only path, so neither
+        // touches the search box or costs a round trip to the database.
+        const wireTable = () => {
+          document.querySelectorAll('.hdr[data-sort]').forEach((h) =>
+            h.addEventListener('click', () => {
+              const k = h.dataset.sort;
+              if (route.sortKey === k) route.sortDir = (route.sortDir === 'asc' ? 'desc' : 'asc');
+              else { route.sortKey = k; route.sortDir = (k === 'date' || k === 'total') ? 'desc' : 'asc'; }
+              router.jobsList(main, { rowsOnly: true });
+            }));
+          document.querySelectorAll('.job-row[data-job]').forEach((r) =>
+            r.addEventListener('click', (e) => {
+              if (e.target.closest('.row-arch')) return; // don't open when clicking archive
+              router.go('job', { jobId: r.dataset.job });
+            }));
+          // Archiving changes the data itself, so those reload properly.
+          document.querySelectorAll('[data-arch]').forEach((b) =>
+            b.addEventListener('click', async (e) => {
+              e.stopPropagation();
+              if (!confirm('Archive this job? It will be hidden from lists and stats (recoverable).')) return;
+              await db.setArchived(b.dataset.arch, true);
+              ui.toast('Job archived');
+              router.jobsList(main);
+            }));
+          document.querySelectorAll('[data-unarch]').forEach((b) =>
+            b.addEventListener('click', async (e) => {
+              e.stopPropagation();
+              await db.setArchived(b.dataset.unarch, false);
+              ui.toast('Job restored');
+              router.jobsList(main);
+            }));
+        };
+
+        if (repaint) {
+          const cnt = $('#jobs-count'); if (cnt) cnt.textContent = countText;
+          $('#jobs-table').innerHTML = headRow + rows;
+          wireTable();
+          return;
+        }
+
+        main.dataset.view = viewKey;
         main.innerHTML = `
-          <div class="page-head"><h1>Jobs</h1><p>${filtered.length} ${archivedView ? 'archived' : 'of ' + jobs.length} job${jobs.length === 1 ? '' : 's'}</p></div>
+          <div class="page-head"><h1>Jobs</h1><p id="jobs-count">${countText}</p></div>
           <div class="list-controls">
             <input class="search-box" id="job-search" placeholder="Search DRQ, DRD, PO, customer, address…" value="${escapeHtml(route.search)}" />
             ${archivedView ? '' : '<button class="btn-new" id="new-job-btn">+ New Job</button>'}
           </div>
           <div class="filter-chips" style="margin-bottom:16px">${chips}</div>
-          <div class="jobs-table">
-            <div class="job-row head">
-              ${hdr('dq', 'DRQ')}${hdr('fergus', 'DRD')}${hdr('customer', 'Customer')}${hdr('address', 'Address')}${hdr('date', 'Date')}${hdr('status', 'Status')}${hdr('total', 'Total', 'text-align:right')}
-            </div>
-            ${rows}
-          </div>`;
+          <div class="jobs-table" id="jobs-table">${headRow}${rows}</div>`;
 
         // wire
-        document.querySelectorAll('.hdr[data-sort]').forEach((h) =>
-          h.addEventListener('click', () => {
-            const k = h.dataset.sort;
-            if (route.sortKey === k) route.sortDir = (route.sortDir === 'asc' ? 'desc' : 'asc');
-            else { route.sortKey = k; route.sortDir = (k === 'date' || k === 'total') ? 'desc' : 'asc'; }
-            router.jobsList(main);
-          }));
         const nb = $('#new-job-btn'); if (nb) nb.addEventListener('click', openNewJobModal);
         const sb_ = $('#job-search');
         sb_.addEventListener('input', (e) => { route.search = e.target.value; runJobSearch(main); });
-        if (searchHadFocus) {
-          sb_.focus();
-          const end = sb_.value.length;
-          sb_.setSelectionRange(searchCaret === null ? end : searchCaret, searchCaret === null ? end : searchCaret);
-        }
         document.querySelectorAll('.chip[data-filter]').forEach((c) =>
           c.addEventListener('click', () => { route.filter = c.dataset.filter; router.jobsList(main); }));
-        document.querySelectorAll('.job-row[data-job]').forEach((r) =>
-          r.addEventListener('click', (e) => {
-            if (e.target.closest('.row-arch')) return; // don't open when clicking archive
-            router.go('job', { jobId: r.dataset.job });
-          }));
-        document.querySelectorAll('[data-arch]').forEach((b) =>
-          b.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            if (!confirm('Archive this job? It will be hidden from lists and stats (recoverable).')) return;
-            await db.setArchived(b.dataset.arch, true);
-            ui.toast('Job archived');
-            router.jobsList(main);
-          }));
-        document.querySelectorAll('[data-unarch]').forEach((b) =>
-          b.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            await db.setArchived(b.dataset.unarch, false);
-            ui.toast('Job restored');
-            router.jobsList(main);
-          }));
+        wireTable();
       },
 
       /* ---------- JOB PAGE ---------- */
@@ -6528,7 +6550,10 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
     // Deliberately module-level: the jobs list re-renders its own wiring, so a
     // debounce created inside that render would start a fresh timer each time
     // and never actually wait. 600ms is long enough to finish typing a name.
-    const runJobSearch = debounce((mount) => router.jobsList(mount), 600);
+    // Jobs already loaded for the current view. Filtering is done in the browser,
+    // so searching reuses these rather than refetching every job per keystroke.
+    let jobsCache = null;
+    const runJobSearch = debounce((mount) => router.jobsList(mount, { rowsOnly: true }), 350);
     function deepClone(o) { return JSON.parse(JSON.stringify(o ?? null)); }
     // Deep-merge source into a clone of target (objects merge, arrays/scalars replace).
     function deepMerge(target, source) {
