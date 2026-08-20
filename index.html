@@ -6389,6 +6389,48 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
     }
 
     /* ============================================================
+       VERSION WATCH
+       The whole app is one file served from GitHub Pages, so a tab left
+       open across a deploy keeps running the code it loaded. That is how
+       an acceptance can look fine on screen and never reach Fergus.
+       Watch the served file and offer a reload when it changes.
+       ============================================================ */
+    const versionWatch = {
+      stamp: null,
+      async read() {
+        try {
+          const res = await fetch(location.pathname + '?v=' + Date.now(), { method: 'HEAD', cache: 'no-store' });
+          return res.headers.get('etag') || res.headers.get('last-modified');
+        } catch (_) {
+          return null;   // offline or blocked; never nag on a failed check
+        }
+      },
+      async start() {
+        this.stamp = await this.read();
+        if (!this.stamp) return;
+        const check = async () => {
+          const now = await this.read();
+          if (now && now !== this.stamp) this.show();
+        };
+        setInterval(check, 5 * 60 * 1000);
+        document.addEventListener('visibilitychange', () => { if (!document.hidden) check(); });
+      },
+      show() {
+        if (document.getElementById('version-banner')) return;
+        const b = document.createElement('div');
+        b.id = 'version-banner';
+        b.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:9999;background:#2b2d7e;color:#fff;'
+          + "font:600 14px 'Montserrat',Arial,sans-serif;padding:12px 16px;display:flex;justify-content:center;"
+          + 'gap:14px;align-items:center;flex-wrap:wrap';
+        b.innerHTML = '<span>A newer version of DrapesQuotePro is available. Reload before accepting any more quotes.</span>'
+          + '<button id="version-reload" style="font:600 13px Montserrat,Arial,sans-serif;background:#fff;'
+          + 'color:#2b2d7e;border:0;border-radius:4px;padding:6px 14px;cursor:pointer">Reload now</button>';
+        document.body.appendChild(b);
+        document.getElementById('version-reload').addEventListener('click', () => location.reload());
+      },
+    };
+
+    /* ============================================================
        BOOT
        Resolve session BEFORE anything renders. Nothing shows until
        we know who the user is and which company they belong to.
@@ -6398,6 +6440,7 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
         const ok = await auth.resolveSession();
         if (ok) { ui.showApp(); router.go('dashboard'); }
         else { ui.showLogin(); }
+        versionWatch.start();
       } catch (err) {
         console.error('Boot error:', err);
         ui.showLogin();
