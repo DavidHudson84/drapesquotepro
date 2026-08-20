@@ -1513,6 +1513,8 @@
        job page sections in later build steps.
        ============================================================ */
     const STATUSES = ['quoted', 'confirmed', 'in_progress', 'complete', 'invoiced', 'rehung'];
+    // Everything from acceptance onward — the point a job should exist in Fergus.
+    const ACCEPTED_STATUSES = ['confirmed', 'in_progress', 'complete', 'invoiced', 'rehung'];
     const STATUS_LABEL = {
       quoted: 'Quoted', confirmed: 'Confirmed', in_progress: 'In Progress',
       complete: 'Clean / Ready', invoiced: 'Invoiced', rehung: 'Rehung / Completed',
@@ -1815,7 +1817,7 @@
             <div class="top">
               <div>
                 <h1>${escapeHtml(job.customer_name || 'No name')}</h1>
-                <div class="dq-big">${escapeHtml(job.quote_number || '—')}${job.drd_number ? ` &nbsp;·&nbsp; <span style="color:var(--muted);font-weight:600">Fergus: ${escapeHtml(job.drd_number)}</span>` : ''}${job.data?.po_number ? ` &nbsp;·&nbsp; <span style="color:var(--muted);font-weight:600">PO: ${escapeHtml(job.data.po_number)}</span>` : ''}</div>
+                <div class="dq-big">${escapeHtml(job.quote_number || '—')}${job.drd_number ? ` &nbsp;·&nbsp; <span style="color:var(--muted);font-weight:600">Fergus: ${escapeHtml(job.drd_number)}</span>` : ''}${job.data?.po_number ? ` &nbsp;·&nbsp; <span style="color:var(--muted);font-weight:600">PO: ${escapeHtml(job.data.po_number)}</span>` : ''}${(!job.fergus_job_id && ACCEPTED_STATUSES.includes(job.status)) ? ` &nbsp;·&nbsp; <button id="fergus-push" style="font:600 12px 'Montserrat',sans-serif;color:var(--muted);background:none;border:1px solid var(--muted);border-radius:4px;padding:2px 8px;cursor:pointer">Push to Fergus</button>` : ''}</div>
                 <div class="meta">${escapeHtml(job.customer_phone || '')}${job.customer_phone && job.site_address ? ' · ' : ''}${escapeHtml(job.site_address || '')}</div>
               </div>
               <span class="status-pill s-${job.status}" style="align-self:center">${STATUS_LABEL[job.status]}</span>
@@ -1835,6 +1837,20 @@
 
         // wire
         $('#back-jobs').addEventListener('click', () => router.go('jobs'));
+
+        // Manual retry for a job accepted while Fergus was unreachable.
+        const fpBtn = $('#fergus-push');
+        if (fpBtn) fpBtn.addEventListener('click', async () => {
+          fpBtn.disabled = true; fpBtn.textContent = 'Pushing\u2026';
+          try {
+            const out = await fergusPush.run(job.id);
+            ui.toast(out.fergus_job_no ? 'Created in Fergus as ' + out.fergus_job_no : 'Pushed to Fergus');
+            router.jobPage(main);
+          } catch (err) {
+            ui.toast('Fergus: ' + (err.message || 'push failed'));
+            fpBtn.disabled = false; fpBtn.textContent = 'Push to Fergus';
+          }
+        });
 
         // initialise the quote builder for this job
         quoteBuilder.init(job);
@@ -4478,7 +4494,16 @@
             if (order.indexOf(fresh.status) < order.indexOf('confirmed')) {
               await db.advanceStatus(this.jobId, 'confirmed');
             }
-            ui.toast('Acceptance confirmed');
+            // Push to Fergus. Deliberately after the status advance, so a
+            // Fergus outage can never leave a quote stuck unaccepted.
+            let msg = 'Acceptance confirmed';
+            try {
+              const out = await fergusPush.run(this.jobId);
+              if (out.fergus_job_no) msg += ' \u00b7 Fergus ' + out.fergus_job_no;
+            } catch (err) {
+              msg += ' \u2014 not sent to Fergus: ' + (err.message || 'push failed');
+            }
+            ui.toast(msg);
             // Offer to send the customer an acceptance email (optional).
             const fresh2 = await db.getJob(this.jobId);
             acceptanceEmail.open(fresh2);
@@ -5546,6 +5571,55 @@
             btn.disabled = false; btn.textContent = 'Send Email';
           }
         });
+      },
+    };
+
+    /* ============================================================
+       FERGUS PUSH
+       Acceptance is the only way a job gets into Fergus — nothing is ever
+       raised there as a quote. This calls the push-to-fergus Edge Function,
+       which finds or creates the customer and site, raises a Charge Up job
+       and writes the DRD number back onto this quote.
+
+       It must never block or reverse an acceptance. If Fergus is down or the
+       customer is ambiguous, the quote stays accepted and a Push to Fergus
+       button appears in the job header to try again.
+       ============================================================ */
+    const fergusPush = {
+      async run(jobId, { force = false } = {}) {
+        const { data: { session: s } } = await sb.auth.getSession();
+        // Fergus can take a few seconds; never leave the button spinning forever.
+        const ctl = new AbortController();
+        const timer = setTimeout(() => ctl.abort(), 25000);
+        try {
+          const res = await fetch(`${SUPABASE_URL}/functions/v1/push-to-fergus`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${s.access_token}`, 'apikey': SUPABASE_ANON_KEY },
+            body: JSON.stringify({ job_id: jobId, force }),
+            signal: ctl.signal,
+          });
+          const out = await res.json().catch(() => ({}));
+          if (!res.ok || !out.ok) throw new Error(fergusPush.explain(out, res.status));
+          return out;
+        } catch (err) {
+          if (err.name === 'AbortError') throw new Error('Fergus did not respond in time');
+          throw err;
+        } finally {
+          clearTimeout(timer);
+        }
+      },
+
+      // Plain English for the failures a person can actually act on.
+      explain(out, status) {
+        if (out.code === 'no_token') return 'Fergus is not connected yet — the API token is missing';
+        if (out.code === 'job_not_found') return 'this job was not found';
+        if (out.code === 'ambiguous_customer') {
+          const names = (out.candidates || []).map((c) => `${c.name} (${c.id})`).join(', ');
+          return `more than one Fergus customer matches${names ? ' — ' + names : ''}. Merge them in Fergus, or raise this job by hand`;
+        }
+        if (out.code === 'writeback_failed') return out.error;
+        if (status === 401) return 'Fergus rejected the API token';
+        return out.error || `Fergus push failed (${status})`;
       },
     };
 
