@@ -1843,7 +1843,8 @@
         if (fpBtn) fpBtn.addEventListener('click', async () => {
           fpBtn.disabled = true; fpBtn.textContent = 'Pushing\u2026';
           try {
-            const out = await fergusPush.run(job.id);
+            const out = await fergusPush.runWithApproval(job.id);
+            if (out.skipped) { fpBtn.disabled = false; fpBtn.textContent = 'Push to Fergus'; return; }
             ui.toast(out.fergus_job_no ? 'Created in Fergus as ' + out.fergus_job_no : 'Pushed to Fergus');
             router.jobPage(main);
           } catch (err) {
@@ -4498,8 +4499,9 @@
             // Fergus outage can never leave a quote stuck unaccepted.
             let msg = 'Acceptance confirmed';
             try {
-              const out = await fergusPush.run(this.jobId);
-              if (out.fergus_job_no) msg += ' \u00b7 Fergus ' + out.fergus_job_no;
+              const out = await fergusPush.runWithApproval(this.jobId);
+              if (out.skipped) msg += ' \u2014 not sent to Fergus yet, use Push to Fergus when ready';
+              else if (out.fergus_job_no) msg += ' \u00b7 Fergus ' + out.fergus_job_no;
             } catch (err) {
               msg += ' \u2014 not sent to Fergus: ' + (err.message || 'push failed');
             }
@@ -5586,6 +5588,62 @@
        button appears in the job header to try again.
        ============================================================ */
     const fergusPush = {
+      // Resolve the match without writing anything, so it can be approved first.
+      async preview(jobId) {
+        return await fergusPush.attempt(jobId, false, true);
+      },
+
+      // Show what the job is about to be attached to and wait for a yes. Only
+      // reached when the customer or the site has never been linked before, so a
+      // repeat customer never sees this.
+      askApproval(pv) {
+        return new Promise((resolve) => {
+          const block = (label, o, isSite) => {
+            const nw = o.will_create;
+            const lines = [];
+            if (o.contacts && o.contacts.length) lines.push(escapeHtml(o.contacts.join(' \u00b7 ')));
+            if (isSite && o.contact) lines.push('Site contact in Fergus: ' + escapeHtml(o.contact));
+            return '<div style="margin:0 0 16px">'
+              + '<div style="font:700 11px Arial,sans-serif;color:#888;letter-spacing:.06em">' + label + '</div>'
+              + '<div style="font:600 15px Arial,sans-serif;color:#222;padding-top:3px">'
+              + escapeHtml((isSite ? o.address : o.name) || 'Not set') + '</div>'
+              + lines.map((l) => '<div style="font:400 13px Arial,sans-serif;color:#666">' + l + '</div>').join('')
+              + '<div style="font:600 12px Arial,sans-serif;padding-top:5px;color:' + (nw ? '#0a7d32' : '#9a6b00') + '">'
+              + (nw ? 'New \u2014 will be created in Fergus'
+                    : 'Matched an existing Fergus record \u2014 check this is the right one')
+              + '</div></div>';
+          };
+          const wrap = document.createElement('div');
+          wrap.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.45);'
+            + 'display:flex;align-items:center;justify-content:center;padding:20px';
+          wrap.innerHTML = '<div style="background:#fff;border-radius:10px;max-width:460px;width:100%;padding:22px">'
+            + '<h3 style="font:700 17px Arial,sans-serif;color:#2b2d7e;margin:0 0 4px">Check the Fergus match</h3>'
+            + '<p style="font:400 13px/1.5 Arial,sans-serif;color:#666;margin:0 0 18px">This customer or address '
+            + 'has not gone to Fergus before. Confirm it is right and you will not be asked again for them.</p>'
+            + block('CUSTOMER', pv.customer, false)
+            + block('SITE', pv.site, true)
+            + '<div style="display:flex;gap:10px;justify-content:flex-end;padding-top:4px">'
+            + '<button id="fx-no" style="font:600 13px Arial,sans-serif;background:#eee;color:#333;border:0;'
+            + 'border-radius:5px;padding:9px 16px;cursor:pointer">Not now</button>'
+            + '<button id="fx-yes" style="font:600 13px Arial,sans-serif;background:#2b2d7e;color:#fff;border:0;'
+            + 'border-radius:5px;padding:9px 16px;cursor:pointer">Send to Fergus</button></div></div>';
+          document.body.appendChild(wrap);
+          const done = (v) => { wrap.remove(); resolve(v); };
+          wrap.querySelector('#fx-no').addEventListener('click', () => done(false));
+          wrap.querySelector('#fx-yes').addEventListener('click', () => done(true));
+        });
+      },
+
+      // Preview, get approval if the match is new, then push.
+      async runWithApproval(jobId) {
+        const pv = await fergusPush.preview(jobId);
+        if (pv && pv.needs_confirmation) {
+          const ok = await fergusPush.askApproval(pv);
+          if (!ok) return { skipped: true };
+        }
+        return await fergusPush.run(jobId);
+      },
+
       async run(jobId, { force = false } = {}) {
         // The function cold-starts. A preflight that lands on a container mid
         // shutdown returns 503, which the browser reports only as an untyped
@@ -5599,7 +5657,7 @@
         }
       },
 
-      async attempt(jobId, force) {
+      async attempt(jobId, force, preview) {
         const { data: { session: s } } = await sb.auth.getSession();
         // Fergus can take a few seconds; never leave the button spinning forever.
         const ctl = new AbortController();
@@ -5608,7 +5666,7 @@
           const res = await fetch(`${SUPABASE_URL}/functions/v1/push-to-fergus`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${s.access_token}`, 'apikey': SUPABASE_ANON_KEY },
-            body: JSON.stringify({ job_id: jobId, force }),
+            body: JSON.stringify({ job_id: jobId, force, preview: !!preview }),
             signal: ctl.signal,
           });
           const out = await res.json().catch(() => ({}));
