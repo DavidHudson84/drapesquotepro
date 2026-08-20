@@ -2717,7 +2717,7 @@
           <div class="field"><label>Phone</label><input id="c-phone" value="${escapeAttr(job.customer_phone)}" /></div>
           <div class="field"><label>Email</label><input id="c-email" value="${escapeAttr(job.customer_email)}" /></div>
           <div class="field"><label>Site address</label><input id="c-addr" value="${escapeAttr(job.site_address)}" /></div>
-          <div class="field"><label>Fergus number (manual, after approval)</label><input id="c-fergus" value="${escapeAttr(job.drd_number)}" placeholder="DRD-… from Fergus" /></div>
+          <div class="field"><label>Fergus DRD number (filled automatically on acceptance)</label><input id="c-fergus" value="${escapeAttr(job.drd_number)}" placeholder="Created in Fergus when the quote is accepted" /></div>
           <div class="field"><label>Purchase Order number</label><input id="c-po" value="${escapeAttr(job.data?.po_number)}" placeholder="PO / reference (optional)" /></div>
         </div>
         <div style="margin-top:14px"><button class="btn btn-secondary" id="save-customer">Save details</button></div>`;
@@ -5587,6 +5587,19 @@
        ============================================================ */
     const fergusPush = {
       async run(jobId, { force = false } = {}) {
+        // The function cold-starts. A preflight that lands on a container mid
+        // shutdown returns 503, which the browser reports only as an untyped
+        // "Failed to fetch", so retry a genuine network failure once.
+        try {
+          return await fergusPush.attempt(jobId, force);
+        } catch (err) {
+          if (err.name !== 'TypeError') throw err;
+          await new Promise((r) => setTimeout(r, 2000));
+          return await fergusPush.attempt(jobId, force);
+        }
+      },
+
+      async attempt(jobId, force) {
         const { data: { session: s } } = await sb.auth.getSession();
         // Fergus can take a few seconds; never leave the button spinning forever.
         const ctl = new AbortController();
@@ -5817,7 +5830,7 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
       mount.innerHTML = `
         <div class="modal-backdrop" id="nj-backdrop">
           <div class="modal">
-            <div class="m-head"><h2>New Job</h2><p>A DRQ quote number is assigned when you create the job. The DRD number comes from Fergus once the job is approved.</p></div>
+            <div class="m-head"><h2>New Job</h2><p>A DRQ quote number is assigned when you create the job. The DRD number is created in Fergus automatically the moment the quote is accepted.</p></div>
             <div class="m-body">
               <div class="modal-error hidden" id="nj-error"></div>
               <div class="modal-match hidden" id="nj-match"></div>
