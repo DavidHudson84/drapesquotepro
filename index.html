@@ -134,6 +134,17 @@
       border: 1px solid #fecaca; border-radius: var(--r-sm);
       padding: 10px 12px; font-size: 13.5px; margin-bottom: 16px;
     }
+    .login-note {
+      background: #f0fdf4; color: #15803d;
+      border: 1px solid #bbf7d0; border-radius: var(--r-sm);
+      padding: 10px 12px; font-size: 13.5px; margin-bottom: 16px;
+    }
+    .login-alt { text-align: center; margin-top: 16px; }
+    .login-alt a {
+      color: var(--navy-mid); font-size: 13.5px;
+      font-weight: 600; text-decoration: none; cursor: pointer;
+    }
+    .login-alt a:hover { text-decoration: underline; }
 
     /* ============================================================
        APP CHROME (top bar + main)
@@ -825,10 +836,11 @@
 
     <!-- ============= LOGIN VIEW ============= -->
     <section id="login-view">
-      <div class="login-card">
+      <div class="login-card" id="login-card">
         <div class="login-brand">Drapes<span class="dq">Quote</span>Pro</div>
         <div class="login-sub">Job management & quoting</div>
 
+        <div id="login-note" class="login-note hidden"></div>
         <div id="login-error" class="login-error hidden"></div>
 
         <div class="field">
@@ -840,6 +852,27 @@
           <input id="password" type="password" autocomplete="current-password" placeholder="••••••••" />
         </div>
         <button id="login-btn" class="btn btn-primary">Sign in</button>
+        <div class="login-alt"><a id="forgot-link">Forgot your password?</a></div>
+      </div>
+
+      <!-- Shown instead of the login card when the page is opened from a
+           password reset email. -->
+      <div class="login-card hidden" id="reset-card">
+        <div class="login-brand">Drapes<span class="dq">Quote</span>Pro</div>
+        <div class="login-sub">Set a new password</div>
+
+        <div id="reset-error" class="login-error hidden"></div>
+
+        <div class="field">
+          <label for="new-password">New password</label>
+          <input id="new-password" type="password" autocomplete="new-password" placeholder="At least 8 characters" />
+        </div>
+        <div class="field">
+          <label for="new-password-2">Confirm new password</label>
+          <input id="new-password-2" type="password" autocomplete="new-password" placeholder="Type it again" />
+        </div>
+        <button id="reset-btn" class="btn btn-primary">Save new password</button>
+        <div class="login-alt"><a id="reset-cancel">Back to sign in</a></div>
       </div>
     </section>
 
@@ -893,6 +926,14 @@
        ============================================================ */
     const SUPABASE_URL = 'https://kspezkqanaqrhbirqmlc.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzcGV6a3FhbmFxcmhiaXJxbWxjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwOTU1MDksImV4cCI6MjA5NDY3MTUwOX0.toB3DTsKZ8Cydhxw4DTJjzmanF7tghHlXQNOzJ4xOiA';
+
+    /* A password reset email lands back here with the recovery token in the
+       URL hash. Read it now, synchronously: supabase-js consumes and clears
+       the hash as it initialises, and without this flag the app would boot
+       him straight into the dashboard on a recovery session instead of
+       asking for the new password. */
+    const RECOVERY_LINK = /(^|[#&])type=recovery(&|$)/.test(location.hash);
+    const RECOVERY_ERROR = (location.hash.match(/error_description=([^&]*)/) || [])[1];
 
     const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -1515,8 +1556,20 @@
       showLogin() {
         $('#app').classList.remove('hidden');
         $('#login-view').classList.remove('hidden');
+        $('#login-card').classList.remove('hidden');
+        $('#reset-card').classList.add('hidden');
         $('#app-view').classList.add('hidden');
         ui.showBoot(false);
+      },
+
+      showReset() {
+        $('#app').classList.remove('hidden');
+        $('#login-view').classList.remove('hidden');
+        $('#login-card').classList.add('hidden');
+        $('#reset-card').classList.remove('hidden');
+        $('#app-view').classList.add('hidden');
+        ui.showBoot(false);
+        $('#new-password').focus();
       },
 
       showApp() {
@@ -1532,6 +1585,20 @@
 
       loginError(msg) {
         const el = $('#login-error');
+        if (!msg) { el.classList.add('hidden'); return; }
+        el.textContent = msg;
+        el.classList.remove('hidden');
+      },
+
+      loginNote(msg) {
+        const el = $('#login-note');
+        if (!msg) { el.classList.add('hidden'); return; }
+        el.textContent = msg;
+        el.classList.remove('hidden');
+      },
+
+      resetError(msg) {
+        const el = $('#reset-error');
         if (!msg) { el.classList.add('hidden'); return; }
         el.textContent = msg;
         el.classList.remove('hidden');
@@ -6573,6 +6640,16 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
        EVENT WIRING
        ============================================================ */
     $('#login-btn').addEventListener('click', doLogin);
+    $('#forgot-link').addEventListener('click', doForgot);
+    $('#reset-btn').addEventListener('click', doReset);
+    $('#new-password').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#new-password-2').focus(); });
+    $('#new-password-2').addEventListener('keydown', (e) => { if (e.key === 'Enter') doReset(); });
+    $('#reset-cancel').addEventListener('click', async () => {
+      await sb.auth.signOut();
+      $('#new-password').value = ''; $('#new-password-2').value = '';
+      ui.resetError(null);
+      ui.showLogin();
+    });
     $('#password').addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
     $('#email').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#password').focus(); });
     $('#logout-btn').addEventListener('click', async () => {
@@ -6605,6 +6682,64 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
         ui.loginError(msg);
       } finally {
         btn.disabled = false; btn.textContent = 'Sign in';
+      }
+    }
+
+    /* Ask the send-password-reset function to email a recovery link. The
+       function always answers ok, whether or not the address has an account,
+       so nothing here can be used to find out who has a login. */
+    async function doForgot() {
+      const email = $('#email').value.trim();
+      ui.loginError(null); ui.loginNote(null);
+      if (!email) {
+        ui.loginError('Enter your email address first, then click Forgot your password.');
+        $('#email').focus();
+        return;
+      }
+      const link = $('#forgot-link');
+      link.textContent = 'Sending\u2026';
+      try {
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/send-password-reset`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({ email }),
+        });
+        if (!res.ok) throw new Error('Request failed');
+        ui.loginNote(`If ${email} has an account, a reset link is on its way. It works once and expires in an hour.`);
+      } catch (_) {
+        ui.loginError('Could not send the reset email. Check your connection and try again.');
+      } finally {
+        link.textContent = 'Forgot your password?';
+      }
+    }
+
+    /* Runs on the recovery session created by the emailed link. */
+    async function doReset() {
+      const pw = $('#new-password').value;
+      const pw2 = $('#new-password-2').value;
+      ui.resetError(null);
+      if (pw.length < 8) { ui.resetError('Use at least 8 characters.'); return; }
+      if (pw !== pw2) { ui.resetError('The two passwords do not match.'); return; }
+
+      const btn = $('#reset-btn');
+      btn.disabled = true; btn.textContent = 'Saving\u2026';
+      try {
+        const { error } = await sb.auth.updateUser({ password: pw });
+        if (error) throw error;
+        // Sign out so the next step is a normal sign in with the new password,
+        // rather than carrying the one-time recovery session into the app.
+        await sb.auth.signOut();
+        $('#new-password').value = ''; $('#new-password-2').value = '';
+        ui.showLogin();
+        ui.loginNote('Password changed. Sign in with your new one.');
+      } catch (err) {
+        ui.resetError(err.message || 'Could not save the new password. Request a fresh link and try again.');
+      } finally {
+        btn.disabled = false; btn.textContent = 'Save new password';
       }
     }
 
@@ -6686,6 +6821,26 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
        ============================================================ */
     (async function boot() {
       try {
+        // A dead or already-used reset link comes back with the reason in the
+        // hash rather than a session.
+        if (RECOVERY_ERROR) {
+          history.replaceState(null, '', location.pathname + location.search);
+          ui.showLogin();
+          ui.loginError(decodeURIComponent(RECOVERY_ERROR.replace(/\+/g, ' ')));
+          versionWatch.start();
+          return;
+        }
+        if (RECOVERY_LINK) {
+          // getSession() waits for supabase-js to finish reading the hash.
+          const { data: { session: s } } = await sb.auth.getSession();
+          history.replaceState(null, '', location.pathname + location.search);
+          if (s) { ui.showReset(); versionWatch.start(); return; }
+          ui.showLogin();
+          ui.loginError('That reset link has expired or was already used. Request a new one.');
+          versionWatch.start();
+          return;
+        }
+
         const ok = await auth.resolveSession();
         if (ok) { ui.showApp(); router.go('dashboard'); enqBadge.start(); }
         else { ui.showLogin(); }
