@@ -938,15 +938,59 @@
     .rs-nolink { font-size: 12.5px; }
     .rs-muted { color: var(--muted); }
 
-    /* ---------- Driver shell ----------
-       The desktop chrome is 60px of top bar plus a five-tab nav that does
-       not wrap. A driver gets neither. */
-    body.driver-mode .topbar { height: 52px; padding: 0 14px; }
-    body.driver-mode .topbar .brand { font-size: 16px; }
-    body.driver-mode .who .role { display: none; }
-    body.driver-mode main { padding: 14px 12px 40px; }
+    @media (max-width: 900px) {
+      /* The jobs list is a seven-column grid with 710px of fixed widths.
+         Rather than squash it, each row restacks into a card. Same markup,
+         same order — only the placement changes. */
+      .job-row {
+        grid-template-columns: auto auto 1fr;
+        gap: 3px 10px; padding: 14px 16px;
+      }
+      .job-row .dq     { grid-column: 1; grid-row: 1; }
+      .job-row .fergus { grid-column: 2 / -1; grid-row: 1; }
+      .job-row .cust   { grid-column: 1 / -1; grid-row: 2; }
+      .job-row .addr   { grid-column: 1 / -1; grid-row: 3; }
+      .job-row .date   { grid-column: 1; grid-row: 4; align-self: center; }
+      .job-row > div:nth-child(6) { grid-column: 2; grid-row: 4; }
+      .job-row .amt    { grid-column: 3; grid-row: 4; align-self: center; }
+      /* Column headings mean nothing once the row is stacked. Sorting goes
+         with them; the default newest-first order is the one that matters. */
+      .job-row.head { display: none; }
+    }
 
     @media (max-width: 700px) {
+      /* Phone chrome. The nav is six tabs that will not fit across 375px, so
+         it scrolls sideways rather than squashing or wrapping to two rows —
+         the tab you are on stays where your thumb expects it. */
+      .topbar { height: 52px; padding: 0 14px; }
+      .topbar .brand { font-size: 16px; }
+      .topbar .right { gap: 10px; }
+      .who .role { display: none; }
+      .navbar {
+        padding: 0 10px; gap: 2px;
+        overflow-x: auto; flex-wrap: nowrap;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+      }
+      .navbar::-webkit-scrollbar { display: none; }
+      .navbar a { padding: 13px 12px; font-size: 13.5px; white-space: nowrap; flex: 0 0 auto; }
+
+      /* Two-up rows have nowhere to go on a phone. */
+      .insp-row, .qb-insurer, .modal .row2, .rep-two { grid-template-columns: 1fr; }
+      .price-grid { grid-template-columns: 1fr auto; }
+
+      /* Quote lines carry inline column templates set per line type, so the
+         override has to win outright. Two columns is tight but workable. */
+      .qb-line, .qb-line.repair {
+        grid-template-columns: 1fr 1fr !important;
+        gap: 8px; padding: 12px;
+      }
+      .qb-line > *:first-child { grid-column: 1 / -1; }
+
+      /* Anything that still insists on being wide scrolls in its own box
+         rather than dragging the whole page sideways. */
+      .rep-table-wrap, .jobs-table { max-width: 100%; }
+
       .rs-head { gap: 10px; }
       .rs-days { width: 100%; justify-content: space-between; }
       .rs-tools { width: 100%; }
@@ -955,6 +999,7 @@
       .rs-daylabel { min-width: 0; flex: 1; }
       .rs-time { font-size: 19px; }
       .rs-jobno { margin-left: 0; width: 100%; }
+      .rs-open { width: 100%; min-height: 44px; }
       main { padding: 14px 12px 40px; }
       .topbar { padding: 0 14px; }
     }
@@ -1762,11 +1807,6 @@
         $('#who-name').textContent = session.profile.name || session.profile.email;
         $('#who-role').textContent = session.profile.role;
         if (isAdmin()) $('#nav-admin').style.display = '';
-        // A driver gets the run sheet full screen. Retrofitting the desktop
-        // nav and the 1200px layout onto a phone would have meant reworking
-        // the whole app; giving the one screen its own shell did not.
-        document.body.classList.toggle('driver-mode', isDriver());
-        if (isDriver()) $('#navbar').style.display = 'none';
         ui.showBoot(false);
       },
 
@@ -1836,7 +1876,6 @@
       async render() {
         const main = $('#main');
         try {
-          if (isDriver() && route.name !== 'run') route.name = 'run';
           if (route.name === 'run') return await runSheet.view(main);
           if (route.name === 'dashboard') return await router.dashboard(main);
           if (route.name === 'jobs') return await router.jobsList(main);
@@ -6869,7 +6908,7 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
         $('#password').value = '';
         ui.showApp();
         router.go(isDriver() ? 'run' : 'dashboard');
-        if (!isDriver()) enqBadge.start();
+        enqBadge.start();
       } catch (err) {
         const msg = /invalid login credentials/i.test(err.message || '')
           ? 'Incorrect email or password.'
@@ -7121,11 +7160,9 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
               escapeHtml(stop.job_card)}</pre></details>`
           : '';
 
-        const link = isDriver()
-          ? ''
-          : stop.job_id
-            ? `<button class="rs-open" data-job="${escapeHtml(stop.job_id)}">Open in DrapesQuotePro</button>`
-            : `<div class="rs-muted rs-nolink">Not in DrapesQuotePro — raised straight in Fergus</div>`;
+        const link = stop.job_id
+          ? `<button class="rs-open" data-job="${escapeHtml(stop.job_id)}">Open the job</button>`
+          : `<div class="rs-muted rs-nolink">Not in DrapesQuotePro — raised straight in Fergus</div>`;
 
         return `
           <article class="rs-stop rs-${escapeHtml(stop.stop_type)}">
@@ -7259,7 +7296,7 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
         if (ok) {
           ui.showApp();
           router.go(isDriver() ? 'run' : 'dashboard');
-          if (!isDriver()) enqBadge.start();
+          enqBadge.start();
         }
         else { ui.showLogin(); }
         versionWatch.start();
