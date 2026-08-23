@@ -928,12 +928,9 @@
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzcGV6a3FhbmFxcmhiaXJxbWxjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwOTU1MDksImV4cCI6MjA5NDY3MTUwOX0.toB3DTsKZ8Cydhxw4DTJjzmanF7tghHlXQNOzJ4xOiA';
 
     /* A password reset email lands back here with the recovery token in the
-       URL hash. Read it now, synchronously: supabase-js consumes and clears
-       the hash as it initialises, and without this flag the app would boot
-       him straight into the dashboard on a recovery session instead of
-       asking for the new password. */
-    const RECOVERY_LINK = /(^|[#&])type=recovery(&|$)/.test(location.hash);
-    const RECOVERY_ERROR = (location.hash.match(/error_description=([^&]*)/) || [])[1];
+       URL hash, put there by the send-password-reset function. Read it now,
+       synchronously, before anything else touches the URL. */
+    const RESET_TOKEN = (location.hash.match(/(?:^|[#&])reset_token=([^&]+)/) || [])[1];
 
     const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -6821,20 +6818,14 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
        ============================================================ */
     (async function boot() {
       try {
-        // A dead or already-used reset link comes back with the reason in the
-        // hash rather than a session.
-        if (RECOVERY_ERROR) {
+        if (RESET_TOKEN) {
+          // Clear the token out of the address bar first, so a shared screen
+          // or a browser history entry doesn't carry it around. Redeeming it
+          // here rather than through /auth/v1/verify keeps the flow off the
+          // dashboard's redirect allow list.
           history.replaceState(null, '', location.pathname + location.search);
-          ui.showLogin();
-          ui.loginError(decodeURIComponent(RECOVERY_ERROR.replace(/\+/g, ' ')));
-          versionWatch.start();
-          return;
-        }
-        if (RECOVERY_LINK) {
-          // getSession() waits for supabase-js to finish reading the hash.
-          const { data: { session: s } } = await sb.auth.getSession();
-          history.replaceState(null, '', location.pathname + location.search);
-          if (s) { ui.showReset(); versionWatch.start(); return; }
+          const { error } = await sb.auth.verifyOtp({ token_hash: decodeURIComponent(RESET_TOKEN), type: 'recovery' });
+          if (!error) { ui.showReset(); versionWatch.start(); return; }
           ui.showLogin();
           ui.loginError('That reset link has expired or was already used. Request a new one.');
           versionWatch.start();
