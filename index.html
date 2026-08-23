@@ -930,7 +930,8 @@
     /* A password reset email lands back here with the recovery token in the
        URL hash, put there by the send-password-reset function. Read it now,
        synchronously, before anything else touches the URL. */
-    const RESET_TOKEN = (location.hash.match(/(?:^|[#&])reset_token=([^&]+)/) || [])[1];
+    const readResetToken = () => (location.hash.match(/(?:^|[#&])reset_token=([^&]+)/) || [])[1];
+    const RESET_TOKEN = readResetToken();
 
     const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -6638,6 +6639,12 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
        ============================================================ */
     $('#login-btn').addEventListener('click', doLogin);
     $('#forgot-link').addEventListener('click', doForgot);
+    /* Clicking the reset link while the app is already open in that tab only
+       changes the hash. No reload, so boot() never sees the token. */
+    window.addEventListener('hashchange', () => {
+      const token = readResetToken();
+      if (token) enterReset(token);
+    });
     $('#reset-btn').addEventListener('click', doReset);
     $('#new-password').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#new-password-2').focus(); });
     $('#new-password-2').addEventListener('keydown', (e) => { if (e.key === 'Enter') doReset(); });
@@ -6712,6 +6719,18 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
       } finally {
         link.textContent = 'Forgot your password?';
       }
+    }
+
+    /* Redeem a reset token and show the new-password card. The hash goes
+       first, so the token is never left in the address bar or in history, and
+       whoever was signed in is signed out before the recovery session starts. */
+    async function enterReset(token) {
+      history.replaceState(null, '', location.pathname + location.search);
+      try { await auth.logout(); } catch (_) { /* nobody was signed in */ }
+      const { error } = await sb.auth.verifyOtp({ token_hash: decodeURIComponent(token), type: 'recovery' });
+      if (!error) { ui.showReset(); return; }
+      ui.showLogin();
+      ui.loginError('That reset link has expired or was already used. Request a new one.');
     }
 
     /* Runs on the recovery session created by the emailed link. */
@@ -6818,16 +6837,10 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
        ============================================================ */
     (async function boot() {
       try {
+        // Redeeming the token here rather than through /auth/v1/verify keeps
+        // the flow off the dashboard's redirect allow list.
         if (RESET_TOKEN) {
-          // Clear the token out of the address bar first, so a shared screen
-          // or a browser history entry doesn't carry it around. Redeeming it
-          // here rather than through /auth/v1/verify keeps the flow off the
-          // dashboard's redirect allow list.
-          history.replaceState(null, '', location.pathname + location.search);
-          const { error } = await sb.auth.verifyOtp({ token_hash: decodeURIComponent(RESET_TOKEN), type: 'recovery' });
-          if (!error) { ui.showReset(); versionWatch.start(); return; }
-          ui.showLogin();
-          ui.loginError('That reset link has expired or was already used. Request a new one.');
+          await enterReset(RESET_TOKEN);
           versionWatch.start();
           return;
         }
