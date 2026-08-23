@@ -825,6 +825,139 @@
       .it-fields { grid-template-columns: 1fr 1fr; }
       .it-tab { padding: 9px 11px; font-size: 12.5px; }
     }
+
+    /* ============================================================
+       RUN SHEET
+       Designed phone-first and given its own shell, because the rest of
+       the app assumes a desktop and making all of it responsive was a
+       far bigger job than making this one screen work properly.
+       ============================================================ */
+    .rs-wrap { max-width: 720px; margin: 0 auto; }
+    .rs-loading { text-align: center; color: var(--muted); padding: 40px 0; font-size: 15px; }
+
+    .rs-head {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; flex-wrap: wrap; margin-bottom: 14px;
+    }
+    .rs-days { display: flex; align-items: center; gap: 6px; }
+    .rs-day {
+      width: 44px; height: 44px; border-radius: var(--r-sm);
+      background: var(--card); border: 1px solid var(--line);
+      font-size: 20px; line-height: 1; color: var(--navy-mid); font-weight: 700;
+    }
+    .rs-day:hover { background: #eef0f7; }
+    .rs-daylabel { min-width: 168px; text-align: center; line-height: 1.25; }
+    .rs-daylabel strong { display: block; font-size: 19px; font-weight: 800; color: var(--navy-dark); }
+    .rs-daylabel span { font-size: 12.5px; color: var(--muted); }
+
+    .rs-tools { display: flex; align-items: center; gap: 8px; }
+    .rs-select {
+      height: 44px; padding: 0 10px; border-radius: var(--r-sm);
+      border: 1px solid var(--line); background: var(--card); font-size: 14px; color: var(--ink);
+    }
+    .rs-refresh {
+      height: 44px; padding: 0 16px; border-radius: var(--r-sm);
+      background: var(--navy-mid); color: #fff; font-size: 14px; font-weight: 600;
+    }
+    .rs-refresh:disabled { opacity: .6; }
+
+    .rs-banner {
+      background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412;
+      padding: 10px 14px; border-radius: var(--r-sm); font-size: 13.5px; margin-bottom: 12px;
+    }
+    .rs-banner.rs-bad { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
+    .rs-count { font-size: 12.5px; color: var(--muted); margin-bottom: 10px;
+                text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
+
+    .rs-empty { background: var(--card); border-radius: var(--r-md); padding: 40px 20px;
+                text-align: center; box-shadow: var(--shadow); }
+    .rs-empty h3 { font-size: 17px; font-weight: 700; margin-bottom: 4px; }
+    .rs-empty p { color: var(--muted); font-size: 14px; }
+
+    /* ---------- One stop ---------- */
+    .rs-stop {
+      background: var(--card); border-radius: var(--r-md); box-shadow: var(--shadow);
+      padding: 16px; margin-bottom: 14px; border-left: 4px solid var(--line);
+    }
+    .rs-stop.rs-takedown { border-left-color: var(--red); }
+    .rs-stop.rs-rehang   { border-left-color: var(--teal); }
+    .rs-stop.rs-other    { border-left-color: var(--muted); }
+
+    .rs-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+    .rs-time { font-size: 21px; font-weight: 800; color: var(--navy-dark);
+               font-variant-numeric: tabular-nums; }
+    .rs-badge {
+      font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
+      padding: 4px 9px; border-radius: 999px;
+    }
+    .rs-b-takedown { background: #fee2e2; color: #991b1b; }
+    .rs-b-rehang   { background: #ccfbf1; color: #115e59; }
+    .rs-b-other    { background: #e5e7eb; color: #374151; }
+    .rs-jobno { margin-left: auto; font-size: 12.5px; color: var(--muted); font-weight: 600; }
+
+    .rs-cust { font-size: 17px; font-weight: 700; color: var(--navy-dark); margin-bottom: 6px; }
+
+    /* Address and phone are the two things tapped at the kerb, so both are
+       full-width targets rather than inline links. */
+    .rs-addr, .rs-phone {
+      display: block; padding: 12px 14px; border-radius: var(--r-sm);
+      font-size: 15.5px; font-weight: 600; margin-bottom: 8px; text-decoration: none;
+    }
+    .rs-addr { background: #eef2ff; color: var(--navy-mid); }
+    .rs-addr:hover { background: #e0e7ff; }
+    .rs-phone { background: #ecfdf5; color: #065f46; }
+    .rs-phone:hover { background: #d1fae5; }
+    .rs-addr.rs-muted { background: #f3f4f6; color: var(--muted); font-weight: 500; }
+
+    /* The Fergus title carries the real instructions. It is never truncated. */
+    .rs-note {
+      background: #fffbeb; border: 1px solid #fde68a; color: #78350f;
+      padding: 11px 13px; border-radius: var(--r-sm);
+      font-size: 14.5px; line-height: 1.45; white-space: pre-wrap; margin-bottom: 8px;
+    }
+    .rs-note2 { background: #f9fafb; border-color: var(--line); color: var(--ink); }
+
+    .rs-card-items { margin-bottom: 8px; }
+    .rs-card-items summary {
+      cursor: pointer; font-size: 13.5px; font-weight: 600; color: var(--navy-mid);
+      padding: 8px 0; list-style: none;
+    }
+    .rs-card-items summary::before { content: '▸ '; }
+    .rs-card-items[open] summary::before { content: '▾ '; }
+    .rs-card-items pre {
+      background: #f9fafb; border: 1px solid var(--line); border-radius: var(--r-sm);
+      padding: 12px; font-size: 13px; line-height: 1.5; white-space: pre-wrap;
+      word-break: break-word; font-family: inherit; color: var(--ink);
+    }
+
+    .rs-open {
+      background: transparent; color: var(--navy-mid); border: 1px solid var(--line);
+      padding: 9px 14px; border-radius: var(--r-sm); font-size: 13.5px; font-weight: 600;
+    }
+    .rs-open:hover { background: #eef0f7; }
+    .rs-nolink { font-size: 12.5px; }
+    .rs-muted { color: var(--muted); }
+
+    /* ---------- Driver shell ----------
+       The desktop chrome is 60px of top bar plus a five-tab nav that does
+       not wrap. A driver gets neither. */
+    body.driver-mode .topbar { height: 52px; padding: 0 14px; }
+    body.driver-mode .topbar .brand { font-size: 16px; }
+    body.driver-mode .who .role { display: none; }
+    body.driver-mode main { padding: 14px 12px 40px; }
+
+    @media (max-width: 700px) {
+      .rs-head { gap: 10px; }
+      .rs-days { width: 100%; justify-content: space-between; }
+      .rs-tools { width: 100%; }
+      .rs-select { flex: 1; }
+      .rs-refresh { flex: 0 0 auto; }
+      .rs-daylabel { min-width: 0; flex: 1; }
+      .rs-time { font-size: 19px; }
+      .rs-jobno { margin-left: 0; width: 100%; }
+      main { padding: 14px 12px 40px; }
+      .topbar { padding: 0 14px; }
+    }
   </style>
 </head>
 <body>
@@ -894,6 +1027,7 @@
         <a data-route="jobs">Jobs</a>
         <a data-route="reports">Reports</a>
         <a data-route="enquiries">Enquiries<span class="nav-badge hidden" id="nav-enq-badge">0</span></a>
+        <a data-route="run">Run Sheet</a>
         <a data-route="admin" id="nav-admin" style="display:none">Admin</a>
       </nav>
 
@@ -961,8 +1095,12 @@
       settings: {},      // flat key→value map from settings table
     };
 
-    const isAdmin = () =>
-      session.profile?.role === 'admin' || session.profile?.role === 'superadmin';
+    /* Roles. Four of them, checked here and nowhere else — the three inline
+       role === 'admin' comparisons this replaced had drifted apart from each
+       other and from this helper. A driver sees the run sheet and nothing else. */
+    const is = (...roles) => roles.includes(session.profile?.role);
+    const isAdmin = () => is('admin');
+    const isDriver = () => is('driver');
 
     /* ============================================================
        DB LAYER
@@ -973,7 +1111,7 @@
       async getProfile(userId) {
         const { data, error } = await sb
           .from('app_users')
-          .select('id, company_id, name, role, email, active')
+          .select('id, company_id, name, role, email, active, fergus_user_id')
           .eq('id', userId)
           .single();
         if (error) throw error;
@@ -1177,6 +1315,52 @@
             .order('id', { ascending: true });
           return includeArchived ? q.eq('archived', true) : q.eq('archived', false);
         });
+      },
+
+      /* The day's field schedule. Written by the sync-run-sheet Edge Function
+         out of the Fergus calendar — Fergus owns the schedule, so a stop with
+         no DQP job still appears here and still has to be shown. */
+      async listRunSheet(day, fergusUserId = null) {
+        let q = sb
+          .from('run_sheet_stops')
+          .select('*')
+          .eq('stop_date', day)
+          .order('starts_at', { ascending: true, nullsFirst: false });
+        if (fergusUserId) q = q.contains('assigned_user_ids', [fergusUserId]);
+        const { data, error } = await q;
+        if (error) throw error;
+        return data || [];
+      },
+
+      // Re-pull from Fergus on demand. The same function pg_cron runs every
+      // 20 minutes, so this only matters for a booking added minutes ago.
+      async refreshRunSheet() {
+        const { data: { session: s } } = await sb.auth.getSession();
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/sync-run-sheet`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            apikey: SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${s?.access_token || ''}`,
+          },
+          body: '{}',
+          signal: AbortSignal.timeout(60000),
+        });
+        const out = await res.json().catch(() => ({}));
+        if (!res.ok || out.error) throw new Error(out.message || 'Could not reach Fergus.');
+        return out;
+      },
+
+      // Anyone with a Fergus account, for the office's driver picker.
+      async listFieldUsers() {
+        const { data, error } = await sb
+          .from('app_users')
+          .select('id, name, fergus_user_id')
+          .not('fergus_user_id', 'is', null)
+          .eq('active', true)
+          .order('name');
+        if (error) throw error;
+        return data || [];
       },
 
       // Pull non-archived jobs with created_at for time-window stats.
@@ -1577,7 +1761,12 @@
         // Populate identity in the top bar
         $('#who-name').textContent = session.profile.name || session.profile.email;
         $('#who-role').textContent = session.profile.role;
-        if (session.profile.role === 'admin') $('#nav-admin').style.display = '';
+        if (isAdmin()) $('#nav-admin').style.display = '';
+        // A driver gets the run sheet full screen. Retrofitting the desktop
+        // nav and the 1200px layout onto a phone would have meant reworking
+        // the whole app; giving the one screen its own shell did not.
+        document.body.classList.toggle('driver-mode', isDriver());
+        if (isDriver()) $('#navbar').style.display = 'none';
         ui.showBoot(false);
       },
 
@@ -1647,13 +1836,15 @@
       async render() {
         const main = $('#main');
         try {
+          if (isDriver() && route.name !== 'run') route.name = 'run';
+          if (route.name === 'run') return await runSheet.view(main);
           if (route.name === 'dashboard') return await router.dashboard(main);
           if (route.name === 'jobs') return await router.jobsList(main);
           if (route.name === 'job') return await router.jobPage(main);
           if (route.name === 'reports') return await router.reports(main);
           if (route.name === 'enquiries') return await router.enquiries(main);
           if (route.name === 'admin') {
-            if (session.profile.role !== 'admin') { route.name = 'dashboard'; return await router.dashboard(main); }
+            if (!isAdmin()) { route.name = 'dashboard'; return await router.dashboard(main); }
             return await router.admin(main);
           }
         } catch (err) {
@@ -2475,7 +2666,7 @@
       // ADMIN PANEL — tabbed: Staff / Prices / Emails / Terms / Targets / Company
       // ============================================================
       async admin(main) {
-        if (session.profile.role !== 'admin') { router.go('dashboard'); return; }
+        if (!isAdmin()) { router.go('dashboard'); return; }
         const tab = route.adminTab || 'staff';
         const tabs = [
           ['staff', 'Staff'], ['prices', 'Prices'], ['emails', 'Email Templates'],
@@ -6677,8 +6868,8 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
         await auth.login(email, password);
         $('#password').value = '';
         ui.showApp();
-        router.go('dashboard');
-        enqBadge.start();
+        router.go(isDriver() ? 'run' : 'dashboard');
+        if (!isDriver()) enqBadge.start();
       } catch (err) {
         const msg = /invalid login credentials/i.test(err.message || '')
           ? 'Incorrect email or password.'
@@ -6765,6 +6956,225 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
        Show how many are still untouched right on the tab, refreshed on a
        timer and whenever the tab is brought back to the front.
        ============================================================ */
+    /* ============================================================
+       RUN SHEET
+       The day's stops, straight off the Fergus calendar. Built for a
+       phone held in one hand at somebody's front door: the address and
+       the phone number are the two things that have to be tappable, and
+       the Fergus event title is shown word for word because that is
+       where "call when 5 minutes away" and "code 000" actually live.
+       ============================================================ */
+    const runSheet = {
+      day: null,
+      driverId: null,      // Fergus user id, or null for everyone
+      lastError: null,
+
+      // The business runs on Melbourne time wherever the browser thinks it is.
+      todayLocal() {
+        const p = {};
+        for (const part of new Intl.DateTimeFormat('en-CA', {
+          timeZone: 'Australia/Melbourne', year: 'numeric', month: '2-digit', day: '2-digit',
+        }).formatToParts(new Date())) if (part.type !== 'literal') p[part.type] = part.value;
+        return `${p.year}-${p.month}-${p.day}`;
+      },
+
+      shiftDay(iso, days) {
+        const d = new Date(`${iso}T12:00:00Z`);
+        d.setUTCDate(d.getUTCDate() + days);
+        return d.toISOString().slice(0, 10);
+      },
+
+      dayLabel(iso) {
+        const today = runSheet.todayLocal();
+        if (iso === today) return 'Today';
+        if (iso === runSheet.shiftDay(today, 1)) return 'Tomorrow';
+        if (iso === runSheet.shiftDay(today, -1)) return 'Yesterday';
+        return new Date(`${iso}T12:00:00Z`).toLocaleDateString('en-AU',
+          { weekday: 'short', day: 'numeric', month: 'short' });
+      },
+
+      timeOf(stop) {
+        if (!stop.starts_at) return '—';
+        return new Date(stop.starts_at).toLocaleTimeString('en-AU',
+          { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Australia/Melbourne' });
+      },
+
+      addressOf(stop) {
+        return [stop.address_line, stop.suburb, stop.state, stop.postcode]
+          .filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+      },
+
+      /* Cached so a black spot on the way to Flinders still shows the run. */
+      cacheKey() { return `dqp-runsheet-${runSheet.day}-${runSheet.driverId || 'all'}`; },
+      cacheWrite(rows) {
+        try { localStorage.setItem(runSheet.cacheKey(), JSON.stringify({ at: Date.now(), rows })); } catch (_) {}
+      },
+      cacheRead() {
+        try {
+          const raw = localStorage.getItem(runSheet.cacheKey());
+          return raw ? JSON.parse(raw) : null;
+        } catch (_) { return null; }
+      },
+
+      async view(main) {
+        if (!runSheet.day) runSheet.day = runSheet.todayLocal();
+        // A driver only ever sees their own stops. The office sees everyone
+        // unless they pick someone, because David is a linked user on nearly
+        // every Fergus booking and his own filter would be the whole day.
+        if (isDriver()) {
+          // Without a Fergus id the filter would be empty and the driver
+          // would get the whole company's day. Say so instead.
+          if (!session.profile.fergus_user_id) {
+            main.innerHTML = `
+              <div class="rs-wrap"><div class="rs-empty">
+                <h3>Your login isn't linked to Fergus yet</h3>
+                <p>Ask the office to connect this account to your Fergus user
+                   so your stops can be found.</p>
+              </div></div>`;
+            return;
+          }
+          runSheet.driverId = session.profile.fergus_user_id;
+        }
+
+        main.innerHTML = `<div class="rs-wrap"><div class="rs-loading">Loading the run…</div></div>`;
+
+        let rows = [];
+        let stale = null;
+        try {
+          rows = await db.listRunSheet(runSheet.day, runSheet.driverId);
+          runSheet.cacheWrite(rows);
+          runSheet.lastError = null;
+        } catch (err) {
+          const cached = runSheet.cacheRead();
+          if (!cached) { runSheet.lastError = err.message || 'Could not load the run sheet.'; }
+          else { rows = cached.rows; stale = cached.at; }
+        }
+
+        const people = isDriver() ? [] : await db.listFieldUsers().catch(() => []);
+        main.innerHTML = runSheet.html(rows, people, stale);
+        runSheet.wire(main);
+      },
+
+      html(rows, people, stale) {
+        const nav = `
+          <div class="rs-days">
+            <button class="rs-day" data-shift="-1">‹</button>
+            <div class="rs-daylabel">
+              <strong>${escapeHtml(runSheet.dayLabel(runSheet.day))}</strong>
+              <span>${escapeHtml(new Date(`${runSheet.day}T12:00:00Z`).toLocaleDateString('en-AU',
+                { weekday: 'long', day: 'numeric', month: 'long' }))}</span>
+            </div>
+            <button class="rs-day" data-shift="1">›</button>
+          </div>`;
+
+        const picker = people.length ? `
+          <select id="rs-driver" class="rs-select">
+            <option value="">Everyone</option>
+            ${people.map((p) => `<option value="${p.fergus_user_id}"${
+              String(p.fergus_user_id) === String(runSheet.driverId) ? ' selected' : ''
+            }>${escapeHtml(p.name)}</option>`).join('')}
+          </select>` : '';
+
+        const banner = runSheet.lastError
+          ? `<div class="rs-banner rs-bad">${escapeHtml(runSheet.lastError)}</div>`
+          : stale
+            ? `<div class="rs-banner">Showing the last copy saved to this phone — no connection right now.</div>`
+            : '';
+
+        const body = rows.length
+          ? rows.map(runSheet.card).join('')
+          : `<div class="rs-empty"><h3>Nothing booked</h3><p>No stops on the Fergus calendar for ${
+              escapeHtml(runSheet.dayLabel(runSheet.day).toLowerCase())}.</p></div>`;
+
+        return `
+          <div class="rs-wrap">
+            <div class="rs-head">
+              ${nav}
+              <div class="rs-tools">
+                ${picker}
+                <button id="rs-refresh" class="rs-refresh">Refresh</button>
+              </div>
+            </div>
+            ${banner}
+            <div class="rs-count">${rows.length} ${rows.length === 1 ? 'stop' : 'stops'}</div>
+            ${body}
+          </div>`;
+      },
+
+      card(stop) {
+        const addr = runSheet.addressOf(stop);
+        const maps = addr
+          ? `<a class="rs-addr" target="_blank" rel="noopener"
+               href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}">
+               ${escapeHtml(addr)}</a>`
+          : `<div class="rs-addr rs-muted">No address on the Fergus job</div>`;
+
+        const phone = stop.contact_phone
+          ? `<a class="rs-phone" href="tel:${escapeHtml((stop.contact_phone || '').replace(/\s+/g, ''))}">
+               ${escapeHtml(stop.contact_phone)}</a>`
+          : '';
+
+        const label = { takedown: 'Pick up', rehang: 'Rehang', other: 'On site' }[stop.stop_type] || 'On site';
+
+        const card = stop.job_card
+          ? `<details class="rs-card-items"><summary>What's on the job</summary><pre>${
+              escapeHtml(stop.job_card)}</pre></details>`
+          : '';
+
+        const link = isDriver()
+          ? ''
+          : stop.job_id
+            ? `<button class="rs-open" data-job="${escapeHtml(stop.job_id)}">Open in DrapesQuotePro</button>`
+            : `<div class="rs-muted rs-nolink">Not in DrapesQuotePro — raised straight in Fergus</div>`;
+
+        return `
+          <article class="rs-stop rs-${escapeHtml(stop.stop_type)}">
+            <div class="rs-top">
+              <div class="rs-time">${escapeHtml(runSheet.timeOf(stop))}</div>
+              <div class="rs-badge rs-b-${escapeHtml(stop.stop_type)}">${escapeHtml(label)}</div>
+              ${stop.fergus_job_no ? `<div class="rs-jobno">${escapeHtml(stop.fergus_job_no)}</div>` : ''}
+            </div>
+            ${stop.customer_name ? `<h3 class="rs-cust">${escapeHtml(stop.customer_name)}</h3>` : ''}
+            ${maps}
+            ${phone}
+            <div class="rs-note">${escapeHtml(stop.title || '')}</div>
+            ${stop.description ? `<div class="rs-note rs-note2">${escapeHtml(stop.description)}</div>` : ''}
+            ${card}
+            ${link}
+          </article>`;
+      },
+
+      wire(main) {
+        main.querySelectorAll('.rs-day').forEach((b) =>
+          b.addEventListener('click', () => {
+            runSheet.day = runSheet.shiftDay(runSheet.day, Number(b.dataset.shift));
+            runSheet.view(main);
+          }));
+
+        const sel = main.querySelector('#rs-driver');
+        if (sel) sel.addEventListener('change', () => {
+          runSheet.driverId = sel.value ? Number(sel.value) : null;
+          runSheet.view(main);
+        });
+
+        main.querySelectorAll('.rs-open').forEach((b) =>
+          b.addEventListener('click', () => router.go('job', { jobId: b.dataset.job })));
+
+        const refresh = main.querySelector('#rs-refresh');
+        if (refresh) refresh.addEventListener('click', async () => {
+          refresh.disabled = true; refresh.textContent = 'Checking Fergus…';
+          try {
+            await db.refreshRunSheet();
+            await runSheet.view(main);
+            ui.toast('Run sheet up to date');
+          } catch (err) {
+            ui.toast(err.message || 'Could not reach Fergus');
+            refresh.disabled = false; refresh.textContent = 'Refresh';
+          }
+        });
+      },
+    };
+
     const enqBadge = {
       timer: null,
       set(n) {
@@ -6846,7 +7256,11 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
         }
 
         const ok = await auth.resolveSession();
-        if (ok) { ui.showApp(); router.go('dashboard'); enqBadge.start(); }
+        if (ok) {
+          ui.showApp();
+          router.go(isDriver() ? 'run' : 'dashboard');
+          if (!isDriver()) enqBadge.start();
+        }
         else { ui.showLogin(); }
         versionWatch.start();
       } catch (err) {
