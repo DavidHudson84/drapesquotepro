@@ -3,31 +3,34 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DrapesQuotePro</title>
+  <title>Drapr</title>
+  <link rel="icon" type="image/svg+xml" href="brand/drapr-favicon.svg" />
 
-  <!-- Fonts: Montserrat (headings) + Open Sans (body), per Dr Drapes brand -->
+  <!-- Fonts: Poppins (headings, matches the Drapr wordmark) + system stack (body), per drapr brand guidelines -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800;900&family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap" rel="stylesheet" />
 
   <style>
     /* ============================================================
-       BRAND TOKENS — Dr Drapes
+       BRAND TOKENS — Drapr
+       App-chrome colours only. The BRAND object further down (PDF/quote
+       output) carries the client's own brand and is separate on purpose.
        ============================================================ */
     :root {
-      --navy-dark: #1a1c50;
-      --navy-mid:  #2b2d7e;
-      --red:       #e0192e;
-      --teal:      #0f766e;
-      --teal-light:#6ee7b7;
-      --green:     #059669;
+      --navy-dark: #0A4A43;  /* drapr-teal-deep */
+      --navy-mid:  #0F6E63;  /* drapr-teal */
+      --red:       #B3261E;  /* drapr-danger */
+      --teal:      #0F6E63;  /* drapr-teal */
+      --teal-light:#DCEDEA;  /* drapr-teal-tint */
+      --green:     #1E7A4B;  /* drapr-success */
 
-      --ink:       #1a1c50;
-      --muted:     #6b7280;
-      --line:      #e5e7eb;
-      --bg:        #f5f6fa;
-      --card:      #ffffff;
-      --shadow:    0 1px 3px rgba(26,28,80,.08), 0 8px 24px rgba(26,28,80,.06);
+      --ink:       #12211F;  /* drapr-ink */
+      --muted:     #5A6866;  /* drapr-grey-600 */
+      --line:      #C7D0CE;  /* drapr-grey-300 */
+      --bg:        #F1F4F3;  /* drapr-grey-100 */
+      --card:      #ffffff;  /* drapr-paper */
+      --shadow:    0 1px 3px rgba(10,74,67,.08), 0 8px 24px rgba(10,74,67,.06);
 
       --r:         12px;
       --r-sm:      8px;
@@ -38,7 +41,7 @@
     html, body { height: 100%; }
 
     body {
-      font-family: 'Open Sans', sans-serif;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
       color: var(--ink);
       background: var(--bg);
       -webkit-font-smoothing: antialiased;
@@ -46,7 +49,7 @@
     }
 
     h1, h2, h3, h4, .display {
-      font-family: 'Montserrat', sans-serif;
+      font-family: 'Poppins', sans-serif;
       color: var(--navy-dark);
       letter-spacing: -0.01em;
     }
@@ -95,12 +98,7 @@
       padding: 40px 36px;
       box-shadow: 0 24px 60px rgba(0,0,0,.35);
     }
-    .login-brand {
-      font-family: 'Montserrat'; font-weight: 900;
-      font-size: 26px; color: var(--navy-dark);
-      letter-spacing: -0.02em;
-    }
-    .login-brand .dq { color: var(--red); }
+    .login-brand { height: 34px; margin-bottom: 4px; }
     .login-sub { color: var(--muted); font-size: 14px; margin: 4px 0 28px; }
 
     .field { margin-bottom: 16px; }
@@ -156,11 +154,8 @@
       padding: 0 22px; height: 60px;
       box-shadow: var(--shadow);
     }
-    .topbar .brand {
-      font-family: 'Montserrat'; font-weight: 800; font-size: 19px;
-      letter-spacing: -0.01em;
-    }
-    .topbar .brand .dq { color: var(--teal-light); }
+    .topbar .brand { display: flex; align-items: center; height: 26px; }
+    .topbar .brand img { height: 100%; width: auto; display: block; }
     .topbar .right { display: flex; align-items: center; gap: 16px; }
     .who { text-align: right; line-height: 1.2; }
     .who .name { font-weight: 700; font-size: 14px; }
@@ -1015,7 +1010,7 @@
     <!-- ============= LOGIN VIEW ============= -->
     <section id="login-view">
       <div class="login-card" id="login-card">
-        <div class="login-brand">Drapes<span class="dq">Quote</span>Pro</div>
+        <img class="login-brand" src="brand/drapr-lockup-horizontal-teal.svg" alt="Drapr" />
         <div class="login-sub">Job management & quoting</div>
 
         <div id="login-note" class="login-note hidden"></div>
@@ -1036,7 +1031,7 @@
       <!-- Shown instead of the login card when the page is opened from a
            password reset email. -->
       <div class="login-card hidden" id="reset-card">
-        <div class="login-brand">Drapes<span class="dq">Quote</span>Pro</div>
+        <img class="login-brand" src="brand/drapr-lockup-horizontal-teal.svg" alt="Drapr" />
         <div class="login-sub">Set a new password</div>
 
         <div id="reset-error" class="login-error hidden"></div>
@@ -1057,7 +1052,7 @@
     <!-- ============= APP VIEW (post-login) ============= -->
     <section id="app-view" class="hidden">
       <header class="topbar">
-        <div class="brand">Drapes<span class="dq">Quote</span>Pro</div>
+        <div class="brand"><img src="brand/drapr-lockup-horizontal-white.svg" alt="Drapr" /></div>
         <div class="right">
           <div class="who">
             <div class="name" id="who-name">—</div>
@@ -1089,7 +1084,7 @@
 
   <script type="module">
     /* ============================================================
-       DrapesQuotePro — single-module app
+       Drapr — single-module app
        Sections:  CONFIG → DB → AUTH → UI → ROUTER → BOOT
        Each build step slots into its named section. No appending
        to the end of a giant script. No multiple script blocks.
@@ -2674,7 +2669,7 @@
                 rangeLabel: rangeLabel(),
                 exclArchived: state.exclArchived,
                 generatedBy: session.profile?.name || '',
-                filename: `DrapesQuotePro_Report_${slug}_${fmtLocal(new Date())}.pdf`,
+                filename: `Drapr_Report_${slug}_${fmtLocal(new Date())}.pdf`,
               });
             } catch (e) {
               console.error(e); ui.toast('Could not build PDF');
@@ -2693,7 +2688,7 @@
             const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = url; a.download = `DrapesQuotePro_Report_${fmtLocal(new Date())}.csv`;
+            a.href = url; a.download = `Drapr_Report_${fmtLocal(new Date())}.csv`;
             a.click(); URL.revokeObjectURL(url);
           });
         };
@@ -3874,7 +3869,7 @@
       },
 
       download(rep, meta) {
-        this.build(rep, meta).save(meta.filename || 'DrapesQuotePro_Report.pdf');
+        this.build(rep, meta).save(meta.filename || 'Drapr_Report.pdf');
       },
     };
 
@@ -7162,7 +7157,7 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
 
         const link = stop.job_id
           ? `<button class="rs-open" data-job="${escapeHtml(stop.job_id)}">Open the job</button>`
-          : `<div class="rs-muted rs-nolink">Not in DrapesQuotePro — raised straight in Fergus</div>`;
+          : `<div class="rs-muted rs-nolink">Not in Drapr — raised straight in Fergus</div>`;
 
         return `
           <article class="rs-stop rs-${escapeHtml(stop.stop_type)}">
@@ -7269,7 +7264,7 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
         b.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:9999;background:#2b2d7e;color:#fff;'
           + "font:600 14px 'Montserrat',Arial,sans-serif;padding:12px 16px;display:flex;justify-content:center;"
           + 'gap:14px;align-items:center;flex-wrap:wrap';
-        b.innerHTML = '<span>A newer version of DrapesQuotePro is available. Reload before accepting any more quotes.</span>'
+        b.innerHTML = '<span>A newer version of Drapr is available. Reload before accepting any more quotes.</span>'
           + '<button id="version-reload" style="font:600 13px Montserrat,Arial,sans-serif;background:#fff;'
           + 'color:#2b2d7e;border:0;border-radius:4px;padding:6px 14px;cursor:pointer">Reload now</button>';
         document.body.appendChild(b);

@@ -1,0 +1,45 @@
+/* drapr — brand tokens
+   Generated from the drapr brand guidelines. Import once, use everywhere. */
+
+:root {
+  /* Core */
+  --drapr-teal:        #0F6E63;  /* primary — mark, links, primary buttons */
+  --drapr-teal-deep:   #0A4A43;  /* hover, pressed, headings on light */
+  --drapr-teal-tint:   #DCEDEA;  /* fills, selected rows, chart bands */
+  --drapr-ink:         #12211F;  /* body text */
+  --drapr-paper:       #FFFFFF;  /* app background */
+
+  /* Neutrals */
+  --drapr-grey-600:    #5A6866;  /* secondary text, captions */
+  --drapr-grey-300:    #C7D0CE;  /* borders, dividers */
+  --drapr-grey-100:    #F1F4F3;  /* table stripes, disabled fills */
+
+  /* Status — kept off the teal so alerts never read as brand */
+  --drapr-success:     #1E7A4B;
+  --drapr-warning:     #B4740E;
+  --drapr-danger:      #B3261E;
+
+  /* Type */
+  --drapr-font-display: "Poppins", system-ui, -apple-system, sans-serif;
+  --drapr-font-ui:      system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --drapr-font-mono:    ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* Type scale — 1.25 ratio off a 16px base */
+  --drapr-text-xs:   12px;
+  --drapr-text-sm:   14px;
+  --drapr-text-base: 16px;
+  --drapr-text-lg:   20px;
+  --drapr-text-xl:   25px;
+  --drapr-text-2xl:  31px;
+
+  /* Spacing — 4px base */
+  --drapr-space-1: 4px;
+  --drapr-space-2: 8px;
+  --drapr-space-3: 12px;
+  --drapr-space-4: 16px;
+  --drapr-space-6: 24px;
+  --drapr-space-8: 32px;
+
+  --drapr-radius:    6px;
+  --drapr-radius-lg: 12px;
+}
