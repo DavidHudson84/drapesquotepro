@@ -262,6 +262,41 @@
     .funnel-step .f-count { font-family: 'Montserrat'; font-weight: 800; font-size: 24px; color: var(--navy-dark); }
     .funnel-step .f-label { font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .03em; margin-top: 2px; }
 
+    /* Quotes to chase — an actionable list, not just a number to click through.
+       A count you have to navigate away from is why open quotes go cold. */
+    .chase-panel { background: var(--card); border-radius: var(--r); box-shadow: var(--shadow); margin-top: 16px; overflow: hidden; }
+    .chase-row {
+      display: grid; grid-template-columns: 1.5fr 110px 155px auto; gap: 14px; align-items: center;
+      padding: 12px 18px; border-top: 1px solid var(--line); font-size: 13.5px; cursor: pointer;
+    }
+    .chase-row:first-child { border-top: 0; }
+    .chase-row:hover { background: #f7faf9; }
+    .chase-row .c-cust { font-weight: 600; color: var(--ink); }
+    .chase-row .c-cust small { display: block; font-weight: 400; font-size: 11.5px; color: var(--muted); }
+    .chase-row .c-amt { font-weight: 700; color: var(--navy-dark); }
+    .chase-row .c-age { font-size: 12px; color: var(--muted); }
+    .chase-row .c-age .hot { color: var(--red); font-weight: 700; }
+    .fu-badge { display: inline-block; margin-top: 3px; font-size: 11px; font-weight: 700; letter-spacing: .03em; padding: 2px 8px; border-radius: 999px; background: var(--teal-light); color: var(--navy-dark); }
+    .fu-badge.none { background: #eef0f6; color: var(--muted); }
+    .fu-badge.last { background: #fde8e6; color: var(--red); }
+    .chase-actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+    .btn-mini { font: 600 12px 'Montserrat', sans-serif; padding: 7px 13px; border-radius: 6px; background: var(--navy-mid); color: #fff; }
+    .btn-mini:hover { filter: brightness(1.1); }
+    .btn-mini:disabled { opacity: .5; cursor: default; }
+    .btn-mini.ghost { background: #eef0f6; color: var(--navy-mid); }
+    .chase-more { padding: 11px 18px; font-size: 12.5px; color: var(--muted); border-top: 1px solid var(--line); }
+    .c-amt-inline { display: none; }
+    @media (max-width: 760px) {
+      /* Two columns: the quote stacks on the left, the action holds the right.
+         The value moves into the reference line rather than being dropped —
+         it is the strongest signal for which quote to chase first. */
+      .chase-row { grid-template-columns: 1fr auto; row-gap: 6px; align-items: start; }
+      .chase-row .c-amt { display: none; }
+      .chase-row .c-cust, .chase-row .c-age { grid-column: 1; }
+      .chase-row .chase-actions { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
+      .c-amt-inline { display: inline; }
+    }
+
     /* ============================================================
        ENQUIRIES
        ============================================================ */
@@ -1405,9 +1440,11 @@
 
       // Pull non-archived jobs with created_at for time-window stats.
       async listJobsForStats() {
+        // quote_number / customer_name are here for the dashboard chase panel,
+        // which names the jobs it lists rather than just counting them.
         return db.pageAll(() => sb
           .from('jobs')
-          .select('id, status, data, created_at, updated_at')
+          .select('id, status, quote_number, customer_name, data, created_at, updated_at')
           .eq('archived', false)
           .order('created_at', { ascending: false })
           .order('id', { ascending: true }));
@@ -1855,6 +1892,77 @@
       ['timing', 'Timing / not now'], ['no_response', 'No response'], ['other', 'Other'],
     ];
 
+    /* ---------- FOLLOW-UP LADDER ----------
+       Chasing an open quote before it is written off. Three rungs, then the
+       job is marked declined with reason `no_response` — there is deliberately
+       no separate "lost" status: it would ripple through the funnel, the
+       filter chips, the pills, the win-rate maths and both report renderers
+       for no information the decline reason doesn't already carry.
+       Day thresholds are settings so the cadence can be retuned without a
+       deploy. Nothing here ages a quote on its own — every email is sent by a
+       person, so a customer can never be chased by a timer no one saw. */
+    const FOLLOWUP_STAGES = [
+      { n: 1, label: 'Nudge', setting: 'followup-days-1', days: 7, tplKey: 'followup-1-body' },
+      { n: 2, label: 'Check-in', setting: 'followup-days-2', days: 14, tplKey: 'followup-2-body' },
+      { n: 3, label: 'Last chance', setting: 'followup-days-3', days: 21, tplKey: 'followup-3-body' },
+    ];
+    // Days after the last-chance email before the job is offered up as lost.
+    const LOST_AFTER_LAST_DAYS = 7;
+
+    const followUpDays = (st) => {
+      const v = Number(session.settings[st.setting]);
+      return Number.isFinite(v) && v > 0 ? v : st.days;
+    };
+    const followUpStage = (n) => FOLLOWUP_STAGES.find((s) => s.n === Number(n)) || FOLLOWUP_STAGES[0];
+
+    // When the quote itself reached the customer. Ageing an open quote off job
+    // creation chases people who have never been sent anything — the job can be
+    // raised weeks before the quote goes out.
+    // Follow-ups are excluded deliberately: chasing someone must not reset the
+    // clock, or every rung of the ladder pushes the next one further away.
+    // Re-sending an actual quote does restart it, which is right — new price,
+    // new wait.
+    // A follow-up appears in both records, stamped by the Edge Function in one
+    // and copied into the other. Pair them on a tolerance rather than an exact
+    // string: if that stamp is ever missing, a clock reset here would quietly
+    // stall the whole ladder.
+    const SAME_SEND_MS = 60000;
+    const nearAny = (t, list) => list.some((x) => Math.abs(new Date(t) - new Date(x)) < SAME_SEND_MS);
+
+    function quoteSentAt(job) {
+      const chased = (job.data?.follow_ups || []).map((f) => f.sent_at).filter(Boolean);
+      const log = (job.data?.quote?.email_log || []).filter((e) => e.sent_at && !nearAny(e.sent_at, chased));
+      if (!log.length) return null;
+      return new Date(log[log.length - 1].sent_at);
+    }
+    const daysSince = (d) => (d ? Math.floor((Date.now() - new Date(d).getTime()) / 86400000) : null);
+    const followUpsOf = (job) => job.data?.follow_ups || [];
+    const lastFollowUp = (job) => { const f = followUpsOf(job); return f.length ? f[f.length - 1] : null; };
+    // Highest rung reached, not the last one recorded — a rung re-sent by hand
+    // must not walk the ladder backwards.
+    const followUpsSent = (job) => followUpsOf(job).reduce((m, f) => Math.max(m, Number(f.stage) || 0), 0);
+
+    // The rung this quote is due for: the highest threshold it has passed that
+    // hasn't been sent yet. A quote left for a month gets the last-chance
+    // email, not a "just checking it arrived" nudge. null = nothing due.
+    function followUpDue(job) {
+      if (job.status !== 'quoted') return null;
+      const age = daysSince(quoteSentAt(job));
+      if (age == null) return null;
+      const sent = followUpsSent(job);
+      let due = null;
+      FOLLOWUP_STAGES.forEach((st) => { if (st.n > sent && age >= followUpDays(st)) due = st; });
+      return due;
+    }
+
+    // Last chance sent, silence since — the point to close the file.
+    function lostDue(job) {
+      if (job.status !== 'quoted') return false;
+      const last = followUpsOf(job).filter((f) => Number(f.stage) === 3).pop();
+      if (!last) return false;
+      return (daysSince(last.sent_at) || 0) >= LOST_AFTER_LAST_DAYS;
+    }
+
     const route = { name: 'dashboard', jobId: null, filter: 'all', search: '', sortKey: 'date', sortDir: 'desc' };
 
     const router = {
@@ -1921,6 +2029,37 @@
           </div>`;
         };
 
+        // ---- the chase list: every open quote that wants an action today ----
+        const CHASE_SHOWN = 8;
+        const chaseRows = s.chase.slice(0, CHASE_SHOWN).map((c) => {
+          const badge = c.unsent
+            ? `<span class="fu-badge none">Quote not sent</span>`
+            : (c.sent
+              ? `<span class="fu-badge ${c.sent >= 3 ? 'last' : ''}">${c.sent} follow-up${c.sent === 1 ? '' : 's'} sent</span>`
+              : `<span class="fu-badge none">Not chased yet</span>`);
+          const ageTxt = c.unsent
+            ? `raised ${c.age} day${c.age === 1 ? '' : 's'} ago`
+            : `${c.age} day${c.age === 1 ? '' : 's'} since sent`;
+          const hot = !c.unsent && (c.lost || c.due?.n === 3);
+          // Once the last chance has been sent and gone quiet, closing the file
+          // is the action — chasing again is the afterthought, not the default.
+          const actions = c.unsent
+            ? `<button class="btn-mini ghost" data-open="${c.id}">Open quote</button>`
+            : (c.lost
+              ? `<button class="btn-mini ghost" data-fu="${c.id}">Chase again</button><button class="btn-mini" data-lost="${c.id}">Mark lost</button>`
+              : `<button class="btn-mini" data-fu="${c.id}">${escapeHtml(c.due ? c.due.label : 'Follow up')}</button>`);
+          return `<div class="chase-row" data-chase="${c.id}">
+            <div class="c-cust">${escapeHtml(c.customer_name || 'No name')}<small>${escapeHtml(c.quote_number || '—')}${c.total ? `<span class="c-amt-inline"> · ${money(c.total)}</span>` : ''}</small></div>
+            <div class="c-amt">${c.total ? money(c.total) : '—'}</div>
+            <div class="c-age"><span class="${hot ? 'hot' : ''}">${ageTxt}</span><br/>${badge}</div>
+            <div class="chase-actions">${actions}</div>
+          </div>`;
+        }).join('');
+        const extra = s.chase.length - CHASE_SHOWN;
+        const chasePanel = s.chase.length
+          ? `<div class="chase-panel">${chaseRows}${extra > 0 ? `<div class="chase-more">+ ${extra} more open quote${extra === 1 ? '' : 's'} waiting — open Jobs → Quoted for the full list.</div>` : ''}</div>`
+          : '';
+
         main.innerHTML = `
           <div class="page-head"><h1>Dashboard</h1><p>Welcome back, ${escapeHtml(firstName(session.profile.name))} — ${escapeHtml(session.company.name)}</p></div>
 
@@ -1970,7 +2109,12 @@
               <div class="attn-card ${s.toChase ? '' : 'ok'}" id="attn-chase">
                 <div class="a-count">${s.toChase}</div>
                 <div class="a-label">Quotes to chase</div>
-                <div class="a-hint">Quoted 7+ days ago, not yet accepted</div>
+                <div class="a-hint">Follow-up due — measured from when the quote was emailed${s.quotesUnsent ? ` · ${s.quotesUnsent} quote${s.quotesUnsent === 1 ? '' : 's'} never sent` : ''}</div>
+              </div>
+              <div class="attn-card ${s.lastChance ? '' : 'ok'}" id="attn-lastchance">
+                <div class="a-count">${s.lastChance}</div>
+                <div class="a-label">Last chance</div>
+                <div class="a-hint">Final follow-up due, or silent since one was sent</div>
               </div>
               <div class="attn-card ${s.toSchedule ? '' : 'ok'}" id="attn-schedule">
                 <div class="a-count">${s.toSchedule}</div>
@@ -1978,6 +2122,7 @@
                 <div class="a-hint">Confirmed, no pre-inspection yet</div>
               </div>
             </div>
+            ${chasePanel}
           </div>
 
           <div class="dash-band">
@@ -1990,10 +2135,42 @@
 
         // wire clickable cards → jobs list filtered
         const goFiltered = (filter) => { route.filter = filter; router.go('jobs'); };
-        const chase = $('#attn-chase'); if (chase && s.toChase) chase.addEventListener('click', () => goFiltered('quoted'));
+        const chaseCard = $('#attn-chase'); if (chaseCard && s.toChase) chaseCard.addEventListener('click', () => goFiltered('quoted'));
+        const lastCard = $('#attn-lastchance'); if (lastCard && s.lastChance) lastCard.addEventListener('click', () => goFiltered('quoted'));
         const sched = $('#attn-schedule'); if (sched && s.toSchedule) sched.addEventListener('click', () => goFiltered('confirmed'));
         document.querySelectorAll('.funnel-step[data-fstatus]').forEach((f) =>
           f.addEventListener('click', () => goFiltered(f.dataset.fstatus)));
+
+        // ---- chase panel: act on a quote without leaving the dashboard ----
+        const openJob = (id) => { route.jobId = id; router.go('job'); };
+        document.querySelectorAll('.chase-row[data-chase]').forEach((r) =>
+          r.addEventListener('click', (e) => { if (!e.target.closest('button')) openJob(r.dataset.chase); }));
+        document.querySelectorAll('[data-open]').forEach((b) =>
+          b.addEventListener('click', (e) => { e.stopPropagation(); openJob(b.dataset.open); }));
+        // The row carries a trimmed job (stats query); the email needs the full
+        // record — address, phone, the whole quote — so re-fetch on click.
+        document.querySelectorAll('[data-fu]').forEach((b) =>
+          b.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            b.disabled = true;
+            try {
+              const full = await db.getJob(b.dataset.fu);
+              followUpEmail.open(full, () => router.dashboard(main));
+            } catch (err) {
+              ui.toast('Could not open follow-up: ' + (err.message || 'error'));
+            } finally { b.disabled = false; }
+          }));
+        document.querySelectorAll('[data-lost]').forEach((b) =>
+          b.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            b.disabled = true;
+            try {
+              const full = await db.getJob(b.dataset.lost);
+              acceptance.openDeclineModal(full, { reason: 'no_response', after: () => router.dashboard(main) });
+            } catch (err) {
+              ui.toast('Could not open: ' + (err.message || 'error'));
+            } finally { b.disabled = false; }
+          }));
       },
 
       /* ---------- JOBS LIST ---------- */
@@ -2946,6 +3123,9 @@
         ['email-intro', 'Quote email — intro', 'Goes at the top of the quote email body, after "Hi [name],".'],
         ['email-outro', 'Quote email — outro', 'Goes at the bottom of every email, after the main message.'],
         ['acceptance-email-body', 'Acceptance email — body', 'The message customers get after their quote is accepted. Use {ref} for the quote number.'],
+        ['followup-1-body', 'Follow-up 1 — nudge', 'First chase on an open quote. Use {company}, {name}, {ref}, {total} and {days}.'],
+        ['followup-2-body', 'Follow-up 2 — check-in', 'Second chase — the one that offers to adjust scope or timing. Same placeholders.'],
+        ['followup-3-body', 'Follow-up 3 — last chance', 'The final email before the quote is marked lost. Same placeholders.'],
         ['inspection-email-body', 'Inspection report email — body', 'The message that accompanies inspection reports. Use {ref} and {phase} (pre/post/combined).'],
         ['enquiry-confirm-body', 'Enquiry confirmation — body', 'Message the customer receives when they submit the public request form.'],
         ['review-request-body', 'Thank you / Google review — body', 'Sent when a job is moved to Rehung / Completed. Use {company}, {name} and {ref}. The Google review button is added automatically underneath.'],
@@ -2954,15 +3134,27 @@
       async render(body) {
         const state = {};
         this.templates.forEach(([k]) => {
-          state[k] = session.settings[k] || (k === 'review-request-body' ? REVIEW_BODY_DEFAULT : '');
+          state[k] = session.settings[k]
+            || (k === 'review-request-body' ? REVIEW_BODY_DEFAULT : (FOLLOWUP_DEFAULTS[k] || ''));
         });
         state['google-review-link'] = session.settings['google-review-link'] || '';
+        FOLLOWUP_STAGES.forEach((st) => { state[st.setting] = session.settings[st.setting] || String(st.days); });
 
         body.innerHTML = `
           <div class="admin-section">
             <h3>Google review link</h3>
             <p class="section-hint">From your Google Business Profile → "Get more reviews" → share link. Used for the review button on the thank-you email.</p>
             <div class="field"><input data-tkey="google-review-link" value="${escapeAttr(state['google-review-link'])}" placeholder="https://g.page/r/…/review" /></div>
+          </div>
+          <div class="admin-section">
+            <h3>Follow-up timing</h3>
+            <p class="section-hint">Days after the quote was <strong>emailed</strong> before each follow-up shows as due on the dashboard. Nothing sends by itself — these only decide when a quote appears in "Quotes to chase".</p>
+            <div class="qb-extras">
+              ${FOLLOWUP_STAGES.map((st) => `
+                <div class="field"><label>${escapeHtml(st.label)} (days)</label>
+                  <input data-tkey="${st.setting}" type="number" min="1" step="1" value="${escapeAttr(state[st.setting])}" /></div>`).join('')}
+            </div>
+            <p class="section-hint">${LOST_AFTER_LAST_DAYS} days after the last-chance email, the quote is offered up as lost — declined with reason "No response". That step is always a click, never automatic.</p>
           </div>
           <div class="admin-section">
             <h3>Email templates</h3>
@@ -3183,6 +3375,9 @@
 
       init(job) {
         this.jobId = job.id;
+        // Kept whole: the follow-up button needs the job's status and email
+        // history, neither of which lives on the working quote object.
+        this.job = job;
         this.enquirySource = job.data?.enquiry_source || null;
         const existing = job.data?.quote || {};
         this.q = {
@@ -3381,7 +3576,7 @@
           <div class="qb-totals" id="qb-totals">${this.totalsHtml(totals)}</div>
 
           <label class="qb-fuel-toggle" style="margin-top:16px"><input type="checkbox" id="qb-show-rates" ${q.show_rates ? 'checked' : ''}/> Show rates on quote PDF (off = line prices only)</label>
-          <div class="qb-actions"><button class="btn btn-save-quote" id="qb-save">Save Quote</button><button class="btn btn-secondary" id="qb-pdf">Download PDF</button><button class="btn btn-email" id="qb-email">Send Quote Email</button></div>
+          <div class="qb-actions"><button class="btn btn-save-quote" id="qb-save">Save Quote</button><button class="btn btn-secondary" id="qb-pdf">Download PDF</button><button class="btn btn-email" id="qb-email">Send Quote Email</button>${this.followUpBtnHtml()}</div>
           <div id="qb-emaillog">${this.emailLogHtml()}</div>
         `;
         this.wire();
@@ -3636,6 +3831,19 @@
             btn.disabled = false; btn.textContent = 'Send Quote Email';
           }
         });
+
+        // follow up on an open quote — no save first, nothing here changes it
+        const fuBtn = $('#qb-followup');
+        if (fuBtn) fuBtn.addEventListener('click', async () => {
+          fuBtn.disabled = true;
+          try {
+            const job = await db.getJob(this.jobId);
+            followUpEmail.open(job, async () => { this.init(await db.getJob(this.jobId)); });
+          } catch (err) {
+            ui.toast('Could not prepare follow-up: ' + (err.message || 'error'));
+            console.error(err);
+          } finally { fuBtn.disabled = false; }
+        });
       },
 
       recalcRow(row, item) {
@@ -3671,6 +3879,15 @@
         if (box) box.innerHTML = this.totalsHtml(computeQuote(this.q));
       },
 
+      // Follow-ups only make sense once the customer has something to respond
+      // to, and only while the quote is still open.
+      followUpBtnHtml() {
+        const job = this.job;
+        if (!job || job.status !== 'quoted' || !quoteSentAt(job)) return '';
+        const due = followUpDue(job);
+        return `<button class="btn btn-secondary" id="qb-followup">Send Follow-up${due ? ' · ' + escapeHtml(due.label) : ''}</button>`;
+      },
+
       emailLogHtml() {
         const log = (this.q.email_log || []);
         if (!log.length) return '';
@@ -3678,7 +3895,13 @@
           const when = e.sent_at ? new Date(e.sent_at).toLocaleString('en-AU', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
           return `<div class="log-row"><strong>${escapeHtml(when)}</strong> — sent to ${escapeHtml(e.to || '')}${e.cc ? ' (cc ' + escapeHtml(e.cc) + ')' : ''}</div>`;
         }).join('');
-        return `<div class="email-log"><div class="qb-block-title" style="margin-top:0">Email history</div>${rows}</div>`;
+        // Every send lands in the log above, follow-ups included; this names
+        // which of them were chases and how far up the ladder we've gone.
+        const fu = followUpsOf(this.job || {});
+        const fuLine = fu.length
+          ? `<div class="log-row" style="margin-top:8px"><strong>Followed up ${fu.length}×</strong> — last was ${escapeHtml(followUpStage(fu[fu.length - 1].stage).label)}, ${escapeHtml(new Date(fu[fu.length - 1].sent_at).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' }))}${fu[fu.length - 1].sent_by ? ' by ' + escapeHtml(fu[fu.length - 1].sent_by) : ''}</div>`
+          : '';
+        return `<div class="email-log"><div class="qb-block-title" style="margin-top:0">Email history</div>${rows}${fuLine}</div>`;
       },
 
       async save() {
@@ -4975,7 +5198,11 @@
         });
       },
 
-      openDeclineModal(job) {
+      // opts.reason preselects a decline reason (the dashboard's "Mark lost"
+      // arrives here with no_response already chosen); opts.after replaces the
+      // job-page refresh so a caller elsewhere isn't navigated away.
+      openDeclineModal(job, opts = {}) {
+        const jobId = job.id || this.jobId;
         const acc = job.data?.acceptance || {};
         const wasConfirmed = !!acc.confirmed_at;
         const mount = $('#modal-mount');
@@ -4986,7 +5213,7 @@
               <div class="m-body">
                 ${wasConfirmed ? `<div class="acc-blocked" style="background:#fef3c7;border-color:#fde68a;color:#92400e">This job is currently <strong>${escapeHtml(STATUS_LABEL[job.status] || job.status)}</strong>. Declining reverses the acceptance and moves it to Declined. The acceptance record is kept and can be restored later.</div>` : ''}
                 <div class="field"><label>Reason</label>
-                  <select id="dec-reason">${DECLINE_REASONS.map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select>
+                  <select id="dec-reason">${DECLINE_REASONS.map(([v, l]) => `<option value="${v}"${v === opts.reason ? ' selected' : ''}>${l}</option>`).join('')}</select>
                 </div>
                 <div class="field"><label>Note ${wasConfirmed ? '' : '(optional)'}</label><textarea id="dec-note" rows="3" placeholder="${wasConfirmed ? 'Why is it being cancelled after acceptance?' : 'Any detail worth recording'}"></textarea></div>
               </div>
@@ -5007,7 +5234,7 @@
           const btn = $('#dec-confirm');
           btn.disabled = true; btn.textContent = 'Saving…';
           try {
-            const fresh = await db.getJob(this.jobId);
+            const fresh = await db.getJob(jobId);
             const priorAcc = fresh.data?.acceptance || null;
             const declined = {
               reason, note,
@@ -5029,10 +5256,10 @@
               note: wasConfirmed ? `Acceptance undone from ${STATUS_LABEL[fresh.status] || fresh.status} — declined` : 'Marked declined',
             });
             patch.status_history = history;
-            await db.saveJob(this.jobId, patch, { status: 'declined' });
+            await db.saveJob(jobId, patch, { status: 'declined' });
             close();
             ui.toast(wasConfirmed ? 'Acceptance undone — job declined' : 'Quote marked declined');
-            router.jobPage(this.main);
+            if (opts.after) await opts.after(); else router.jobPage(this.main);
           } catch (err) {
             btn.disabled = false; btn.textContent = wasConfirmed ? 'Undo & Decline' : 'Mark Declined';
             ui.toast('Failed: ' + (err.message || 'error'));
@@ -5847,8 +6074,17 @@
       if (a?.confirmed_at) out.push({ at: a.confirmed_at, who: a.confirmed_by, kind: 'status', what: `Quote accepted via ${a.how || 'verbal'}` });
       const d = job.data?.declined;
       if (d?.at) out.push({ at: d.at, who: d.by, kind: 'status', what: `Quote declined — ${d.reason || ''}${d.note ? ': ' + d.note : ''}` });
+      // Follow-ups go through the same send path, so they are already in
+      // email_log. Match them by timestamp and label them properly rather
+      // than listing every chase twice as "Quote emailed".
+      const fu = job.data?.follow_ups || [];
+      const fuAt = fu.map((f) => f.sent_at).filter(Boolean);
       (job.data?.quote?.email_log || []).forEach((e) => {
+        if (e.sent_at && nearAny(e.sent_at, fuAt)) return;
         out.push({ at: e.sent_at, who: e.sent_by || null, kind: 'status', what: `Quote emailed to ${e.to || ''}` });
+      });
+      fu.forEach((f) => {
+        out.push({ at: f.sent_at, who: f.sent_by || null, kind: 'status', what: `Follow-up (${followUpStage(f.stage).label}) emailed to ${f.to || ''}` });
       });
       (job.data?.items || []).forEach((it) => {
         const nm = `${it.label} (${showItemTags() ? it.ref : '#' + it.seq}, ${it.room})`;
@@ -6129,6 +6365,186 @@
         if (out.code === 'writeback_failed') return out.error;
         if (status === 401) return 'Fergus rejected the API token';
         return out.error || `Fergus push failed (${status})`;
+      },
+    };
+
+    /* ============================================================
+       FOLLOW-UP EMAIL
+       Chases an open quote up the three-rung ladder in FOLLOWUP_STAGES.
+       Reuses send-quote-email (PDF optional) exactly as the review email
+       does — no Edge Function change. That function already appends every
+       send to data.quote.email_log, so email history keeps working; this
+       adds data.follow_ups, which carries the rung and who sent it.
+       ============================================================ */
+    const FOLLOWUP_DEFAULTS = {
+      'followup-1-body': `Just checking the quote for {ref} reached you — they do occasionally land in junk mail.
+
+There's no rush at all. If you'd like to go ahead, or you'd like me to walk you through anything in it, just reply to this email or give us a call.`,
+
+      'followup-2-body': `I wanted to check in on the quote for {ref}.
+
+If the scope or the timing isn't quite right, we can usually work with it — staging the job over two visits, or doing the main living areas first, is a common way to spread the cost.
+
+Happy to revise it however suits. Just reply and let me know what you're thinking.`,
+
+      'followup-3-body': `I haven't heard back on the quote for {ref}, so I'll close it off at our end and stop chasing you.
+
+Nothing is lost by that — if you'd like to pick it up later, just reply to this email and we'll reopen it. The measurements and details all stay on record, though the pricing may need a quick review if it's been a while.
+
+Thanks for considering us.`,
+    };
+    const FOLLOWUP_SUBJECT = {
+      1: 'Quote {ref} — did it reach you?',
+      2: 'Checking in on quote {ref}',
+      3: 'Closing off quote {ref}',
+    };
+
+    const followUpEmail = {
+      open(job, onSent) {
+        const companyName = session.company?.name || 'Dr Drapes Curtain Clinic';
+        const cc = session.company?.contact_email || '';
+        const sentAt = quoteSentAt(job);
+        const age = daysSince(sentAt);
+        const alreadySent = followUpsSent(job);
+        const due = followUpDue(job);
+        // Open on the rung that's actually due; otherwise the next one up.
+        const state = {
+          stage: (due || followUpStage(Math.min(alreadySent + 1, 3))).n,
+          subjectTouched: false, bodyTouched: false,
+        };
+
+        const fill = (n) => {
+          const st = followUpStage(n);
+          const vars = {
+            company: companyName,
+            name: firstName(job.customer_name || ''),
+            ref: job.quote_number || '',
+            total: job.data?.quote?.total != null ? money(Number(job.data.quote.total)) : '',
+            days: age == null ? '' : String(age),
+          };
+          const sub = (tpl) => String(tpl || '').replace(/\{(company|name|ref|total|days)\}/g, (_, k) => vars[k]);
+          const tpl = session.settings[st.tplKey] || FOLLOWUP_DEFAULTS[st.tplKey];
+          const greeting = job.customer_name ? `Hi ${firstName(job.customer_name)},` : 'Hi,';
+          const outro = (session.settings['email-outro'] || '').trim();
+          return {
+            subject: sub(FOLLOWUP_SUBJECT[n]),
+            body: `${greeting}\n\n${sub(tpl)}${outro ? '\n\n' + outro : ''}`.trim(),
+          };
+        };
+
+        const chips = FOLLOWUP_STAGES.map((st) => {
+          const done = alreadySent >= st.n ? ' ✓' : '';
+          return `<span class="acc-chip ${state.stage === st.n ? 'active' : ''}" data-fustage="${st.n}">${st.label}${done}</span>`;
+        }).join('');
+
+        const first = fill(state.stage);
+        const history = followUpsOf(job);
+        const lastLine = history.length
+          ? (() => {
+            const l = history[history.length - 1];
+            return `${history.length} follow-up${history.length === 1 ? '' : 's'} sent · last was ${followUpStage(l.stage).label}, ${new Date(l.sent_at).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}`;
+          })()
+          : 'No follow-ups sent yet.';
+
+        const mount = $('#modal-mount');
+        mount.innerHTML = `
+          <div class="modal-backdrop" id="fu-backdrop">
+            <div class="modal compose">
+              <div class="m-head"><h2>Follow Up on Quote</h2><p>${escapeHtml(job.quote_number || '')}${age == null ? '' : ` — quote emailed ${age} day${age === 1 ? '' : 's'} ago`}. ${escapeHtml(lastLine)}</p></div>
+              <div class="m-body">
+                <div class="modal-error hidden" id="fu-error"></div>
+                <div><span style="font-size:12px;font-weight:700;color:var(--muted)">STAGE</span></div>
+                <div class="acc-chips">${chips}</div>
+                <div class="field"><label>To</label><input id="fu-to" value="${escapeAttr(job.customer_email || '')}" placeholder="customer@email.com" /></div>
+                <div class="field"><label>CC (always included)</label>
+                  <div class="cc-locked"><span class="lock">🔒</span> ${escapeHtml(cc || 'No company CC set')}</div>
+                </div>
+                <div class="field"><label>Subject</label><input id="fu-subject" value="${escapeAttr(first.subject)}" /></div>
+                <div class="field"><label>Message</label><textarea id="fu-body" rows="10">${escapeHtml(first.body)}</textarea></div>
+                <label class="acc-terms"><input type="checkbox" id="fu-attach" ${state.stage === 1 ? 'checked' : ''}/> Attach the quote PDF again</label>
+                <p class="section-hint" id="fu-hint"></p>
+              </div>
+              <div class="m-foot">
+                <button class="btn btn-secondary" id="fu-cancel">Cancel</button>
+                <button class="btn btn-email" id="fu-send" style="width:auto">Send Follow-up</button>
+              </div>
+            </div>
+          </div>`;
+
+        const close = () => { mount.innerHTML = ''; };
+        const hint = () => {
+          const el = $('#fu-hint');
+          el.textContent = state.stage === 3
+            ? 'This is the last email. After it, the quote sits until you mark it lost from the job page or the dashboard — nothing happens automatically.'
+            : '';
+        };
+        hint();
+
+        $('#fu-cancel').addEventListener('click', close);
+        $('#fu-backdrop').addEventListener('click', (e) => { if (e.target.id === 'fu-backdrop') close(); });
+        $('#fu-subject').addEventListener('input', () => { state.subjectTouched = true; });
+        $('#fu-body').addEventListener('input', () => { state.bodyTouched = true; });
+
+        // Switching rung rewrites the wording — but never over an edit already
+        // made, or the operator loses what they just typed.
+        document.querySelectorAll('[data-fustage]').forEach((c) =>
+          c.addEventListener('click', () => {
+            state.stage = Number(c.dataset.fustage);
+            document.querySelectorAll('[data-fustage]').forEach((x) =>
+              x.classList.toggle('active', Number(x.dataset.fustage) === state.stage));
+            const f = fill(state.stage);
+            if (!state.subjectTouched) $('#fu-subject').value = f.subject;
+            if (!state.bodyTouched) $('#fu-body').value = f.body;
+            $('#fu-attach').checked = state.stage === 1;
+            hint();
+          }));
+
+        $('#fu-send').addEventListener('click', async () => {
+          const to = $('#fu-to').value.trim();
+          const errEl = $('#fu-error'); errEl.classList.add('hidden');
+          if (!to || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) {
+            errEl.textContent = 'Enter a valid customer email address.';
+            errEl.classList.remove('hidden'); return;
+          }
+          const btn = $('#fu-send'); btn.disabled = true; btn.textContent = 'Sending…';
+          const subject = $('#fu-subject').value;
+          try {
+            const body_html = '<div style="font-family:Arial,sans-serif;font-size:14px;color:#222;white-space:pre-wrap">'
+              + escapeHtml($('#fu-body').value) + '</div>';
+            const payload = { job_id: job.id, to, subject, body_html };
+            if ($('#fu-attach').checked) {
+              payload.pdf_base64 = quotePdf.base64(job);
+              payload.pdf_filename = `${job.quote_number || 'Quote'}.pdf`;
+            }
+            const { data: { session: s } } = await sb.auth.getSession();
+            const res = await fetch(`${SUPABASE_URL}/functions/v1/send-quote-email`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${s.access_token}`, 'apikey': SUPABASE_ANON_KEY },
+              body: JSON.stringify(payload),
+            });
+            const out = await res.json().catch(() => ({}));
+            if (!res.ok || out.error) throw new Error(out.detail || out.error || `Send failed (${res.status})`);
+            // Record the rung. Re-read first: the Edge Function has just
+            // rewritten data server-side to append the email log entry.
+            // Reuse the timestamp it returned, so Activity can pair the two
+            // records and show one line per send rather than two.
+            try {
+              const fresh = await db.getJob(job.id);
+              const log = (fresh.data?.follow_ups || []).concat([{
+                stage: state.stage, sent_at: out.sent_at || new Date().toISOString(),
+                to, sent_by: session.profile.name, subject,
+              }]);
+              await db.saveJob(job.id, { follow_ups: log });
+            } catch (_) { /* logging only — never block the send */ }
+            close();
+            ui.toast(`${followUpStage(state.stage).label} sent to ${to}`);
+            if (onSent) await onSent();
+          } catch (err) {
+            errEl.textContent = sendErrorMessage(err.message || 'Send failed');
+            errEl.classList.remove('hidden');
+            btn.disabled = false; btn.textContent = 'Send Follow-up';
+          }
+        });
       },
     };
 
@@ -6593,7 +7009,8 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
       let pipelineVal = 0, pipelineCount = 0;
       let confirmedTotalVal = 0, confirmedTotalCount = 0; // for avg job size (all confirmed+)
       let wonCount = 0, declinedCount = 0, pendingCount = 0;
-      let toChase = 0, toSchedule = 0;
+      let toChase = 0, toSchedule = 0, lastChance = 0, quotesUnsent = 0;
+      const chase = [];   // open quotes needing a person to do something
       let declinedMonthVal = 0, declinedMonthCount = 0;
       const m = { quotedVal: 0, quotedCount: 0, confirmedVal: 0, confirmedCount: 0, invoicedVal: 0, invoicedCount: 0, newJobs: 0 };
       const w = { invoicedVal: 0, invoicedCount: 0, newJobs: 0 };
@@ -6637,9 +7054,30 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
         }
 
         // needs attention (not declined)
+        // The chase clock runs from when the quote was emailed, not from when
+        // the job was raised. A quote never sent is a different problem, and
+        // is surfaced as such rather than being silently dropped.
         if (j.status === 'quoted') {
-          const ageDays = (now - ca) / 86400000;
-          if (ageDays >= 7) toChase++;
+          const row = {
+            id: j.id, quote_number: j.quote_number, customer_name: j.customer_name, total: t,
+          };
+          const sentAt = quoteSentAt(j);
+          if (!sentAt) {
+            quotesUnsent++;
+            const ageC = Math.floor((now - ca) / 86400000);
+            if (ageC >= 2) chase.push({ ...row, age: ageC, sent: 0, due: null, lost: false, unsent: true });
+          } else {
+            const due = followUpDue(j);
+            const lost = lostDue(j);
+            if (due || lost) {
+              toChase++;
+              if (lost || due?.n === 3) lastChance++;
+              chase.push({
+                ...row, age: Math.floor((now - sentAt) / 86400000),
+                sent: followUpsSent(j), due, lost, unsent: false,
+              });
+            }
+          }
         }
         if (j.status === 'confirmed' && !(j.data?.pre_inspection?.saved_at)) toSchedule++;
       });
@@ -6653,7 +7091,10 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
         byStatus, month: m, week: w,
         pipelineVal: round2(pipelineVal), pipelineCount,
         winRate, wonCount, declinedCount, pendingCount,
-        avgJobSize, toChase, toSchedule,
+        avgJobSize, toChase, toSchedule, lastChance, quotesUnsent,
+        // Oldest first — the quote that has been waiting longest is the one
+        // most likely to be lost, and the one the panel should lead with.
+        chase: chase.sort((a1, b1) => b1.age - a1.age),
         declinedMonthVal: round2(declinedMonthVal), declinedMonthCount,
       };
     }
