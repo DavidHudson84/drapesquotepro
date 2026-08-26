@@ -1902,9 +1902,9 @@
        deploy. Nothing here ages a quote on its own — every email is sent by a
        person, so a customer can never be chased by a timer no one saw. */
     const FOLLOWUP_STAGES = [
-      { n: 1, label: 'Nudge', setting: 'followup-days-1', days: 7, tplKey: 'followup-1-body' },
-      { n: 2, label: 'Check-in', setting: 'followup-days-2', days: 14, tplKey: 'followup-2-body' },
-      { n: 3, label: 'Last chance', setting: 'followup-days-3', days: 21, tplKey: 'followup-3-body' },
+      { n: 1, label: 'Nudge', setting: 'followup-days-1', days: 7, tplKey: 'followup-1-body', subjKey: 'followup-1-subject' },
+      { n: 2, label: 'Check-in', setting: 'followup-days-2', days: 14, tplKey: 'followup-2-body', subjKey: 'followup-2-subject' },
+      { n: 3, label: 'Last chance', setting: 'followup-days-3', days: 21, tplKey: 'followup-3-body', subjKey: 'followup-3-subject' },
     ];
     // Days after the last-chance email before the job is offered up as lost.
     const LOST_AFTER_LAST_DAYS = 7;
@@ -3119,12 +3119,17 @@
 
     const adminEmails = {
       // Each template = a settings key with a friendly label and helpful hint.
+      // A fourth element of 'line' renders a single-line input instead of a
+      // textarea — subjects are one line and shouldn't invite a paragraph.
       templates: [
         ['email-intro', 'Quote email — intro', 'Goes at the top of the quote email body, after "Hi [name],".'],
         ['email-outro', 'Quote email — outro', 'Goes at the bottom of every email, after the main message.'],
         ['acceptance-email-body', 'Acceptance email — body', 'The message customers get after their quote is accepted. Use {ref} for the quote number.'],
-        ['followup-1-body', 'Follow-up 1 — nudge', 'First chase on an open quote. Use {company}, {name}, {ref}, {total} and {days}.'],
+        ['followup-1-subject', 'Follow-up 1 — subject', 'Subject line for the nudge. Use {company}, {name}, {ref}, {total} or {days}.', 'line'],
+        ['followup-1-body', 'Follow-up 1 — nudge', 'First chase on an open quote. Same placeholders. Don\'t open with a greeting — "Hi [name]," is added for you.'],
+        ['followup-2-subject', 'Follow-up 2 — subject', 'Subject line for the check-in.', 'line'],
         ['followup-2-body', 'Follow-up 2 — check-in', 'Second chase — the one that offers to adjust scope or timing. Same placeholders.'],
+        ['followup-3-subject', 'Follow-up 3 — subject', 'Subject line for the last chance email.', 'line'],
         ['followup-3-body', 'Follow-up 3 — last chance', 'The final email before the quote is marked lost. Same placeholders.'],
         ['inspection-email-body', 'Inspection report email — body', 'The message that accompanies inspection reports. Use {ref} and {phase} (pre/post/combined).'],
         ['enquiry-confirm-body', 'Enquiry confirmation — body', 'Message the customer receives when they submit the public request form.'],
@@ -3159,11 +3164,13 @@
           <div class="admin-section">
             <h3>Email templates</h3>
             <p class="section-hint">All email wording. Templates with default fallback text in code will use these instead once filled in.</p>
-            ${this.templates.map(([k, label, hint]) => `
+            ${this.templates.map(([k, label, hint, kind]) => `
               <div class="field">
                 <label style="font-weight:700;color:var(--navy-mid);font-size:13.5px;display:block;margin-bottom:4px">${escapeHtml(label)}</label>
                 <p class="section-hint" style="margin-bottom:6px">${escapeHtml(hint)}</p>
-                <textarea data-tkey="${k}" rows="5">${escapeHtml(state[k])}</textarea>
+                ${kind === 'line'
+                  ? `<input data-tkey="${k}" value="${escapeAttr(state[k])}" />`
+                  : `<textarea data-tkey="${k}" rows="5">${escapeHtml(state[k])}</textarea>`}
               </div>`).join('')}
           </div>`;
 
@@ -6392,11 +6399,12 @@ Happy to revise it however suits. Just reply and let me know what you're thinkin
 Nothing is lost by that — if you'd like to pick it up later, just reply to this email and we'll reopen it. The measurements and details all stay on record, though the pricing may need a quick review if it's been a while.
 
 Thanks for considering us.`,
-    };
-    const FOLLOWUP_SUBJECT = {
-      1: 'Quote {ref} — did it reach you?',
-      2: 'Checking in on quote {ref}',
-      3: 'Closing off quote {ref}',
+
+      // Subjects live in the same map so Admin resolves body and subject
+      // defaults through one lookup.
+      'followup-1-subject': 'Quote {ref} — did it reach you?',
+      'followup-2-subject': 'Checking in on quote {ref}',
+      'followup-3-subject': 'Closing off quote {ref}',
     };
 
     const followUpEmail = {
@@ -6424,10 +6432,11 @@ Thanks for considering us.`,
           };
           const sub = (tpl) => String(tpl || '').replace(/\{(company|name|ref|total|days)\}/g, (_, k) => vars[k]);
           const tpl = session.settings[st.tplKey] || FOLLOWUP_DEFAULTS[st.tplKey];
+          const subjTpl = session.settings[st.subjKey] || FOLLOWUP_DEFAULTS[st.subjKey];
           const greeting = job.customer_name ? `Hi ${firstName(job.customer_name)},` : 'Hi,';
           const outro = (session.settings['email-outro'] || '').trim();
           return {
-            subject: sub(FOLLOWUP_SUBJECT[n]),
+            subject: sub(subjTpl),
             body: `${greeting}\n\n${sub(tpl)}${outro ? '\n\n' + outro : ''}`.trim(),
           };
         };
