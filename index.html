@@ -1915,13 +1915,6 @@
     };
     const followUpStage = (n) => FOLLOWUP_STAGES.find((s) => s.n === Number(n)) || FOLLOWUP_STAGES[0];
 
-    // When the quote itself reached the customer. Ageing an open quote off job
-    // creation chases people who have never been sent anything — the job can be
-    // raised weeks before the quote goes out.
-    // Follow-ups are excluded deliberately: chasing someone must not reset the
-    // clock, or every rung of the ladder pushes the next one further away.
-    // Re-sending an actual quote does restart it, which is right — new price,
-    // new wait.
     // A follow-up appears in both records, stamped by the Edge Function in one
     // and copied into the other. Pair them on a tolerance rather than an exact
     // string: if that stamp is ever missing, a clock reset here would quietly
@@ -1929,11 +1922,34 @@
     const SAME_SEND_MS = 60000;
     const nearAny = (t, list) => list.some((x) => Math.abs(new Date(t) - new Date(x)) < SAME_SEND_MS);
 
+    // When the quote itself last went out from here. null is normal, not a
+    // fault — plenty of quotes are downloaded as a PDF and emailed by hand.
+    // Follow-ups are excluded deliberately: chasing someone must not reset the
+    // clock, or every rung of the ladder pushes the next one further away.
     function quoteSentAt(job) {
       const chased = (job.data?.follow_ups || []).map((f) => f.sent_at).filter(Boolean);
       const log = (job.data?.quote?.email_log || []).filter((e) => e.sent_at && !nearAny(e.sent_at, chased));
       if (!log.length) return null;
       return new Date(log[log.length - 1].sent_at);
+    }
+    // A job is created already `quoted`, so its created_at is the day the quote
+    // was raised.
+    const quoteRaisedAt = (job) => {
+      const t = job.created_at || job.updated_at;
+      return t ? new Date(t) : null;
+    };
+
+    // Where the chase clock starts. Ageing off the in-app send stalls the
+    // ladder forever on every quote that was downloaded and emailed by hand, so
+    // the clock runs from when the quote was raised instead. Re-sending an
+    // actual quote from here still restarts it, which is right — new price, new
+    // wait — so take whichever of the two is later.
+    function followUpClockFrom(job) {
+      const raised = quoteRaisedAt(job);
+      const sent = quoteSentAt(job);
+      if (!raised) return sent;
+      if (!sent) return raised;
+      return sent > raised ? sent : raised;
     }
     const daysSince = (d) => (d ? Math.floor((Date.now() - new Date(d).getTime()) / 86400000) : null);
     const followUpsOf = (job) => job.data?.follow_ups || [];
@@ -1947,7 +1963,7 @@
     // email, not a "just checking it arrived" nudge. null = nothing due.
     function followUpDue(job) {
       if (job.status !== 'quoted') return null;
-      const age = daysSince(quoteSentAt(job));
+      const age = daysSince(followUpClockFrom(job));
       if (age == null) return null;
       const sent = followUpsSent(job);
       let due = null;
@@ -2032,22 +2048,18 @@
         // ---- the chase list: every open quote that wants an action today ----
         const CHASE_SHOWN = 8;
         const chaseRows = s.chase.slice(0, CHASE_SHOWN).map((c) => {
-          const badge = c.unsent
-            ? `<span class="fu-badge none">Quote not sent</span>`
-            : (c.sent
-              ? `<span class="fu-badge ${c.sent >= 3 ? 'last' : ''}">${c.sent} follow-up${c.sent === 1 ? '' : 's'} sent</span>`
-              : `<span class="fu-badge none">Not chased yet</span>`);
-          const ageTxt = c.unsent
-            ? `raised ${c.age} day${c.age === 1 ? '' : 's'} ago`
-            : `${c.age} day${c.age === 1 ? '' : 's'} since sent`;
-          const hot = !c.unsent && (c.lost || c.due?.n === 3);
+          const badge = c.sent
+            ? `<span class="fu-badge ${c.sent >= 3 ? 'last' : ''}">${c.sent} follow-up${c.sent === 1 ? '' : 's'} sent</span>`
+            : `<span class="fu-badge none">Not chased yet</span>`;
+          // Say which date the age counts from — on a quote emailed by hand
+          // "since sent" would be a date this app never saw.
+          const ageTxt = `${c.age} day${c.age === 1 ? '' : 's'} since ${c.neverEmailed ? 'raised' : 'sent'}`;
+          const hot = c.lost || c.due?.n === 3;
           // Once the last chance has been sent and gone quiet, closing the file
           // is the action — chasing again is the afterthought, not the default.
-          const actions = c.unsent
-            ? `<button class="btn-mini ghost" data-open="${c.id}">Open quote</button>`
-            : (c.lost
-              ? `<button class="btn-mini ghost" data-fu="${c.id}">Chase again</button><button class="btn-mini" data-lost="${c.id}">Mark lost</button>`
-              : `<button class="btn-mini" data-fu="${c.id}">${escapeHtml(c.due ? c.due.label : 'Follow up')}</button>`);
+          const actions = c.lost
+            ? `<button class="btn-mini ghost" data-fu="${c.id}">Chase again</button><button class="btn-mini" data-lost="${c.id}">Mark lost</button>`
+            : `<button class="btn-mini" data-fu="${c.id}">${escapeHtml(c.due ? c.due.label : 'Follow up')}</button>`;
           return `<div class="chase-row" data-chase="${c.id}">
             <div class="c-cust">${escapeHtml(c.customer_name || 'No name')}<small>${escapeHtml(c.quote_number || '—')}${c.total ? `<span class="c-amt-inline"> · ${money(c.total)}</span>` : ''}</small></div>
             <div class="c-amt">${c.total ? money(c.total) : '—'}</div>
@@ -2109,7 +2121,7 @@
               <div class="attn-card ${s.toChase ? '' : 'ok'}" id="attn-chase">
                 <div class="a-count">${s.toChase}</div>
                 <div class="a-label">Quotes to chase</div>
-                <div class="a-hint">Follow-up due — measured from when the quote was emailed${s.quotesUnsent ? ` · ${s.quotesUnsent} quote${s.quotesUnsent === 1 ? '' : 's'} never sent` : ''}</div>
+                <div class="a-hint">Follow-up due — measured from when the quote was raised${s.quotesUnsent ? ` · ${s.quotesUnsent} not emailed from Drapr` : ''}</div>
               </div>
               <div class="attn-card ${s.lastChance ? '' : 'ok'}" id="attn-lastchance">
                 <div class="a-count">${s.lastChance}</div>
@@ -2145,8 +2157,6 @@
         const openJob = (id) => { route.jobId = id; router.go('job'); };
         document.querySelectorAll('.chase-row[data-chase]').forEach((r) =>
           r.addEventListener('click', (e) => { if (!e.target.closest('button')) openJob(r.dataset.chase); }));
-        document.querySelectorAll('[data-open]').forEach((b) =>
-          b.addEventListener('click', (e) => { e.stopPropagation(); openJob(b.dataset.open); }));
         // The row carries a trimmed job (stats query); the email needs the full
         // record — address, phone, the whole quote — so re-fetch on click.
         document.querySelectorAll('[data-fu]').forEach((b) =>
@@ -3153,7 +3163,7 @@
           </div>
           <div class="admin-section">
             <h3>Follow-up timing</h3>
-            <p class="section-hint">Days after the quote was <strong>emailed</strong> before each follow-up shows as due on the dashboard. Nothing sends by itself — these only decide when a quote appears in "Quotes to chase".</p>
+            <p class="section-hint">Days after the quote was <strong>raised</strong> before each follow-up shows as due on the dashboard — so quotes emailed by hand from Outlook are chased on the same clock as ones sent from here. Re-sending the quote from Drapr restarts it. Nothing sends by itself — these only decide when a quote appears in "Quotes to chase".</p>
             <div class="qb-extras">
               ${FOLLOWUP_STAGES.map((st) => `
                 <div class="field"><label>${escapeHtml(st.label)} (days)</label>
@@ -3886,11 +3896,12 @@
         if (box) box.innerHTML = this.totalsHtml(computeQuote(this.q));
       },
 
-      // Follow-ups only make sense once the customer has something to respond
-      // to, and only while the quote is still open.
+      // Follow-ups only make sense while the quote is still open. Whether the
+      // quote went out from here or by hand is not this button's business —
+      // the customer has a quote either way.
       followUpBtnHtml() {
         const job = this.job;
-        if (!job || job.status !== 'quoted' || !quoteSentAt(job)) return '';
+        if (!job || job.status !== 'quoted') return '';
         const due = followUpDue(job);
         return `<button class="btn btn-secondary" id="qb-followup">Send Follow-up${due ? ' · ' + escapeHtml(due.label) : ''}</button>`;
       },
@@ -6412,7 +6423,10 @@ Thanks for considering us.`,
         const companyName = session.company?.name || 'Dr Drapes Curtain Clinic';
         const cc = session.company?.contact_email || '';
         const sentAt = quoteSentAt(job);
-        const age = daysSince(sentAt);
+        const age = daysSince(followUpClockFrom(job));
+        // {days} and the header both count from the clock, so say out loud
+        // which date that is — "emailed" on a hand-sent quote reads as a bug.
+        const ageWord = sentAt ? 'quote emailed' : 'quote raised';
         const alreadySent = followUpsSent(job);
         const due = followUpDue(job);
         // Open on the rung that's actually due; otherwise the next one up.
@@ -6459,7 +6473,7 @@ Thanks for considering us.`,
         mount.innerHTML = `
           <div class="modal-backdrop" id="fu-backdrop">
             <div class="modal compose">
-              <div class="m-head"><h2>Follow Up on Quote</h2><p>${escapeHtml(job.quote_number || '')}${age == null ? '' : ` — quote emailed ${age} day${age === 1 ? '' : 's'} ago`}. ${escapeHtml(lastLine)}</p></div>
+              <div class="m-head"><h2>Follow Up on Quote</h2><p>${escapeHtml(job.quote_number || '')}${age == null ? '' : ` — ${ageWord} ${age} day${age === 1 ? '' : 's'} ago`}. ${escapeHtml(lastLine)}</p></div>
               <div class="m-body">
                 <div class="modal-error hidden" id="fu-error"></div>
                 <div><span style="font-size:12px;font-weight:700;color:var(--muted)">STAGE</span></div>
@@ -7063,29 +7077,23 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
         }
 
         // needs attention (not declined)
-        // The chase clock runs from when the quote was emailed, not from when
-        // the job was raised. A quote never sent is a different problem, and
-        // is surfaced as such rather than being silently dropped.
+        // The chase clock runs from when the quote was raised, so a quote that
+        // was downloaded and emailed by hand ages exactly like one sent from
+        // here. Whether it ever went out from here is still counted, because
+        // it changes the wording of the chase, not the timing of it.
         if (j.status === 'quoted') {
-          const row = {
-            id: j.id, quote_number: j.quote_number, customer_name: j.customer_name, total: t,
-          };
-          const sentAt = quoteSentAt(j);
-          if (!sentAt) {
-            quotesUnsent++;
-            const ageC = Math.floor((now - ca) / 86400000);
-            if (ageC >= 2) chase.push({ ...row, age: ageC, sent: 0, due: null, lost: false, unsent: true });
-          } else {
-            const due = followUpDue(j);
-            const lost = lostDue(j);
-            if (due || lost) {
-              toChase++;
-              if (lost || due?.n === 3) lastChance++;
-              chase.push({
-                ...row, age: Math.floor((now - sentAt) / 86400000),
-                sent: followUpsSent(j), due, lost, unsent: false,
-              });
-            }
+          const emailedFromHere = !!quoteSentAt(j);
+          if (!emailedFromHere) quotesUnsent++;
+          const due = followUpDue(j);
+          const lost = lostDue(j);
+          if (due || lost) {
+            toChase++;
+            if (lost || due?.n === 3) lastChance++;
+            chase.push({
+              id: j.id, quote_number: j.quote_number, customer_name: j.customer_name, total: t,
+              age: Math.floor((now - followUpClockFrom(j)) / 86400000),
+              sent: followUpsSent(j), due, lost, neverEmailed: !emailedFromHere,
+            });
           }
         }
         if (j.status === 'confirmed' && !(j.data?.pre_inspection?.saved_at)) toSchedule++;
