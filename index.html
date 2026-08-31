@@ -1902,9 +1902,9 @@
        deploy. Nothing here ages a quote on its own — every email is sent by a
        person, so a customer can never be chased by a timer no one saw. */
     const FOLLOWUP_STAGES = [
-      { n: 1, label: 'Nudge', setting: 'followup-days-1', days: 7, tplKey: 'followup-1-body', subjKey: 'followup-1-subject' },
-      { n: 2, label: 'Check-in', setting: 'followup-days-2', days: 14, tplKey: 'followup-2-body', subjKey: 'followup-2-subject' },
-      { n: 3, label: 'Last chance', setting: 'followup-days-3', days: 21, tplKey: 'followup-3-body', subjKey: 'followup-3-subject' },
+      { n: 1, label: 'Nudge', setting: 'followup-days-1', days: 10, tplKey: 'followup-1-body', subjKey: 'followup-1-subject' },
+      { n: 2, label: 'Check-in', setting: 'followup-days-2', days: 21, tplKey: 'followup-2-body', subjKey: 'followup-2-subject' },
+      { n: 3, label: 'Last chance', setting: 'followup-days-3', days: 35, tplKey: 'followup-3-body', subjKey: 'followup-3-subject' },
     ];
     // Days after the last-chance email before the job is offered up as lost.
     const LOST_AFTER_LAST_DAYS = 7;
