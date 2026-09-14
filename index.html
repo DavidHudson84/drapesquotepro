@@ -2657,8 +2657,8 @@
           <div class="page-head"><h1>Reports</h1><p>Loading job data…</p></div>
           <div class="empty-card"><div class="spin" style="margin:0 auto;border-top-color:var(--navy-mid);border-color:#ddd"></div></div>`;
 
-        let allJobs;
-        try { allJobs = await db.listJobsAll(); }
+        let allJobs, allEnquiries;
+        try { [allJobs, allEnquiries] = await Promise.all([db.listJobsAll(), db.listEnquiries()]); }
         catch (e) {
           main.innerHTML = `<div class="empty-card"><h3>Couldn't load reports</h3><p>${escapeHtml(e.message || 'Error')}</p></div>`;
           return;
@@ -2715,6 +2715,18 @@
           const includeArchived = !state.exclArchived;
           const rep = computeReport(allJobs, state.from, state.to, includeArchived);
           const trend = computeReportTrend(allJobs, includeArchived, 12);
+          const sources = computeSources(allJobs, allEnquiries, state.from, state.to, includeArchived);
+          const sourceRowsHtml = sources.map((s) => {
+            const direct = s.key === 'direct';
+            return `<tr>
+              <td>${s.label}</td>
+              <td style="text-align:right">${direct ? '—' : s.enquiries}</td>
+              <td style="text-align:right">${direct ? '—' : s.converted}</td>
+              <td style="text-align:right">${s.quotes}</td>
+              <td style="text-align:right">${money0(s.quotedVal)}</td>
+              <td style="text-align:right">${s.won}</td>
+            </tr>`;
+          }).join('');
 
           const presetBtn = (id, label) =>
             `<button class="rep-preset ${state.preset === id ? 'on' : ''}" data-preset="${id}">${label}</button>`;
@@ -2800,6 +2812,18 @@
                 <div class="metric"><div class="m-label">Quoted</div><div class="m-value">${money0(rep.quotedVal)}</div><div class="m-sub">${rep.quotedCount} quote${rep.quotedCount === 1 ? '' : 's'} raised</div></div>
                 <div class="metric"><div class="m-label">Win rate</div><div class="m-value">${rep.winRate}%</div><div class="m-sub">${rep.wonCount} won · ${rep.declinedCount} lost · ${rep.pendingCount} still open</div></div>
                 <div class="metric"><div class="m-label">Average quote</div><div class="m-value">${money0(rep.avgQuote)}</div><div class="m-sub">across quotes raised</div></div>
+              </div>
+            </div>
+
+            <div class="dash-band">
+              <div class="dash-band-title">Where work came from
+                <span class="bt-note">Enquiries received and quotes raised between these dates, by how they reached us. Converted counts the enquiries received here that have since become jobs.</span>
+              </div>
+              <div style="overflow-x:auto">
+                <table class="rep-table">
+                  <thead><tr><th>Source</th><th style="text-align:right">Enquiries</th><th style="text-align:right">Converted</th><th style="text-align:right">Quotes raised</th><th style="text-align:right">Quoted</th><th style="text-align:right">Won</th></tr></thead>
+                  <tbody>${sourceRowsHtml}</tbody>
+                </table>
               </div>
             </div>
 
@@ -2893,6 +2917,7 @@
             pdfBtn.disabled = true; pdfBtn.textContent = 'Building…';
             try {
               const rep = computeReport(allJobs, state.from, state.to, !state.exclArchived);
+              rep.sources = computeSources(allJobs, allEnquiries, state.from, state.to, !state.exclArchived);
               const slug = (PRESET_LABEL[state.preset] || 'Custom').replace(/\s+/g, '');
               reportPdf.download(rep, {
                 rangeLabel: rangeLabel(),
@@ -2911,7 +2936,7 @@
           if (csv) csv.addEventListener('click', () => {
             const includeArchived = !state.exclArchived;
             const rep = computeReport(allJobs, state.from, state.to, includeArchived);
-            const headers = ['quote_number', 'drd_number', 'po_number', 'customer_name', 'status', 'total', 'created_at', 'confirmed_at', 'invoiced_at', 'declined_reason', 'created_by', 'archived'];
+            const headers = ['quote_number', 'drd_number', 'po_number', 'customer_name', 'status', 'total', 'created_at', 'confirmed_at', 'invoiced_at', 'declined_reason', 'created_by', 'source', 'archived'];
             const esc = (v) => { const s = String(v ?? ''); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
             const lines = [headers.join(',')].concat(rep.rows.map((r) => headers.map((h) => esc(r[h])).join(',')));
             const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
@@ -4114,6 +4139,16 @@
           });
           y += 6;
         };
+
+        // ---------- WHERE WORK CAME FROM ----------
+        if (rep.sources) {
+          table('Where work came from', ['SOURCE', 'ENQUIRIES', 'CONVERTED', 'QUOTES', 'QUOTED', 'WON'],
+            ['left', 'right', 'right', 'right', 'right', 'right'], [46, 26, 26, 24, 34, 22],
+            rep.sources.map((s) => {
+              const direct = s.key === 'direct';
+              return [s.label, direct ? '—' : s.enquiries, direct ? '—' : s.converted, s.quotes, m0(s.quotedVal), s.won];
+            }), 'No enquiries or quotes in this period');
+        }
 
         // ---------- BY STAFF ----------
         table('By staff', ['STAFF', 'QUOTES', 'QUOTED', 'CONFIRMED', 'CONV.'],
@@ -7175,6 +7210,38 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
           itself. A job quoted in June and invoiced in August is August money.
           Answers "how much did we confirm and invoice this period?"
     */
+    // Where a job came from. A converted enquiry carries enquiry_source, and an
+    // emailed one also carries source:'email'. Everything else was typed
+    // straight into Drapr: phone calls, repeat customers, site visits.
+    const LEAD_SOURCES = [['web', 'Web form'], ['email', 'Email'], ['direct', 'Entered in Drapr']];
+    const jobLeadSource = (j) => j.data?.enquiry_source ? (j.data.enquiry_source.source === 'email' ? 'email' : 'web') : 'direct';
+    const enquiryLeadSource = (e) => e.data?.source === 'email' ? 'email' : 'web';
+
+    // Enquiries are dated by when they arrived, quotes by when they were raised,
+    // so a web enquiry from last month converted this week shows up once in
+    // each month rather than twice in one.
+    function computeSources(jobs, enquiries, from, to, includeArchived) {
+      const confIdx = STATUSES.indexOf('confirmed');
+      const inRange = (d) => d >= from && d <= to;
+      const rows = Object.fromEntries(LEAD_SOURCES.map(([key, label]) =>
+        [key, { key, label, enquiries: 0, converted: 0, quotes: 0, quotedVal: 0, won: 0 }]));
+      enquiries.forEach((e) => {
+        if (!e.submitted_at || !inRange(new Date(e.submitted_at))) return;
+        const R = rows[enquiryLeadSource(e)];
+        R.enquiries++;
+        if (e.status === 'converted') R.converted++;
+      });
+      jobs.forEach((j) => {
+        if (!includeArchived && j.archived) return;
+        if (!inRange(new Date(j.created_at || j.updated_at || 0))) return;
+        const R = rows[jobLeadSource(j)];
+        R.quotes++;
+        R.quotedVal += Number(j.data?.quote?.total || 0);
+        if (STATUSES.indexOf(j.status) >= confIdx) R.won++;
+      });
+      return LEAD_SOURCES.map(([key]) => ({ ...rows[key], quotedVal: round2(rows[key].quotedVal) }));
+    }
+
     function computeReport(jobs, from, to, includeArchived) {
       const order = STATUSES;
       const confIdx = order.indexOf('confirmed');
@@ -7252,6 +7319,7 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
           confirmed_at: cf ? cf.toISOString() : '', invoiced_at: iv ? iv.toISOString() : '',
           declined_reason: declined ? (j.data?.declined?.reason || 'other') : '',
           created_by: who, archived: j.archived ? 'yes' : 'no',
+          source: Object.fromEntries(LEAD_SOURCES)[jobLeadSource(j)],
         });
       });
 
