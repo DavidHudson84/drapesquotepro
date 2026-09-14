@@ -324,6 +324,13 @@
     .e-pill.new { background: #fee2e2; color: #991b1b; }
     .e-pill.called { background: #fef3c7; color: #92590a; }
     .e-pill.converted { background: #d1fae5; color: #065f46; }
+    .e-pill.email { background: #e0f2f1; color: #0f5e56; text-transform: none; letter-spacing: 0; }
+    .e-checks { margin-top: 10px; padding: 10px 12px; background: #fdf6f5; border-radius: var(--r-sm); font-size: 13px; color: var(--ink); }
+    .e-checks strong { color: #9a3412; }
+    .e-checks ul { margin: 4px 0 0 18px; padding: 0; }
+    .e-source { margin-top: 10px; font-size: 13px; }
+    .e-source summary { cursor: pointer; color: var(--navy-mid); font-weight: 600; }
+    .e-source pre { margin: 8px 0 0; padding: 10px 12px; background: #f8f9fc; border-radius: var(--r-sm); font-family: inherit; font-size: 12.5px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; max-height: 360px; overflow: auto; }
     .enq-rooms { margin-top: 12px; }
     .enq-room { border-top: 1px solid var(--line); padding-top: 10px; margin-top: 10px; }
     .enq-room:first-child { border-top: none; padding-top: 0; }
@@ -1329,6 +1336,8 @@
             name: (fields.customer_name || '').trim() || 'Unnamed customer',
             phone: (fields.customer_phone || '').trim() || null,
             email: (fields.customer_email || '').trim() || null,
+            ...(fields.business_name ? { business_name: fields.business_name.trim() } : {}),
+            ...(fields.customer_type ? { customer_type: fields.customer_type } : {}),
           }).select().single();
           if (error) throw error;
           customer = data;
@@ -1534,15 +1543,19 @@
       // Convert an enquiry into a job: maps customer rooms/items into quote
       // rooms with measurements pre-filled and customer-measured / tier flags.
       async convertEnquiry(enq) {
-        const ref = await db.nextQuoteNumber();
+        // The enquiry was given its DRQ number when it came in; reuse it rather
+        // than burning a second one.
+        const ref = enq.quote_number || await db.nextQuoteNumber();
         // Friendly enquiry types → catalogue category codes used by quote builder.
         // "unsure" stays empty so staff pick on the line.
         const TYPE_MAP = {
           curtain: 'curtain', sheer: 'sheer', velvet: 'velvet',
           'roller-block': 'roller-block', 'roller-sun': 'roller-sun',
-          roman: 'roman', pelmet: 'pelmet', swags: 'swags-tails',
-          valance: 'valance', unsure: '',
+          roman: 'roman', austrian: 'austrian', venetian: 'venetian',
+          pelmet: 'pelmet', swags: 'swags', valance: 'valance', unsure: '',
         };
+        // Emailed site notes were measured by our own technician, not the customer.
+        const measuredTag = enq.data?.measured_by === 'staff' ? '(measured on site)' : '(customer-measured)';
         // Tier → numeric metre value used by curtain rate-tier logic.
         const TIER_M = { short: 2.4, medium: 3.0, tall: 4.0 };
 
@@ -1586,7 +1599,7 @@
             const note = it.note || '';
             const tag = it.heightMode === 'tier'
               ? '(customer tier estimate)'
-              : (it.width || it.height) ? '(customer-measured)' : '';
+              : (it.width || it.height) ? measuredTag : '';
             const itemNote = [note, tag].filter(Boolean).join(' · ');
             const drop = it.heightMode === 'tier' ? (TIER_M[it.tier || 'short']) : (it.height || '');
             return {
@@ -1595,7 +1608,7 @@
               width: it.width || '',
               drop: drop,
               mould: !!it.mould,
-              customer_measured: !!(it.width || it.height) && it.heightMode !== 'tier',
+              customer_measured: !!(it.width || it.height) && it.heightMode !== 'tier' && enq.data?.measured_by !== 'staff',
               customer_tier: it.heightMode === 'tier' ? (it.tier || 'short') : null,
             };
           });
@@ -1617,11 +1630,22 @@
             hardware: enq.data?.hardware || [],
             rooms: enqRooms,
             photos: enq.data?.photos || [],
+            ...(enq.data?.source === 'email' ? {
+              source: 'email',
+              business_name: enq.data.business_name || '',
+              email_subject: enq.data.email?.subject || '',
+              forwarded_by_name: enq.data.email?.forwarded_by_name || '',
+              ai_questions: enq.data.ai?.questions || [],
+            } : {}),
           },
-          quote: quoteRooms.length || quoteRepairs.length || hwNotesBlock
-            ? { rooms: quoteRooms, repairs: quoteRepairs, notes: hwNotesBlock ? hwNotesBlock.trim() : '' }
+          quote: quoteRooms.length || quoteRepairs.length || hwNotesBlock || enq.data?.insurer_name || enq.data?.claim_number
+            ? {
+              rooms: quoteRooms, repairs: quoteRepairs, notes: hwNotesBlock ? hwNotesBlock.trim() : '',
+              ...(enq.data?.insurer_name || enq.data?.claim_number
+                ? { insurer_name: enq.data.insurer_name || '', claim_number: enq.data.claim_number || '' } : {}),
+            }
             : {},
-          status_history: [{ status: 'quoted', changed_by: session.profile.name, changed_at: new Date().toISOString(), note: 'Converted from enquiry' }],
+          status_history: [{ status: 'quoted', changed_by: session.profile.name, changed_at: new Date().toISOString(), note: enq.data?.source === 'email' ? 'Converted from emailed enquiry' : 'Converted from enquiry' }],
         };
         let link = { customer_id: null, site_id: null };
         try {
@@ -1630,6 +1654,8 @@
             customer_phone: enq.customer_phone,
             customer_email: enq.customer_email,
             site_address: enq.site_address,
+            business_name: enq.data?.business_name,
+            customer_type: enq.data?.customer_type,
           });
         } catch (err) {
           console.error('Customer link failed, job created unlinked:', err);
@@ -1649,7 +1675,9 @@
         };
         const { data: created, error } = await sb.from('jobs').insert(row).select().single();
         if (error) throw error;
-        await db.setEnquiryStatus(enq.id, 'converted');
+        const { error: linkErr } = await sb.from('enquiries')
+          .update({ status: 'converted', converted_job_id: created.id }).eq('id', enq.id);
+        if (linkErr) throw linkErr;
         return created;
       },
 
@@ -2496,8 +2524,8 @@
           const TYPE_LABEL = {
             curtain: 'Curtains', sheer: 'Sheer curtains', velvet: 'Velvet / heavy curtains',
             'roller-block': 'Roller blinds (blockout)', 'roller-sun': 'Roller blinds (sunscreen)',
-            roman: 'Roman blinds', pelmet: 'Pelmets', swags: 'Swags & tails',
-            valance: 'Valance', unsure: 'Not sure / other',
+            roman: 'Roman blinds', austrian: 'Austrian blinds', venetian: 'Venetian blinds',
+            pelmet: 'Pelmets', swags: 'Swags & tails', valance: 'Valance', unsure: 'Not sure / other',
           };
           const TIER_LABEL = { short: 'under 2.4m', medium: '2.4–3.8m', tall: 'over 3.8m' };
           const OBS_LABEL = {
@@ -2505,8 +2533,19 @@
             sun: 'Sun damage / fading', pet_hair: 'Pet hair', heavily_stained: 'Heavily stained',
             fraying: 'Fraying / wear', other: 'Other',
           };
+          // Enquiries imported from a forwarded email: who sent it in, what
+          // Claude couldn't work out, and the original text to check against.
+          const fromEmail = d.source === 'email';
+          const measuredBy = d.measured_by === 'staff' ? 'measured on site' : 'customer-measured';
+          const emailPill = fromEmail
+            ? ` <span class="e-pill email">📧 ${d.ai?.kind === 'site_notes' ? 'Site notes' : 'Email'}${d.email?.forwarded_by_name ? ' · ' + escapeHtml(d.email.forwarded_by_name) : ''}</span>` : '';
+          const checks = fromEmail ? (d.ai?.questions || []) : [];
+          const checksHtml = checks.length
+            ? `<div class="e-checks"><strong>Needs checking before quoting</strong><ul>${checks.map((q) => '<li>' + escapeHtml(q) + '</li>').join('')}</ul></div>` : '';
+          const sourceHtml = fromEmail && d.email?.body_text
+            ? `<details class="e-source"><summary>Original email${d.email.subject ? ': ' + escapeHtml(d.email.subject) : ''}</summary><pre>${escapeHtml(d.email.body_text)}</pre></details>` : '';
           const obsHtml = (d.observation_ticks || []).length
-            ? `<div style="margin-top:8px;font-size:13px"><strong style="color:var(--navy-mid)">Customer flagged:</strong> ${(d.observation_ticks || []).map((k) => escapeHtml(OBS_LABEL[k] || k)).join(', ')}</div>` : '';
+            ? `<div style="margin-top:8px;font-size:13px"><strong style="color:var(--navy-mid)">${fromEmail ? 'Flagged:' : 'Customer flagged:'}</strong> ${(d.observation_ticks || []).map((k) => escapeHtml(OBS_LABEL[k] || k)).join(', ')}</div>` : '';
           const ratingHtml = (d.customer_rating != null)
             ? `<div style="margin-top:4px;font-size:13px"><strong style="color:var(--navy-mid)">Customer rating:</strong> ${d.customer_rating}/10</div>` : '';
           const HW_LABEL = {
@@ -2529,7 +2568,7 @@
               if (it.width) dims.push(`W ${escapeHtml(it.width)}`);
               if (it.heightMode === 'tier' && it.tier) dims.push(`H ${TIER_LABEL[it.tier] || it.tier} (estimated)`);
               else if (it.height) dims.push(`H ${escapeHtml(it.height)}`);
-              const tag = it.heightMode === 'tier' ? ' · tier estimate' : ((it.width || it.height) ? ' · customer-measured' : '');
+              const tag = it.heightMode === 'tier' ? ' · tier estimate' : ((it.width || it.height) ? ' · ' + measuredBy : '');
               return `<li><strong>${escapeHtml(TYPE_LABEL[it.type] || it.type)}</strong>${dims.length ? ' — ' + dims.join(' × ') : ''}${it.note ? ' · ' + escapeHtml(it.note) : ''}<small style="color:var(--muted)">${tag}</small></li>`;
             }).join('');
             const ps = (r.photos || []);
@@ -2544,19 +2583,22 @@
             <div class="enq-card s-${st}" data-enq="${e.id}">
               <div class="e-top">
                 <div>
-                  <div class="e-name">${escapeHtml(e.customer_name || 'No name')} <span class="e-pill ${st}">${st}</span></div>
+                  <div class="e-name">${escapeHtml(e.customer_name || 'No name')} <span class="e-pill ${st}">${st}</span>${emailPill}</div>
+                  ${d.business_name ? `<div class="e-meta">${escapeHtml(d.business_name)}${d.customer_type && d.customer_type !== 'domestic' ? ' · ' + escapeHtml(d.customer_type) : ''}</div>` : ''}
                   <div class="e-meta">${escapeHtml(e.customer_phone || '')}${e.customer_email ? ' · ' + escapeHtml(e.customer_email) : ''}</div>
-                  ${e.site_address ? `<div class="e-meta">${escapeHtml(e.site_address)}</div>` : ''}
+                  ${e.site_address ? `<div class="e-meta">${escapeHtml(e.site_address)}</div>` : (fromEmail ? '<div class="e-meta" style="color:#9a3412">No site address</div>' : '')}
                 </div>
                 <div class="e-when">${escapeHtml(when)}</div>
               </div>
               ${fields.length ? `<div class="e-fields">${fields.join('')}</div>` : ''}
+              ${checksHtml}
               ${ratingHtml}
               ${obsHtml}
               ${hwCardHtml}
               ${d.description ? `<div class="e-desc">${escapeHtml(d.description)}</div>` : ''}
               ${roomsHtml}
               ${overallPhotos.length ? `<div class="room-photos-label" style="margin-top:14px;font-size:12px;color:var(--muted);font-weight:600">Overall photos</div><div class="e-photos" data-photos='${escapeAttr(JSON.stringify(overallPhotos))}'>${overallPhotos.map(() => '<div style="width:80px;height:80px;border-radius:6px;background:#eef0f6;display:flex;align-items:center;justify-content:center;font-size:10px;color:#999">photo</div>').join('')}</div>` : ''}
+              ${sourceHtml}
               <div class="e-actions">
                 ${st === 'new' ? `<button class="btn btn-secondary" data-called="${e.id}">Mark Called</button>` : ''}
                 ${st !== 'converted' ? `<button class="btn btn-convert" data-convert="${e.id}">Convert to Job</button>` : ''}
@@ -2567,7 +2609,7 @@
         enqBadge.set(counts.new || 0);
 
         main.innerHTML = `
-          <div class="page-head"><h1>Enquiries</h1><p>Customer request-form submissions</p></div>
+          <div class="page-head"><h1>Enquiries</h1><p>Request-form submissions and forwarded emails</p></div>
           <div class="filter-chips" style="margin-bottom:16px">${chips}</div>
           ${cards}`;
 
@@ -3442,10 +3484,12 @@
         const TYPE_LABEL = {
           curtain: 'Curtains', sheer: 'Sheer curtains', velvet: 'Velvet / heavy curtains',
           'roller-block': 'Roller blinds (blockout)', 'roller-sun': 'Roller blinds (sunscreen)',
-          roman: 'Roman blinds', pelmet: 'Pelmets', swags: 'Swags & tails',
-          valance: 'Valance', unsure: 'Not sure / other',
+          roman: 'Roman blinds', austrian: 'Austrian blinds', venetian: 'Venetian blinds',
+          pelmet: 'Pelmets', swags: 'Swags & tails', valance: 'Valance', unsure: 'Not sure / other',
         };
         const TIER_LABEL = { short: 'under 2.4m', medium: '2.4–3.8m', tall: 'over 3.8m' };
+        const fromEmail = es.source === 'email';
+        const checks = fromEmail ? (es.ai_questions || []) : [];
         const OBS_LABEL = {
           mould: 'Mould', smoke: 'Smoke damage', water: 'Water marks / stains',
           sun: 'Sun damage / fading', pet_hair: 'Pet hair', heavily_stained: 'Heavily stained',
@@ -3504,8 +3548,10 @@
         const submitted = es.submitted_at ? new Date(es.submitted_at).toLocaleString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
         return `
           <details class="es-panel" open>
-            <summary>📋 Customer enquiry${submitted ? ' · submitted ' + escapeHtml(submitted) : ''}</summary>
+            <summary>${fromEmail ? '📧 Emailed enquiry' : '📋 Customer enquiry'}${submitted ? ' · ' + (fromEmail ? 'imported ' : 'submitted ') + escapeHtml(submitted) : ''}</summary>
             <div class="es-body">
+              ${fromEmail ? `<div class="es-fields"><span><strong>Email:</strong> ${escapeHtml(es.email_subject || '')}</span>${es.forwarded_by_name ? `<span><strong>Forwarded by:</strong> ${escapeHtml(es.forwarded_by_name)}</span>` : ''}</div>` : ''}
+              ${checks.length ? `<div class="es-obs"><strong>Flagged when imported:</strong><ul style="margin:4px 0 0 18px;padding:0">${checks.map((q) => '<li>' + escapeHtml(q) + '</li>').join('')}</ul></div>` : ''}
               ${fields.length ? `<div class="es-fields">${fields.join('')}</div>` : ''}
               ${rating != null ? `<div class="es-rating">Customer's condition rating: <strong>${rating}/10</strong></div>` : ''}
               ${obs.length ? `<div class="es-obs"><strong>Customer observations:</strong> ${obs.map(escapeHtml).join(', ')}</div>` : ''}
