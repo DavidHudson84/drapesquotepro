@@ -2423,7 +2423,11 @@
           try {
             const out = await fergusPush.runWithApproval(job.id);
             if (out.skipped) { fpBtn.disabled = false; fpBtn.textContent = 'Push to Fergus'; return; }
-            ui.toast(out.fergus_job_no ? 'Created in Fergus as ' + out.fergus_job_no : 'Pushed to Fergus');
+            ui.toast((out.fergus_job_no ? 'Created in Fergus as ' + out.fergus_job_no : 'Pushed to Fergus')
+              // Say when a separate site was raised because the address already
+              // belonged to somebody else, so the office isn't surprised by a
+              // second site record at the same street number.
+              + (out.site_conflict ? ' · new site raised (' + out.site_conflict + ' already had that address)' : ''));
             router.jobPage(main);
           } catch (err) {
             ui.toast('Fergus: ' + (err.message || 'push failed'));
@@ -5261,7 +5265,12 @@
             try {
               const out = await fergusPush.runWithApproval(this.jobId);
               if (out.skipped) msg += ' \u2014 not sent to Fergus yet, use Push to Fergus when ready';
-              else if (out.fergus_job_no) msg += ' \u00b7 Fergus ' + out.fergus_job_no;
+              else if (out.fergus_job_no) {
+                msg += ' \u00b7 Fergus ' + out.fergus_job_no;
+                // A separate site had to be raised because that address was
+                // already held against someone else. Worth saying out loud.
+                if (out.site_conflict) msg += ' \u00b7 new site raised (' + out.site_conflict + ' already had that address)';
+              }
             } catch (err) {
               msg += ' \u2014 not sent to Fergus: ' + (err.message || 'push failed');
             }
@@ -6366,71 +6375,167 @@
         return await fergusPush.attempt(jobId, false, true);
       },
 
-      // Show what the job is about to be attached to and wait for a yes. Only
-      // reached when the customer or the site has never been linked before, so a
-      // repeat customer never sees this.
+      // Show what the job is about to be attached to and let a person decide,
+      // separately for the customer and for the site. Reached when either has
+      // never been linked before, or when the address landed on a Fergus site
+      // that belongs to somebody else.
+      //
+      // The customer and the site are asked about one at a time on purpose.
+      // Most of the time the customer is right and only the site is wrong \u2014
+      // the same building, a different home in it \u2014 and a single yes/no over
+      // both forced a choice between accepting a wrong site and sending
+      // nothing at all.
+      //
+      // Resolves to the decisions to act on, or null for "not now".
       askApproval(pv) {
         return new Promise((resolve) => {
-          const block = (label, o, isSite) => {
-            const nw = o.will_create;
-            const lines = [];
-            if (o.contacts && o.contacts.length) lines.push(escapeHtml(o.contacts.join(' \u00b7 ')));
-            if (isSite && o.contact) lines.push('Site contact in Fergus: ' + escapeHtml(o.contact));
-            return '<div style="margin:0 0 16px">'
-              + '<div style="font:700 11px Arial,sans-serif;color:#888;letter-spacing:.06em">' + label + '</div>'
-              + '<div style="font:600 15px Arial,sans-serif;color:#222;padding-top:3px">'
-              + escapeHtml((isSite ? o.address : o.name) || 'Not set') + '</div>'
-              + lines.map((l) => '<div style="font:400 13px Arial,sans-serif;color:#666">' + l + '</div>').join('')
-              + '<div style="font:600 12px Arial,sans-serif;padding-top:5px;color:' + (nw ? '#0a7d32' : '#9a6b00') + '">'
-              + (nw ? 'New \u2014 will be created in Fergus'
-                    : 'Matched an existing Fergus record \u2014 check this is the right one')
-              + '</div></div>';
+          // Each choice is a radio so the safe option can be the one already
+          // selected. A wrong match should take a deliberate click to accept,
+          // never just an Enter on the default button.
+          const choice = (group, value, label, note, checked) =>
+            '<label style="display:flex;gap:8px;align-items:flex-start;padding:4px 0;cursor:pointer">'
+            + `<input type="radio" name="${group}" value="${value}"${checked ? ' checked' : ''} `
+            + 'style="margin:3px 0 0">'
+            + '<span><span style="font:600 13px Arial,sans-serif;color:#222">' + label + '</span>'
+            + (note ? '<br><span style="font:400 12px Arial,sans-serif;color:#777">' + note + '</span>' : '')
+            + '</span></label>';
+
+          const heading = (label, title, sub) =>
+            '<div style="font:700 11px Arial,sans-serif;color:#888;letter-spacing:.06em">' + label + '</div>'
+            + '<div style="font:600 15px Arial,sans-serif;color:#222;padding-top:3px">'
+            + escapeHtml(title || 'Not set') + '</div>'
+            + sub.map((l) => '<div style="font:400 13px Arial,sans-serif;color:#666">' + l + '</div>').join('');
+
+          const customerBlock = () => {
+            const o = pv.customer;
+            const sub = [];
+            if (o.contacts && o.contacts.length) sub.push(escapeHtml(o.contacts.join(' \u00b7 ')));
+            let body;
+            if (o.will_create || !o.fergus_id) {
+              body = '<div style="font:600 12px Arial,sans-serif;padding-top:5px;color:#0a7d32">'
+                + 'New \u2014 will be created in Fergus</div>';
+            } else {
+              body = '<div style="padding-top:6px">'
+                + choice('fx-cust', 'match', 'Use this Fergus customer',
+                         'Matched on phone, email or name', true)
+                + choice('fx-cust', 'new', 'Create a new customer instead',
+                         'Pick this if the match above is a different person', false)
+                + '</div>';
+            }
+            return '<div style="margin:0 0 16px">' + heading('CUSTOMER', o.name, sub) + body + '</div>';
           };
+
+          const siteBlock = () => {
+            const o = pv.site;
+            const sub = [];
+            // The preview reuses one field for two different things: the contact
+            // already on a matched Fergus site, and the contact we would put on
+            // a site we are about to create. Only the first is "in Fergus" —
+            // labelling the second that way reads as though a record exists.
+            if (o.contact) {
+              sub.push((o.will_create || o.conflict ? 'Contact for the new site: ' : 'Site contact in Fergus: ')
+                + escapeHtml(o.contact));
+            }
+            let warn = '';
+            let body;
+            if (o.conflict) {
+              // The building matched but the record on it is somebody else's.
+              // This is the case that put a job on a stranger's apartment, so
+              // the safe option is selected and the override is spelled out.
+              warn = '<div style="background:#fff6e5;border:1px solid #f0c987;border-radius:6px;'
+                + 'padding:9px 11px;margin:6px 0 8px;font:400 12px/1.5 Arial,sans-serif;color:#7a5200">'
+                + '<strong style="font-weight:700">' + escapeHtml(o.conflict_address || 'That address')
+                + '</strong> already exists in Fergus against <strong style="font-weight:700">'
+                + escapeHtml(o.conflict) + '</strong>. Same building, different person \u2014 so this job '
+                + 'gets its own site unless you say otherwise.</div>';
+              body = '<div style="padding-top:2px">'
+                + choice('fx-site', 'new', 'Create a new site for this job',
+                         escapeHtml(o.address || ''), true)
+                + choice('fx-site', 'conflict', 'Use ' + escapeHtml(o.conflict) + '\u2019s site anyway',
+                         'Only if this really is the same property and the same people', false)
+                + '</div>';
+            } else if (o.will_create || !o.fergus_id) {
+              body = '<div style="font:600 12px Arial,sans-serif;padding-top:5px;color:#0a7d32">'
+                + 'New \u2014 will be created in Fergus</div>';
+            } else {
+              body = '<div style="padding-top:6px">'
+                + choice('fx-site', 'match', 'Use this Fergus site',
+                         'Matched on street number, unit and street', true)
+                + choice('fx-site', 'new', 'Create a new site instead',
+                         'Pick this if that is a different property', false)
+                + '</div>';
+            }
+            return '<div style="margin:0 0 16px">'
+              + heading('SITE', o.conflict ? (o.address || '') : o.address, sub)
+              + warn + body + '</div>';
+          };
+
           const wrap = document.createElement('div');
           wrap.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.45);'
             + 'display:flex;align-items:center;justify-content:center;padding:20px';
-          wrap.innerHTML = '<div style="background:#fff;border-radius:10px;max-width:460px;width:100%;padding:22px">'
+          wrap.innerHTML = '<div style="background:#fff;border-radius:10px;max-width:460px;width:100%;'
+            + 'padding:22px;max-height:90vh;overflow:auto">'
             + '<h3 style="font:700 17px Arial,sans-serif;color:#2b2d7e;margin:0 0 4px">Check the Fergus match</h3>'
             + '<p style="font:400 13px/1.5 Arial,sans-serif;color:#666;margin:0 0 18px">This customer or address '
             + 'has not gone to Fergus before. Confirm it is right and you will not be asked again for them.</p>'
-            + block('CUSTOMER', pv.customer, false)
-            + block('SITE', pv.site, true)
+            + customerBlock()
+            + siteBlock()
             + '<div style="display:flex;gap:10px;justify-content:flex-end;padding-top:4px">'
             + '<button id="fx-no" style="font:600 13px Arial,sans-serif;background:#eee;color:#333;border:0;'
             + 'border-radius:5px;padding:9px 16px;cursor:pointer">Not now</button>'
             + '<button id="fx-yes" style="font:600 13px Arial,sans-serif;background:#2b2d7e;color:#fff;border:0;'
             + 'border-radius:5px;padding:9px 16px;cursor:pointer">Send to Fergus</button></div></div>';
           document.body.appendChild(wrap);
+
+          // Read the radios back into the shape push-to-fergus expects. Sending
+          // the id we showed, rather than letting the function resolve a second
+          // time, is what makes the record that gets written the one that was
+          // on screen.
+          const picked = (group) => {
+            const el = wrap.querySelector(`input[name="${group}"]:checked`);
+            return el ? el.value : null;
+          };
+          const decide = (group, o, conflictId) => {
+            const v = picked(group);
+            if (v === 'conflict' && conflictId) return { action: 'match', fergus_id: conflictId };
+            if (v === 'match' && o.fergus_id) return { action: 'match', fergus_id: o.fergus_id };
+            return { action: 'new' };
+          };
+
           const done = (v) => { wrap.remove(); resolve(v); };
-          wrap.querySelector('#fx-no').addEventListener('click', () => done(false));
-          wrap.querySelector('#fx-yes').addEventListener('click', () => done(true));
+          wrap.querySelector('#fx-no').addEventListener('click', () => done(null));
+          wrap.querySelector('#fx-yes').addEventListener('click', () => done({
+            customer: decide('fx-cust', pv.customer, null),
+            site: decide('fx-site', pv.site, pv.site.conflict_fergus_id),
+          }));
         });
       },
 
-      // Preview, get approval if the match is new, then push.
+      // Preview, get approval if anything is new or contested, then push.
       async runWithApproval(jobId) {
         const pv = await fergusPush.preview(jobId);
         if (pv && pv.needs_confirmation) {
-          const ok = await fergusPush.askApproval(pv);
-          if (!ok) return { skipped: true };
+          const approved = await fergusPush.askApproval(pv);
+          if (!approved) return { skipped: true };
+          return await fergusPush.run(jobId, { approved });
         }
         return await fergusPush.run(jobId);
       },
 
-      async run(jobId, { force = false } = {}) {
+      async run(jobId, { force = false, approved = null } = {}) {
         // The function cold-starts. A preflight that lands on a container mid
         // shutdown returns 503, which the browser reports only as an untyped
         // "Failed to fetch", so retry a genuine network failure once.
         try {
-          return await fergusPush.attempt(jobId, force);
+          return await fergusPush.attempt(jobId, force, false, approved);
         } catch (err) {
           if (err.name !== 'TypeError') throw err;
           await new Promise((r) => setTimeout(r, 2000));
-          return await fergusPush.attempt(jobId, force);
+          return await fergusPush.attempt(jobId, force, false, approved);
         }
       },
 
-      async attempt(jobId, force, preview) {
+      async attempt(jobId, force, preview, approved) {
         const { data: { session: s } } = await sb.auth.getSession();
         // Fergus can take a few seconds; never leave the button spinning forever.
         const ctl = new AbortController();
@@ -6439,7 +6544,7 @@
           const res = await fetch(`${SUPABASE_URL}/functions/v1/push-to-fergus`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${s.access_token}`, 'apikey': SUPABASE_ANON_KEY },
-            body: JSON.stringify({ job_id: jobId, force, preview: !!preview }),
+            body: JSON.stringify({ job_id: jobId, force, preview: !!preview, ...(approved ? { approved } : {}) }),
             signal: ctl.signal,
           });
           const out = await res.json().catch(() => ({}));
