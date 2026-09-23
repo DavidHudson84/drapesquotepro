@@ -239,7 +239,7 @@ function staffHtml(kind: 'accepted' | 'declined' | 'question', job: any, extra: 
     .filter(([, v]) => v)
     .map(([k, v]) => `<tr>
       <td style="padding:7px 12px;color:#5A6866;font-size:12px;white-space:nowrap;vertical-align:top">${escapeHtml(k)}</td>
-      <td style="padding:7px 12px;color:#12211F;font-size:14px">${escapeHtml(v)}</td></tr>`).join('');
+      <td style="padding:7px 12px;color:#12211F;font-size:14px">${paras(v)}</td></tr>`).join('');
 
   const headline = kind === 'accepted'
     ? `Quote ${escapeHtml(job.quote_number)} accepted online`
@@ -428,7 +428,7 @@ Deno.serve(async (req) => {
       await Promise.all([
         customerTo.length ? sendEmail(customerTo, `Quote ${ref} accepted — thank you`, shell(`
           <p style="color:#12211F;font-size:15px;margin:0 0 14px">${greeting}</p>
-          <div style="color:#3a4a48;font-size:14px;white-space:pre-wrap;margin:0 0 20px">${escapeHtml(bodyTpl || 'Thanks — we have your acceptance and we will be in touch shortly to arrange collection.')}</div>
+          <div style="color:#3a4a48;font-size:14px;margin:0 0 20px">${paras(bodyTpl || 'Thanks — we have your acceptance and we will be in touch shortly to arrange collection.')}</div>
           <table style="width:100%;border-collapse:collapse;background:#f7faf9;border:1px solid #e2e8e7;border-radius:6px">
             <tr><td style="padding:8px 12px;color:#5A6866;font-size:12px">Quote</td><td style="padding:8px 12px;color:#12211F;font-size:14px;font-weight:700">${escapeHtml(ref)}</td></tr>
             <tr><td style="padding:0 12px 8px;color:#5A6866;font-size:12px">Total (inc GST)</td><td style="padding:0 12px 8px;color:#12211F;font-size:14px">${money(total)}</td></tr>
@@ -515,7 +515,7 @@ Deno.serve(async (req) => {
         customerTo.length ? sendEmail(customerTo, `We've got your question about quote ${ref}`, shell(`
           <p style="color:#12211F;font-size:15px;margin:0 0 14px">Hi ${escapeHtml(firstName(job.customer_name)) || 'there'},</p>
           <p style="color:#3a4a48;font-size:14px;margin:0 0 14px">Thanks — your message about quote ${escapeHtml(ref)} has come through and someone will come back to you shortly. The quote stays open in the meantime.</p>
-          <div style="background:#f7faf9;border:1px solid #e2e8e7;border-radius:6px;padding:12px 14px;color:#3a4a48;font-size:13px;white-space:pre-wrap">${escapeHtml(message)}</div>
+          <div style="background:#f7faf9;border:1px solid #e2e8e7;border-radius:6px;padding:12px 14px;color:#3a4a48;font-size:13px">${paras(message)}</div>
           <p style="color:#3a4a48;font-size:14px;margin:16px 0 0">Kind regards,<br/>The Dr Drapes Team</p>`)) : null,
 
         sendEmail(officeTo, `Question on quote ${ref} — ${firstName(name) || 'customer'}`, staffHtml('question', job, {
