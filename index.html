@@ -972,6 +972,16 @@
       padding: 9px 14px; border-radius: var(--r-sm); font-size: 13.5px; font-weight: 600;
     }
     .rs-open:hover { background: #eef0f7; }
+    .acct-row {
+      display: grid; grid-template-columns: 1fr 160px 90px; gap: 14px; align-items: center;
+      padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--r-sm); margin-bottom: 8px;
+    }
+    .acct-row.acct-off { opacity: .55; }
+    .acct-name { font-weight: 700; color: var(--navy-mid); }
+    .acct-sub { font-size: 12.5px; color: var(--muted); }
+    .acct-tag { font-size: 11px; background: #eef0f6; padding: 1px 6px; border-radius: 4px; font-weight: 600; }
+    @media (max-width: 700px) { .acct-row { grid-template-columns: 1fr; gap: 6px; } }
+
     .rs-nolink { font-size: 12.5px; }
     .rs-muted { color: var(--muted); }
 
@@ -1175,6 +1185,7 @@
       profile: null,     // app_users row: { id, company_id, name, role, ... }
       company: null,     // companies row
       settings: {},      // flat key→value map from settings table
+      accounts: [],      // accounts rows — the trade/commercial parties that send us work
     };
 
     /* Roles. Four of them, checked here and nowhere else — the three inline
@@ -1189,6 +1200,9 @@
        All Supabase reads/writes go through here. The single
        saveJob() lives in this section (added in the next build step).
        ============================================================ */
+    const CUSTOMER_COLS =
+      'id, name, business_name, customer_type, phone, email, notes, marketing_consent, fergus_customer_id, account_id';
+
     const db = {
       async getProfile(userId) {
         const { data, error } = await sb
@@ -1228,6 +1242,42 @@
         } catch (_) { /* non-critical */ }
       },
 
+      // ---------- ACCOUNTS ----------
+      // An account is the party that sends us the work and pays for it: a dry
+      // cleaning store, a restorer, a hotel. One account is one Fergus customer
+      // and one Xero contact.
+      //
+      // The list is deliberately flat. Steamatic branches are separately owned,
+      // so "Steamatic Geelong" and "Steamatic Brimbank" are two accounts that
+      // happen to share a brand, not one account with two branches. group_name
+      // exists only so reports can add same-brand accounts together; nothing is
+      // ever billed or matched on it.
+      async listAccounts(includeInactive = false) {
+        let q = sb.from('accounts')
+          .select('id, name, group_name, kind, phone, email, address_line, suburb, state, postcode, reference_label, reference_required, fergus_customer_id, notes, active')
+          .order('name');
+        if (!includeInactive) q = q.eq('active', true);
+        const { data, error } = await q;
+        if (error) throw error;
+        return data || [];
+      },
+
+      async refreshAccounts() {
+        session.accounts = await db.listAccounts();
+        return session.accounts;
+      },
+
+      async saveAccount(id, patch) {
+        const body = { ...patch, updated_at: new Date().toISOString() };
+        const { data, error } = id
+          ? await sb.from('accounts').update(body).eq('id', id).select().single()
+          : await sb.from('accounts')
+              .insert({ ...body, company_id: session.profile.company_id }).select().single();
+        if (error) throw error;
+        await db.refreshAccounts();
+        return data;
+      },
+
       // ---------- CUSTOMERS & SITES ----------
       // Matching mirrors the Postgres generated columns exactly. If you change
       // one you must change the other, or the app and the database will
@@ -1244,6 +1294,12 @@
         return String(s || '').trim().toLowerCase() || null;
       },
       normAddress(s) {
+        return String(s || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || null;
+      },
+
+      // Mirrors the customers.name_norm generated column. Same warning as the
+      // others: change one and you must change both.
+      normName(s) {
         return String(s || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || null;
       },
 
@@ -1270,7 +1326,7 @@
         const em = db.normEmail(email);
         if (!ph && !em) return null;
 
-        const COLS = 'id, name, business_name, customer_type, phone, email, notes, marketing_consent, fergus_customer_id';
+        const COLS = CUSTOMER_COLS;
         const byField = async (col, val) => {
           if (!val) return null;
           const { data, error } = await sb
@@ -1290,6 +1346,26 @@
           return { conflict: true, byPhone, byEmail };
         }
         return byPhone || byEmail || null;
+      },
+
+      // The end customer on an account job — the person whose curtains these
+      // are, where the store or restorer is the one who pays.
+      //
+      // Matched on name within the one account, not on phone or email. The
+      // store keeps the contact details and we usually hold neither: across the
+      // trade jobs on the books, email was filled on 7 of 47. So the phone/email
+      // matcher above never fired for this work and every drop-off created a
+      // fresh customer, which is how one store ended up as a dozen records.
+      // Scoping to the account is what makes a bare surname safe to match on.
+      async findEndCustomer(accountId, name) {
+        const n = db.normName(name);
+        if (!accountId || !n) return null;
+        const { data, error } = await sb.from('customers')
+          .select(CUSTOMER_COLS)
+          .eq('archived', false).eq('account_id', accountId).eq('name_norm', n)
+          .limit(1);
+        if (error) throw error;
+        return (data && data[0]) || null;
       },
 
       // Every job this customer has had, newest first.
@@ -1321,10 +1397,17 @@
       // Returns { customer_id, site_id } ready to write onto a job row.
       async resolveCustomerAndSite(fields, existingCustomerId = null) {
         const cid = session.profile.company_id;
+        const accountId = fields.account_id || null;
         let customer = null;
 
         if (existingCustomerId) {
           customer = await db.getCustomer(existingCustomerId);
+        } else if (accountId) {
+          // Account job: match the end customer by name inside this account.
+          // Deliberately never falls through to the phone/email matcher, which
+          // would otherwise hand the next drop-off to whichever end customer
+          // the store's landline was typed against first.
+          customer = await db.findEndCustomer(accountId, fields.customer_name);
         } else {
           const found = await db.findCustomer({ phone: fields.customer_phone, email: fields.customer_email });
           if (found && !found.conflict) customer = found;
@@ -1336,6 +1419,7 @@
             name: (fields.customer_name || '').trim() || 'Unnamed customer',
             phone: (fields.customer_phone || '').trim() || null,
             email: (fields.customer_email || '').trim() || null,
+            ...(accountId ? { account_id: accountId } : {}),
             ...(fields.business_name ? { business_name: fields.business_name.trim() } : {}),
             ...(fields.customer_type ? { customer_type: fields.customer_type } : {}),
           }).select().single();
@@ -1394,7 +1478,7 @@
         return db.pageAll(() => {
           let q = sb
             .from('jobs')
-            .select('id, quote_number, drd_number, legacy_reference, customer_id, site_id, status, customer_name, customer_phone, customer_email, site_address, data, archived, created_at, updated_at')
+            .select('id, quote_number, drd_number, legacy_reference, customer_id, site_id, account_id, account_reference, status, customer_name, customer_phone, customer_email, site_address, data, archived, created_at, updated_at')
             .order('updated_at', { ascending: false })
             .order('id', { ascending: true });
           return includeArchived ? q.eq('archived', true) : q.eq('archived', false);
@@ -1463,7 +1547,7 @@
       async listJobsAll() {
         return db.pageAll(() => sb
           .from('jobs')
-          .select('id, quote_number, drd_number, status, customer_name, data, archived, created_at, updated_at')
+          .select('id, quote_number, drd_number, status, customer_name, account_id, account_reference, data, archived, created_at, updated_at')
           .order('created_at', { ascending: false })
           .order('id', { ascending: true }));
       },
@@ -1698,7 +1782,8 @@
       },
 
       async createJob(fields) {
-        // fields: { customer_name, customer_phone, customer_email, site_address, job_type, insurer_name, claim_number }
+        // fields: { customer_name, customer_phone, customer_email, site_address, job_type,
+        //           insurer_name, claim_number, account_id, account_reference }
         const ref = await db.nextQuoteNumber();
         const data = {
           job_type: fields.job_type || 'fast_quote',   // stored in data (no column)
@@ -1736,6 +1821,8 @@
           site_address: composeAddress(fields.address || splitAddress(fields.site_address)) || null,
           customer_id: link.customer_id,
           site_id: link.site_id,
+          account_id: fields.account_id || null,
+          account_reference: (fields.account_reference || '').trim() || null,
           data,
         };
         const { data: created, error } = await sb.from('jobs').insert(row).select().single();
@@ -1812,6 +1899,9 @@
         }
         session.company = await db.getCompany(session.profile.company_id);
         try { session.settings = await db.loadSettings(); } catch (_) { session.settings = {}; }
+        // Held in memory for the session the same way settings are: every job
+        // list, row and picker reads the account list synchronously.
+        try { session.accounts = await db.listAccounts(); } catch (_) { session.accounts = []; }
         return true;
       },
 
@@ -2007,7 +2097,67 @@
       return (daysSince(last.sent_at) || 0) >= LOST_AFTER_LAST_DAYS;
     }
 
-    const route = { name: 'dashboard', jobId: null, filter: 'all', search: '', sortKey: 'date', sortDir: 'desc' };
+    /* ============================================================
+       ACCOUNTS — display helpers
+       An account is who sends us the work and who pays. A job without one is
+       ordinary retail work and everything below quietly returns nothing.
+       ============================================================ */
+    const accountById = (id) => (id && session.accounts.find((a) => a.id === id)) || null;
+    const jobAccount = (j) => accountById(j?.account_id);
+
+    // "Master Dry Cleaners - Albert Park · SDN034950" — the one line that tells
+    // a person which store this came from and what that store calls the job.
+    function jobAccountLine(j) {
+      const acc = jobAccount(j);
+      if (!acc) return '';
+      return acc.name + (j.account_reference ? ' · ' + j.account_reference : '');
+    }
+
+    // Accounts as <option>s, grouped by brand so the Steamatic and Master Dry
+    // Cleaners entries sit together without pretending to be one account —
+    // each branch is separately billed, so each is its own account.
+    function accountOptionsHtml(selectedId, blankLabel) {
+      const list = session.accounts.slice();
+      const groups = new Map();
+      list.forEach((a) => {
+        const g = a.group_name || '';
+        if (!groups.has(g)) groups.set(g, []);
+        groups.get(g).push(a);
+      });
+      const opt = (a) =>
+        `<option value="${a.id}"${a.id === selectedId ? ' selected' : ''}>${escapeHtml(a.name)}</option>`;
+      const loose = (groups.get('') || []).map(opt).join('');
+      const grouped = [...groups.entries()]
+        .filter(([g]) => g)
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([g, items]) => `<optgroup label="${escapeAttr(g)}">${items.map(opt).join('')}</optgroup>`)
+        .join('');
+      return `<option value=""${selectedId ? '' : ' selected'}>${escapeHtml(blankLabel)}</option>${grouped}${loose}`;
+    }
+
+    const accountFilterOptions = () => accountOptionsHtml(route.account, 'All accounts');
+
+    // Who an email about this job goes to. On an account job that is the
+    // account, because the account is our customer and the end customer is
+    // theirs — we don't chase, quote or market to a store's customer. The
+    // address stays editable in every send dialog, which is the override for
+    // the times a store asks us to deal with their customer direct.
+    function jobEmailTo(job) {
+      const acc = jobAccount(job);
+      return (acc && acc.email) || job.customer_email || '';
+    }
+
+    // Shown under the To field so it is never a surprise where a quote went.
+    function accountEmailHint(job) {
+      const acc = jobAccount(job);
+      if (!acc || !acc.email) return '';
+      const own = job.customer_email && job.customer_email !== acc.email
+        ? ` The customer's own address is ${escapeHtml(job.customer_email)} — paste it above to send direct instead.`
+        : '';
+      return `<div style="font-size:12px;color:var(--muted);margin:-6px 0 12px">Account job — this goes to ${escapeHtml(acc.name)}.${own}</div>`;
+    }
+
+    const route = { name: 'dashboard', jobId: null, filter: 'all', account: '', search: '', sortKey: 'date', sortDir: 'desc' };
 
     const router = {
       async go(name, opts = {}) {
@@ -2235,12 +2385,20 @@
 
         const filtered = jobs.filter((j) => {
           if (!archivedView && route.filter !== 'all' && j.status !== route.filter) return false;
+          if (route.account && j.account_id !== route.account) return false;
           if (route.search) {
             const q = route.search.toLowerCase();
+            // The account and its own docket number are searchable in their own
+            // right. Before this they were buried in the customer name, so
+            // "Albert Park" or "SDN034950" only found a job if whoever typed it
+            // spelled it the same way you did.
+            const acc = jobAccount(j);
             return (j.quote_number || '').toLowerCase().includes(q)
               || (j.drd_number || '').toLowerCase().includes(q)
               || (j.legacy_reference || '').toLowerCase().includes(q)
               || (j.data?.po_number || '').toLowerCase().includes(q)
+              || (j.account_reference || '').toLowerCase().includes(q)
+              || (acc ? (acc.name + ' ' + (acc.group_name || '')).toLowerCase().includes(q) : false)
               || (j.customer_name || '').toLowerCase().includes(q)
               || (j.site_address || '').toLowerCase().includes(q);
           }
@@ -2266,6 +2424,7 @@
             return m ? Number(m[1]) : Number.MAX_SAFE_INTEGER;
           },
           customer: (j) => (j.customer_name || '').toLowerCase(),
+          account: (j) => (jobAccount(j)?.name || '').toLowerCase(),
           address: (j) => (j.site_address || '').toLowerCase(),
           date: (j) => jobDate(j),
           status: (j) => { const i = STATUSES.indexOf(j.status); return i < 0 ? 99 : i; },
@@ -2303,7 +2462,7 @@
             <div class="job-row" data-job="${j.id}">
               <div class="dq">${escapeHtml(j.quote_number || '—')}</div>
               <div class="fergus">${escapeHtml(j.drd_number || '—')}</div>
-              <div class="cust">${escapeHtml(j.customer_name || 'No name')}<small>${escapeHtml(j.customer_phone || '')}</small></div>
+              <div class="cust">${escapeHtml(j.customer_name || 'No name')}<small>${escapeHtml(jobAccountLine(j) || j.customer_phone || '')}</small></div>
               <div class="addr">${escapeHtml(j.site_address || '—')}</div>
               <div class="date">${fmtRowDate(j)}</div>
               <div><span class="status-pill s-${j.status}">${STATUS_LABEL[j.status] || j.status}</span></div>
@@ -2313,7 +2472,7 @@
 
         const countText = `${filtered.length} ${archivedView ? 'archived' : 'of ' + jobs.length} job${jobs.length === 1 ? '' : 's'}`;
         const headRow = `<div class="job-row head">
-              ${hdr('dq', 'DRQ')}${hdr('fergus', 'DRD')}${hdr('customer', 'Customer')}${hdr('address', 'Address')}${hdr('date', 'Date')}${hdr('status', 'Status')}${hdr('total', 'Total', 'text-align:right')}
+              ${hdr('dq', 'DRQ')}${hdr('fergus', 'DRD')}${hdr('customer', 'Customer / Account')}${hdr('address', 'Address')}${hdr('date', 'Date')}${hdr('status', 'Status')}${hdr('total', 'Total', 'text-align:right')}
             </div>`;
 
         // Everything inside the table, rewired whenever the table is rebuilt.
@@ -2361,7 +2520,8 @@
         main.innerHTML = `
           <div class="page-head"><h1>Jobs</h1><p id="jobs-count">${countText}</p></div>
           <div class="list-controls">
-            <input class="search-box" id="job-search" placeholder="Search DRQ, DRD, PO, customer, address…" value="${escapeHtml(route.search)}" />
+            <input class="search-box" id="job-search" placeholder="Search DRQ, DRD, PO, account, customer, address…" value="${escapeHtml(route.search)}" />
+            <select class="search-box" id="job-account" style="flex:0 0 auto;min-width:200px">${accountFilterOptions()}</select>
             ${archivedView ? '' : '<button class="btn-new" id="new-job-btn">+ New Job</button>'}
           </div>
           <div class="filter-chips" style="margin-bottom:16px">${chips}</div>
@@ -2371,6 +2531,8 @@
         const nb = $('#new-job-btn'); if (nb) nb.addEventListener('click', openNewJobModal);
         const sb_ = $('#job-search');
         sb_.addEventListener('input', (e) => { route.search = e.target.value; runJobSearch(main); });
+        const af = $('#job-account');
+        if (af) af.addEventListener('change', (e) => { route.account = e.target.value; router.jobsList(main, { rowsOnly: true }); });
         document.querySelectorAll('.chip[data-filter]').forEach((c) =>
           c.addEventListener('click', () => { route.filter = c.dataset.filter; router.jobsList(main); }));
         wireTable();
@@ -2395,6 +2557,7 @@
             <div class="top">
               <div>
                 <h1>${escapeHtml(job.customer_name || 'No name')}</h1>
+                ${jobAccountLine(job) ? `<div class="meta" style="font-weight:700;color:var(--navy-mid)">${escapeHtml(jobAccountLine(job))}</div>` : ''}
                 <div class="dq-big">${escapeHtml(job.quote_number || '—')}${job.drd_number ? ` &nbsp;·&nbsp; <span style="color:var(--muted);font-weight:600">Fergus: ${escapeHtml(job.drd_number)}</span>` : ''}${job.data?.po_number ? ` &nbsp;·&nbsp; <span style="color:var(--muted);font-weight:600">PO: ${escapeHtml(job.data.po_number)}</span>` : ''}${(!job.fergus_job_id && ACCEPTED_STATUSES.includes(job.status)) ? ` &nbsp;·&nbsp; <button id="fergus-push" style="font:600 12px 'Montserrat',sans-serif;color:var(--muted);background:none;border:1px solid var(--muted);border-radius:4px;padding:2px 8px;cursor:pointer">Push to Fergus</button>` : ''}</div>
                 <div class="meta">${escapeHtml(job.customer_phone || '')}${job.customer_phone && job.site_address ? ' · ' : ''}${escapeHtml(job.site_address || '')}</div>
               </div>
@@ -2481,6 +2644,8 @@
             customer_email: $('#c-email').value.trim() || null,
             site_address: composeAddress(readAddressFields('c')) || null,
             drd_number: $('#c-fergus').value.trim() || null,
+            account_id: $('#c-account').value || null,
+            account_reference: $('#c-accref').value.trim() || null,
           };
           await db.saveJob(job.id, { po_number: $('#c-po').value.trim() || null }, cols);
           // Keep the site record's parts in step, since that is what the Fergus
@@ -2961,7 +3126,7 @@
         if (!isAdmin()) { router.go('dashboard'); return; }
         const tab = route.adminTab || 'staff';
         const tabs = [
-          ['staff', 'Staff'], ['prices', 'Prices'], ['emails', 'Email Templates'],
+          ['staff', 'Staff'], ['accounts', 'Accounts'], ['prices', 'Prices'], ['emails', 'Email Templates'],
           ['terms', 'Terms of Trade'], ['targets', 'Targets'],
           ['production', 'Production'], ['company', 'Company'],
         ];
@@ -2978,6 +3143,7 @@
         await db.refreshSettings();
         const body = $('#admin-body');
         if (tab === 'staff') return adminStaff.render(body);
+        if (tab === 'accounts') return adminAccounts.render(body);
         if (tab === 'prices') return adminPrices.render(body);
         if (tab === 'emails') return adminEmails.render(body);
         if (tab === 'terms') return adminTerms.render(body);
@@ -3049,6 +3215,122 @@
             b.addEventListener('click', () => { state.names.splice(+b.dataset.snrm, 1); draw(); ctl.markDirty(); }));
         };
         draw();
+      },
+    };
+
+    /* Accounts — the trade and commercial parties that send us work.
+       Deliberately one flat list. Two Steamatic branches are separately owned
+       businesses that happen to share a brand, so they are two accounts, each
+       with its own Fergus customer and its own invoice. The brand goes in
+       "Group" purely so reports can add them back together. */
+    const adminAccounts = {
+      async render(body) {
+        const list = await db.listAccounts(true);
+        const draw = () => {
+          const row = (a) => `
+            <div class="acct-row${a.active ? '' : ' acct-off'}" data-acct="${a.id}">
+              <div>
+                <div class="acct-name">${escapeHtml(a.name)}${a.active ? '' : ' <span class="acct-tag">inactive</span>'}</div>
+                <div class="acct-sub">${escapeHtml(a.group_name || 'No group')} · ${a.kind === 'commercial' ? 'Commercial' : 'Sends us customers'} · ${escapeHtml(a.reference_label)}${a.reference_required ? ' (required)' : ''}</div>
+              </div>
+              <div class="acct-sub">${a.fergus_customer_id
+                ? 'Fergus ' + a.fergus_customer_id
+                : '<span style="color:#b45309">Not linked to Fergus</span>'}</div>
+              <button class="btn btn-secondary" data-acct-edit="${a.id}">Edit</button>
+            </div>`;
+          body.innerHTML = `
+            <div class="admin-section">
+              <h3>Accounts</h3>
+              <p class="section-hint">The stores, restorers and companies that send us work and pay the invoice. Picking one on a job keeps the store, the end customer and the store's own docket number in three separate fields instead of one typed line, and sends the job to the right Fergus customer every time.</p>
+              <div id="acct-list">${list.length ? list.map(row).join('') : '<p class="section-hint">No accounts yet.</p>'}</div>
+              <button class="btn btn-secondary" id="acct-add" style="margin-top:14px">+ Add account</button>
+            </div>`;
+          $('#acct-add').addEventListener('click', () => adminAccounts.edit(null, body));
+          document.querySelectorAll('[data-acct-edit]').forEach((b) =>
+            b.addEventListener('click', () => adminAccounts.edit(
+              list.find((x) => x.id === b.dataset.acctEdit), body)));
+        };
+        draw();
+      },
+
+      edit(acct, body) {
+        const a = acct || { name: '', group_name: '', kind: 'agent', phone: '', email: '',
+          address_line: '', suburb: '', state: 'VIC', postcode: '',
+          reference_label: 'Their reference', reference_required: false,
+          fergus_customer_id: null, notes: '', active: true };
+        const mount = $('#modal-mount');
+        mount.innerHTML = `
+          <div class="modal-backdrop" id="ac-backdrop">
+            <div class="modal">
+              <div class="m-head"><h2>${acct ? 'Edit account' : 'New account'}</h2>
+                <p>One account is one Fergus customer and one Xero contact. Separately owned branches get an account each.</p></div>
+              <div class="m-body">
+                <div class="modal-error hidden" id="ac-error"></div>
+                <div class="field"><label>Account name *</label><input id="ac-name" value="${escapeAttr(a.name)}" placeholder="Master Dry Cleaners - Albert Park" /></div>
+                <div class="row2">
+                  <div class="field"><label>Group (reporting only)</label><input id="ac-group" value="${escapeAttr(a.group_name)}" placeholder="Master Dry Cleaners" /></div>
+                  <div class="field"><label>Type</label>
+                    <select id="ac-kind">
+                      <option value="agent"${a.kind === 'agent' ? ' selected' : ''}>Sends us their customers' curtains</option>
+                      <option value="commercial"${a.kind === 'commercial' ? ' selected' : ''}>Commercial — their own property</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="row2">
+                  <div class="field"><label>Phone</label><input id="ac-phone" value="${escapeAttr(a.phone)}" /></div>
+                  <div class="field"><label>Email</label><input id="ac-email" value="${escapeAttr(a.email)}" /></div>
+                </div>
+                ${addressFieldsHtml('ac', { street: a.address_line || '', suburb: a.suburb || '', state: a.state || 'VIC', postcode: a.postcode || '' })}
+                <div class="row2">
+                  <div class="field"><label>What they call their reference</label><input id="ac-reflabel" value="${escapeAttr(a.reference_label)}" placeholder="Docket number / Store number / Job number" /></div>
+                  <div class="field"><label>Fergus customer ID</label><input id="ac-fergus" value="${escapeAttr(a.fergus_customer_id)}" placeholder="Filled in once the account is linked" /></div>
+                </div>
+                <label class="acc-terms"><input type="checkbox" id="ac-refreq" ${a.reference_required ? 'checked' : ''} /> Won't accept an invoice without their reference — make it compulsory on every job</label>
+                <label class="acc-terms"><input type="checkbox" id="ac-active" ${a.active ? 'checked' : ''} /> Active — show in the account dropdown</label>
+                <div class="field" style="margin-top:12px"><label>Notes</label><textarea id="ac-notes" rows="2">${escapeHtml(a.notes || '')}</textarea></div>
+              </div>
+              <div class="m-foot">
+                <button class="btn btn-secondary" id="ac-cancel">Cancel</button>
+                <button class="btn btn-primary" id="ac-save" style="width:auto">Save account</button>
+              </div>
+            </div>
+          </div>`;
+        const close = () => { mount.innerHTML = ''; };
+        $('#ac-cancel').addEventListener('click', close);
+        $('#ac-backdrop').addEventListener('click', (e) => { if (e.target.id === 'ac-backdrop') close(); });
+        $('#ac-save').addEventListener('click', async () => {
+          const err = $('#ac-error');
+          const name = $('#ac-name').value.trim();
+          if (!name) { err.textContent = 'The account needs a name.'; err.classList.remove('hidden'); return; }
+          const addr = readAddressFields('ac');
+          const fid = $('#ac-fergus').value.trim();
+          try {
+            await db.saveAccount(acct ? acct.id : null, {
+              name,
+              group_name: $('#ac-group').value.trim() || null,
+              kind: $('#ac-kind').value,
+              phone: $('#ac-phone').value.trim() || null,
+              email: $('#ac-email').value.trim() || null,
+              address_line: addr.street || null,
+              suburb: addr.suburb || null,
+              state: addr.state || 'VIC',
+              postcode: addr.postcode || null,
+              reference_label: $('#ac-reflabel').value.trim() || 'Their reference',
+              reference_required: $('#ac-refreq').checked,
+              fergus_customer_id: fid ? Number(fid) : null,
+              notes: $('#ac-notes').value.trim() || null,
+              active: $('#ac-active').checked,
+            });
+            close();
+            ui.toast('Account saved');
+            adminAccounts.render(body);
+          } catch (e2) {
+            err.textContent = /duplicate|unique/i.test(e2.message || '')
+              ? 'There is already an account with that name.'
+              : (e2.message || 'Could not save the account.');
+            err.classList.remove('hidden');
+          }
+        });
       },
     };
 
@@ -3430,9 +3712,15 @@
     }
 
     function customerDetailsHtml(job) {
+      const acc = jobAccount(job);
       return `
         <div class="detail-grid">
-          <div class="field"><label>Customer name</label><input id="c-name" value="${escapeAttr(job.customer_name)}" /></div>
+          <div class="field"><label>Account (who sends the work and pays)</label>
+            <select id="c-account">${accountOptionsHtml(job.account_id || '', 'Direct customer — no account')}</select>
+          </div>
+          <div class="field"><label>${acc ? escapeHtml(acc.reference_label) : 'Their reference'}</label>
+            <input id="c-accref" value="${escapeAttr(job.account_reference)}" placeholder="${acc ? 'e.g. SDN034950' : 'Only used on account jobs'}" /></div>
+          <div class="field"><label>${acc ? 'Customer name (whose curtains these are)' : 'Customer name'}</label><input id="c-name" value="${escapeAttr(job.customer_name)}" /></div>
           <div class="field"><label>Phone</label><input id="c-phone" value="${escapeAttr(job.customer_phone)}" /></div>
           <div class="field"><label>Email</label><input id="c-email" value="${escapeAttr(job.customer_email)}" /></div>
           ${addressFieldsHtml('c', splitAddress(job.site_address))}
@@ -5382,6 +5670,14 @@
         L.push(`JOB CARD — ${job.quote_number || ''}`);
         if (job.drd_number) L.push(`Fergus: ${job.drd_number}`);
         if (job.data?.po_number) L.push(`PO: ${job.data.po_number}`);
+        // The account goes above the customer on purpose: whoever reads this
+        // card in Fergus needs to know whose invoice it is before whose
+        // curtains they are.
+        const acc = jobAccount(job);
+        if (acc) {
+          L.push(`Account: ${acc.name}`);
+          if (job.account_reference) L.push(`${acc.reference_label}: ${job.account_reference}`);
+        }
         L.push(`Customer: ${job.customer_name || ''}`);
         if (job.customer_phone) L.push(`Phone: ${job.customer_phone}`);
         if (job.site_address) L.push(`Address: ${job.site_address}`);
@@ -6252,7 +6548,8 @@
               <div class="m-head"><h2>Email ${escapeHtml(label)}</h2><p>${escapeHtml(job.quote_number || '')} — report PDF attached automatically.</p></div>
               <div class="m-body">
                 <div class="modal-error hidden" id="ie-error"></div>
-                <div class="field"><label>To</label><input id="ie-to" value="${escapeAttr(job.customer_email || '')}" placeholder="customer@email.com" /></div>
+                <div class="field"><label>To</label><input id="ie-to" value="${escapeAttr(jobEmailTo(job))}" placeholder="customer@email.com" /></div>
+                ${accountEmailHint(job)}
                 <div class="field"><label>CC (always included)</label><div class="cc-locked"><span class="lock">🔒</span> ${escapeHtml(cc || 'No company CC set')}</div></div>
                 <div class="field"><label>Subject</label><input id="ie-subject" value="${escapeAttr(defaultSubject)}" /></div>
                 <div class="field"><label>Message</label><textarea id="ie-body" rows="7">${escapeHtml(defaultBody)}</textarea></div>
@@ -6317,7 +6614,8 @@
               <div class="m-head"><h2>Send Acceptance Email</h2><p>Optional — let the customer know their quote is accepted.</p></div>
               <div class="m-body">
                 <div class="modal-error hidden" id="ae-error"></div>
-                <div class="field"><label>To</label><input id="ae-to" value="${escapeAttr(job.customer_email || '')}" placeholder="customer@email.com" /></div>
+                <div class="field"><label>To</label><input id="ae-to" value="${escapeAttr(jobEmailTo(job))}" placeholder="customer@email.com" /></div>
+                ${accountEmailHint(job)}
                 <div class="field"><label>CC (always included)</label><div class="cc-locked"><span class="lock">🔒</span> ${escapeHtml(cc || 'No company CC set')}</div></div>
                 <div class="field"><label>Subject</label><input id="ae-subject" value="${escapeAttr(defaultSubject)}" /></div>
                 <div class="field"><label>Message</label><textarea id="ae-body" rows="8">${escapeHtml(defaultBody)}</textarea></div>
@@ -6664,7 +6962,8 @@ Thanks for considering us.`,
                 <div class="modal-error hidden" id="fu-error"></div>
                 <div><span style="font-size:12px;font-weight:700;color:var(--muted)">STAGE</span></div>
                 <div class="acc-chips">${chips}</div>
-                <div class="field"><label>To</label><input id="fu-to" value="${escapeAttr(job.customer_email || '')}" placeholder="customer@email.com" /></div>
+                <div class="field"><label>To</label><input id="fu-to" value="${escapeAttr(jobEmailTo(job))}" placeholder="customer@email.com" /></div>
+                ${accountEmailHint(job)}
                 <div class="field"><label>CC (always included)</label>
                   <div class="cc-locked"><span class="lock">🔒</span> ${escapeHtml(cc || 'No company CC set')}</div>
                 </div>
@@ -6792,7 +7091,8 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
               <div class="m-body">
                 <div class="modal-error hidden" id="rv-error"></div>
                 ${link ? '' : `<div class="modal-error" style="background:#fef3c7;border-color:#fde68a;color:#92400e">No Google review link set. Add it in Admin → Email Templates, or the review button won't appear.</div>`}
-                <div class="field"><label>To</label><input id="rv-to" value="${escapeAttr(job.customer_email || '')}" placeholder="customer@email.com" /></div>
+                <div class="field"><label>To</label><input id="rv-to" value="${escapeAttr(jobEmailTo(job))}" placeholder="customer@email.com" /></div>
+                ${accountEmailHint(job)}
                 <div class="field"><label>CC (always included)</label><div class="cc-locked"><span class="lock">🔒</span> ${escapeHtml(cc || 'No company CC set')}</div></div>
                 <div class="field"><label>Subject</label><input id="rv-subject" value="${escapeAttr(defaultSubject)}" /></div>
                 <div class="field"><label>Message</label><textarea id="rv-body" rows="9">${escapeHtml(defaultBody)}</textarea></div>
@@ -6871,7 +7171,8 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
               <div class="m-head"><h2>Send Quote Email</h2><p>${escapeHtml(job.quote_number || '')} — the quote PDF is attached automatically.</p></div>
               <div class="m-body">
                 <div class="modal-error hidden" id="ce-error"></div>
-                <div class="field"><label>To</label><input id="ce-to" value="${escapeAttr(job.customer_email || '')}" placeholder="customer@email.com" /></div>
+                <div class="field"><label>To</label><input id="ce-to" value="${escapeAttr(jobEmailTo(job))}" placeholder="customer@email.com" /></div>
+                ${accountEmailHint(job)}
                 <div class="field"><label>CC (always included)</label>
                   <div class="cc-locked"><span class="lock">🔒</span> ${escapeHtml(cc || 'No company CC set')}</div>
                 </div>
@@ -6954,13 +7255,18 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
             <div class="m-head"><h2>New Job</h2><p>A DRQ quote number is assigned when you create the job. The DRD number is created in Fergus automatically the moment the quote is accepted.</p></div>
             <div class="m-body">
               <div class="modal-error hidden" id="nj-error"></div>
-              <div class="modal-match hidden" id="nj-match"></div>
-              <div class="field"><label>Customer name *</label><input id="nj-name" placeholder="e.g. Sarah Mitchell" /></div>
-              <div class="row2">
-                <div class="field"><label>Phone *</label><input id="nj-phone" placeholder="0411 234 567" /></div>
-                <div class="field"><label>Email *</label><input id="nj-email" placeholder="name@email.com" /></div>
+              <div class="field"><label>Account</label>
+                <select id="nj-account">${accountOptionsHtml('', 'Direct customer — no account')}</select>
               </div>
-              <div style="font-size:12px;color:var(--muted);margin:-6px 0 12px">At least one of phone or email is required — it's how repeat customers get matched.</div>
+              <div style="font-size:12px;color:var(--muted);margin:-6px 0 12px" id="nj-account-hint">Pick the store, restorer or company that sent us the work and pays the invoice. Leave it on <strong>Direct customer</strong> for ordinary retail jobs.</div>
+              <div class="modal-match hidden" id="nj-match"></div>
+              <div class="field"><label id="nj-name-label">Customer name *</label><input id="nj-name" placeholder="e.g. Sarah Mitchell" /></div>
+              <div class="field hidden" id="nj-ref-wrap"><label id="nj-ref-label">Their reference</label><input id="nj-ref" placeholder="e.g. SDN034950" /></div>
+              <div class="row2">
+                <div class="field"><label id="nj-phone-label">Phone *</label><input id="nj-phone" placeholder="0411 234 567" /></div>
+                <div class="field"><label id="nj-email-label">Email *</label><input id="nj-email" placeholder="name@email.com" /></div>
+              </div>
+              <div style="font-size:12px;color:var(--muted);margin:-6px 0 12px" id="nj-contact-hint">At least one of phone or email is required — it's how repeat customers get matched.</div>
               ${addressFieldsHtml('nj', { street: '', suburb: '', state: 'VIC', postcode: '' })}
               <div class="field"><label>Job type</label>
                 <select id="nj-type">
@@ -6983,17 +7289,70 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
       const close = () => { mount.innerHTML = ''; };
       $('#nj-cancel').addEventListener('click', close);
       $('#nj-backdrop').addEventListener('click', (e) => { if (e.target.id === 'nj-backdrop') close(); });
-      $('#nj-name').focus();
+      $('#nj-account').focus();
 
       // Which existing customer this job will attach to, if any.
       let matchedId = null;
+      const account = () => accountById($('#nj-account').value);
+
+      // The form asks for different things depending on whether an account is
+      // picked. On an account job the name is the person whose curtains these
+      // are, the contact details usually sit with the store rather than with
+      // us, and the store's own docket number is the thing everyone will
+      // search on later.
+      const applyAccountMode = () => {
+        const acc = account();
+        $('#nj-name-label').innerHTML = acc
+          ? (acc.kind === 'commercial' ? 'Contact / reference on site *' : 'Customer name (whose curtains these are) *')
+          : 'Customer name *';
+        $('#nj-phone-label').textContent = acc ? 'Phone' : 'Phone *';
+        $('#nj-email-label').textContent = acc ? 'Email' : 'Email *';
+        $('#nj-contact-hint').innerHTML = acc
+          ? 'Optional on an account job — the account holds the customer\'s details. Fill them in only if we deal with this person direct.'
+          : 'At least one of phone or email is required — it\'s how repeat customers get matched.';
+        const refWrap = $('#nj-ref-wrap');
+        refWrap.classList.toggle('hidden', !acc);
+        if (acc) {
+          $('#nj-ref-label').innerHTML = escapeHtml(acc.reference_label)
+            + (acc.reference_required ? ' *' : ' <span style="color:var(--muted);font-weight:400">(optional)</span>');
+        }
+        matchedId = null;
+        $('#nj-match').classList.add('hidden');
+        lookup();
+      };
 
       const lookup = async () => {
-        const phone = $('#nj-phone')?.value.trim();
-        const email = $('#nj-email')?.value.trim();
         const box = $('#nj-match');
         if (!box) return;
+        const acc = account();
         matchedId = null;
+
+        // Account job: match on the name within this account only. Their phone
+        // is as likely to be the shop's landline as the customer's own, so
+        // matching on it would file the next drop-off under whoever came first.
+        if (acc) {
+          const name = $('#nj-name').value.trim();
+          if (!name) { box.classList.add('hidden'); return; }
+          try {
+            const hit = await db.findEndCustomer(acc.id, name);
+            if (!hit) { box.classList.add('hidden'); return; }
+            const hist = await db.customerHistory(hit.id);
+            const last = hist[0];
+            matchedId = hit.id;
+            box.className = 'modal-match';
+            box.innerHTML = `<b>Seen before at ${escapeHtml(acc.name)} — ${escapeHtml(hit.name)}</b>
+              <div class="mm-jobs">${hist.length} previous job${hist.length === 1 ? '' : 's'}${
+                last ? ` · last ${fmtDate(new Date(last.created_at))}${last.site_address ? ' · ' + escapeHtml(clip(last.site_address, 38)) : ''}` : ''}
+                <br>${hist.slice(0, 4).map((h) => escapeHtml(h.quote_number)).join(', ')}${hist.length > 4 ? '…' : ''}</div>`;
+          } catch (err) {
+            console.error('End customer lookup failed:', err);
+            box.classList.add('hidden');
+          }
+          return;
+        }
+
+        const phone = $('#nj-phone')?.value.trim();
+        const email = $('#nj-email')?.value.trim();
         if (!phone && !email) { box.classList.add('hidden'); return; }
         try {
           const hit = await db.findCustomer({ phone, email });
@@ -7028,13 +7387,27 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
 
       $('#nj-phone').addEventListener('blur', lookup);
       $('#nj-email').addEventListener('blur', lookup);
+      $('#nj-name').addEventListener('blur', lookup);
+      $('#nj-account').addEventListener('change', applyAccountMode);
+      applyAccountMode();
 
       $('#nj-create').addEventListener('click', async () => {
         const name = $('#nj-name').value.trim();
+        const acc = account();
+        const accRef = $('#nj-ref').value.trim();
         const errEl = $('#nj-error');
         if (!name) { errEl.textContent = 'Customer name is required.'; errEl.classList.remove('hidden'); return; }
-        if (!$('#nj-phone').value.trim() && !$('#nj-email').value.trim()) {
+        // Phone or email is only load-bearing when there is no account: it is
+        // the only thing that links a retail customer to their own history.
+        // On an account job the account does that, so demanding a contact we
+        // don't have would only push staff back into typing everything into
+        // the name field.
+        if (!acc && !$('#nj-phone').value.trim() && !$('#nj-email').value.trim()) {
           errEl.textContent = 'Enter a phone number or an email address — without one this job can never be matched to a repeat customer.';
+          errEl.classList.remove('hidden'); return;
+        }
+        if (acc && acc.reference_required && !accRef) {
+          errEl.textContent = `${acc.name} needs ${acc.reference_label.toLowerCase()} on every job — their invoices get rejected without it.`;
           errEl.classList.remove('hidden'); return;
         }
         const njAddr = readAddressFields('nj');
@@ -7051,6 +7424,8 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
             customer_phone: $('#nj-phone').value.trim(),
             customer_email: $('#nj-email').value.trim(),
             customer_id: matchedId,
+            account_id: acc ? acc.id : null,
+            account_reference: accRef,
             address: njAddr,
             job_type: $('#nj-type').value,
             insurer_name: $('#nj-insurer').value.trim(),
