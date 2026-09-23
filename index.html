@@ -1626,7 +1626,7 @@
 
       // Convert an enquiry into a job: maps customer rooms/items into quote
       // rooms with measurements pre-filled and customer-measured / tier flags.
-      async convertEnquiry(enq) {
+      async convertEnquiry(enq, opts = {}) {
         // The enquiry was given its DRQ number when it came in; reuse it rather
         // than burning a second one.
         const ref = enq.quote_number || await db.nextQuoteNumber();
@@ -1740,6 +1740,7 @@
             site_address: enq.site_address,
             business_name: enq.data?.business_name,
             customer_type: enq.data?.customer_type,
+            account_id: opts.account_id || null,
           });
         } catch (err) {
           console.error('Customer link failed, job created unlinked:', err);
@@ -1755,6 +1756,8 @@
           site_address: enq.site_address || null,
           customer_id: link.customer_id,
           site_id: link.site_id,
+          account_id: opts.account_id || null,
+          account_reference: (opts.account_reference || '').trim() || null,
           data,
         };
         const { data: created, error } = await sb.from('jobs').insert(row).select().single();
@@ -2116,7 +2119,7 @@
     // Accounts as <option>s, grouped by brand so the Steamatic and Master Dry
     // Cleaners entries sit together without pretending to be one account —
     // each branch is separately billed, so each is its own account.
-    function accountOptionsHtml(selectedId, blankLabel) {
+    function accountOptionsHtml(selectedId, blankLabel, allowNew = true) {
       const list = session.accounts.slice();
       const groups = new Map();
       list.forEach((a) => {
@@ -2132,10 +2135,141 @@
         .sort((a, b) => a[0].localeCompare(b[0]))
         .map(([g, items]) => `<optgroup label="${escapeAttr(g)}">${items.map(opt).join('')}</optgroup>`)
         .join('');
-      return `<option value=""${selectedId ? '' : ' selected'}>${escapeHtml(blankLabel)}</option>${grouped}${loose}`;
+      // Anyone can add an account from the picker. A store turning up on a
+      // Saturday with no admin around used to mean the job went in as a direct
+      // customer and had to be unpicked later; a slightly untidy account is
+      // cheaper than that, and Admin can tidy it.
+      const add = allowNew ? '<option value="__new">+ Add a new account…</option>' : '';
+      return `<option value=""${selectedId ? '' : ' selected'}>${escapeHtml(blankLabel)}</option>${grouped}${loose}${add}`;
     }
 
-    const accountFilterOptions = () => accountOptionsHtml(route.account, 'All accounts');
+    /* Ask for just enough to open an account: what it is called, what kind it
+       is, and what they call their own reference. Everything else — address,
+       whether the reference is compulsory, the Fergus link — is filled in
+       Admin later, or on the first job that goes to Fergus.
+       Resolves to the new account, or null if they backed out. */
+    function promptNewAccount(suggestedName = '') {
+      return new Promise((resolve) => {
+        const wrap = document.createElement('div');
+        wrap.className = 'modal-backdrop';
+        wrap.style.zIndex = '10001';
+        wrap.innerHTML = `
+          <div class="modal" style="max-width:460px">
+            <div class="m-head"><h2>New account</h2>
+              <p>The store, restorer or company that sends the work and pays the invoice.</p></div>
+            <div class="m-body">
+              <div class="modal-error hidden" id="na-error"></div>
+              <div class="field"><label>Account name *</label>
+                <input id="na-name" value="${escapeAttr(suggestedName)}" placeholder="Master Dry Cleaners - Albert Park" /></div>
+              <div class="field"><label>Type</label>
+                <select id="na-kind">
+                  <option value="agent">Sends us their customers' curtains</option>
+                  <option value="commercial">Commercial — their own property</option>
+                </select>
+              </div>
+              <div class="row2">
+                <div class="field"><label>Phone</label><input id="na-phone" /></div>
+                <div class="field"><label>Email</label><input id="na-email" placeholder="Where their quotes go" /></div>
+              </div>
+              <div class="field"><label>What they call their reference</label>
+                <input id="na-reflabel" placeholder="Docket number / Store number / Job number" /></div>
+              <div style="font-size:12px;color:var(--muted)">Whatever they write on the ticket. Staff are asked for it by this name on every job. Address and the Fergus link can be filled in later under Admin → Accounts.</div>
+            </div>
+            <div class="m-foot">
+              <button class="btn btn-secondary" id="na-cancel">Cancel</button>
+              <button class="btn btn-primary" id="na-save" style="width:auto">Create account</button>
+            </div>
+          </div>`;
+        document.body.appendChild(wrap);
+        const done = (v) => { wrap.remove(); resolve(v); };
+        wrap.querySelector('#na-cancel').addEventListener('click', () => done(null));
+        wrap.addEventListener('click', (e) => { if (e.target === wrap) done(null); });
+        wrap.querySelector('#na-name').focus();
+        wrap.querySelector('#na-save').addEventListener('click', async () => {
+          const err = wrap.querySelector('#na-error');
+          const name = wrap.querySelector('#na-name').value.trim();
+          if (!name) { err.textContent = 'The account needs a name.'; err.classList.remove('hidden'); return; }
+          const btn = wrap.querySelector('#na-save');
+          btn.disabled = true; btn.textContent = 'Creating…';
+          try {
+            const acc = await db.saveAccount(null, {
+              name,
+              kind: wrap.querySelector('#na-kind').value,
+              phone: wrap.querySelector('#na-phone').value.trim() || null,
+              email: wrap.querySelector('#na-email').value.trim() || null,
+              reference_label: wrap.querySelector('#na-reflabel').value.trim() || 'Their reference',
+            });
+            done(acc);
+          } catch (e2) {
+            err.textContent = /duplicate|unique/i.test(e2.message || '')
+              ? 'There is already an account with that name.'
+              : (e2.message || 'Could not create the account.');
+            err.classList.remove('hidden');
+            btn.disabled = false; btn.textContent = 'Create account';
+          }
+        });
+      });
+    }
+
+    /* Asked once, when an enquiry becomes a job: is this somebody's own work,
+       or did an account send it in? Resolves to { account_id, account_reference },
+       or null if they backed out of converting altogether. */
+    function askEnquiryAccount(enq) {
+      return new Promise((resolve) => {
+        const wrap = document.createElement('div');
+        wrap.className = 'modal-backdrop';
+        wrap.innerHTML = `
+          <div class="modal" style="max-width:460px">
+            <div class="m-head"><h2>Convert to job</h2>
+              <p>${escapeHtml(enq.customer_name || 'This enquiry')} — is this their own work, or did an account send it in?</p></div>
+            <div class="m-body">
+              <div class="field"><label>Account</label>
+                <select id="ea-account">${accountOptionsHtml('', 'Their own work — no account')}</select></div>
+              <div class="field hidden" id="ea-ref-wrap"><label id="ea-ref-label">Their reference</label>
+                <input id="ea-ref" /></div>
+              <div style="font-size:12px;color:var(--muted)">Leave it on <strong>their own work</strong> for an ordinary enquiry. You can change this on the job afterwards either way.</div>
+            </div>
+            <div class="m-foot">
+              <button class="btn btn-secondary" id="ea-cancel">Cancel</button>
+              <button class="btn btn-primary" id="ea-go" style="width:auto">Convert</button>
+            </div>
+          </div>`;
+        document.body.appendChild(wrap);
+        const sel = wrap.querySelector('#ea-account');
+        const syncRef = () => {
+          const acc = accountById(sel.value);
+          wrap.querySelector('#ea-ref-wrap').classList.toggle('hidden', !acc);
+          if (acc) wrap.querySelector('#ea-ref-label').textContent = acc.reference_label;
+        };
+        wireAccountSelect(sel, 'Their own work — no account', syncRef);
+        const done = (v) => { wrap.remove(); resolve(v); };
+        wrap.querySelector('#ea-cancel').addEventListener('click', () => done(null));
+        wrap.addEventListener('click', (e) => { if (e.target === wrap) done(null); });
+        wrap.querySelector('#ea-go').addEventListener('click', () => done({
+          account_id: sel.value || null,
+          account_reference: wrap.querySelector('#ea-ref').value.trim(),
+        }));
+      });
+    }
+
+    /* Wire an account <select> so "+ Add a new account…" creates one and
+       selects it. onPicked runs after any real change. */
+    function wireAccountSelect(sel, blankLabel, onPicked) {
+      let last = sel.value;
+      sel.addEventListener('change', async () => {
+        if (sel.value !== '__new') { last = sel.value; if (onPicked) onPicked(); return; }
+        sel.value = last;                       // don't leave "+ Add" showing
+        const acc = await promptNewAccount();
+        if (acc) {
+          sel.innerHTML = accountOptionsHtml(acc.id, blankLabel);
+          last = acc.id;
+          ui.toast(acc.name + ' added');
+        }
+        if (onPicked) onPicked();
+      });
+    }
+
+    const accountFilterOptions = () => accountOptionsHtml(route.account, 'All accounts', false);
 
     // Who an email about this job goes to. On an account job that is the
     // account, because the account is our customer and the end customer is
@@ -2635,6 +2769,9 @@
             router.jobPage(main);
           }));
 
+        const cAcc = $('#c-account');
+        if (cAcc) wireAccountSelect(cAcc, 'Direct customer — no account', null);
+
         // inline customer save
         const saveCustBtn = $('#save-customer');
         if (saveCustBtn) saveCustBtn.addEventListener('click', async () => {
@@ -2793,10 +2930,15 @@
 
         document.querySelectorAll('[data-convert]').forEach((b) =>
           b.addEventListener('click', async () => {
+            const enq = list.find((x) => x.id === b.dataset.convert);
+            // A web or email enquiry can just as easily be a store or a builder
+            // sending work in as a member of the public. Ask before the job is
+            // made rather than leaving it to be fixed on the job page after.
+            const picked = await askEnquiryAccount(enq);
+            if (!picked) return;                       // backed out
             b.disabled = true; b.textContent = 'Converting…';
             try {
-              const enq = list.find((x) => x.id === b.dataset.convert);
-              const job = await db.convertEnquiry(enq);
+              const job = await db.convertEnquiry(enq, picked);
               ui.toast('Converted to job ' + job.quote_number);
               enqBadge.refresh();
               route.jobId = job.id; router.go('job', { jobId: job.id });
@@ -7388,7 +7530,7 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
       $('#nj-phone').addEventListener('blur', lookup);
       $('#nj-email').addEventListener('blur', lookup);
       $('#nj-name').addEventListener('blur', lookup);
-      $('#nj-account').addEventListener('change', applyAccountMode);
+      wireAccountSelect($('#nj-account'), 'Direct customer — no account', applyAccountMode);
       applyAccountMode();
 
       $('#nj-create').addEventListener('click', async () => {
