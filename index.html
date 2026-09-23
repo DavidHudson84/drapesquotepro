@@ -1859,14 +1859,50 @@
         return db.saveJob(jobId, { status_history: history }, { status: newStatus });
       },
 
-      /* The customer's link to this quote. Minted on the database side the
-         first time it is asked for and the same forever after, so the link in
-         a follow-up is the link in the original email — a customer who kept
-         the first one can still use it in March. */
+      /* The customer's link to this quote. Minted the first time it is asked
+         for and the same forever after, so the link in a follow-up is the link
+         in the original email — a customer who kept the first one can still
+         use it in March.
+
+         Written straight to the row rather than through a database function.
+         An RPC has to be published through PostgREST's function cache, and a
+         staff login spent an afternoon being told that function did not exist
+         while the identical call from elsewhere resolved fine. A plain update
+         has no cache to go stale. Nothing is given away by doing it here: the
+         jobs table's own policy already limits every staff login to its own
+         company's jobs, which is the only thing the function was checking. */
       async acceptToken(jobId) {
-        const { data, error } = await sb.rpc('ensure_accept_token', { p_job_id: jobId });
+        const read = async () => {
+          const { data, error } = await sb
+            .from('jobs').select('accept_token').eq('id', jobId).single();
+          if (error) throw error;
+          return data?.accept_token || null;
+        };
+
+        const existing = await read();
+        if (existing) return existing;
+
+        // 24 bytes from the browser's cryptographic RNG, base64url — the same
+        // shape and strength the database function produced.
+        const bytes = new Uint8Array(24);
+        crypto.getRandomValues(bytes);
+        const token = btoa(String.fromCharCode(...bytes))
+          .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+
+        // Claim it only if the row is still unclaimed, so two tabs racing can
+        // never hand two different links to the same customer.
+        const { data: won, error } = await sb.from('jobs')
+          .update({ accept_token: token, accept_token_issued_at: new Date().toISOString() })
+          .eq('id', jobId)
+          .is('accept_token', null)
+          .select('accept_token');
         if (error) throw error;
-        return data;
+        if (won && won.length) return won[0].accept_token;
+
+        // Lost the race — whoever won wrote the link we should be using.
+        const after = await read();
+        if (!after) throw new Error('could not mint the customer link');
+        return after;
       },
 
       // ---------- PHOTOS (Supabase Storage: job-photos bucket) ----------
@@ -2125,11 +2161,16 @@
     // Never block a send on this. An email that goes out without the button is
     // the quote email we sent for two years; an email that doesn't go out is a
     // lost job.
+    //
+    // But never fail silently either. Falling back quietly is what let a whole
+    // afternoon of quotes go out with no button and nobody any the wiser, so
+    // the failure is now said out loud to whoever pressed send.
     async function acceptUrlFor(jobId) {
       try {
         return acceptUrl(await db.acceptToken(jobId));
       } catch (err) {
         console.error('accept link unavailable', err);
+        ui.toast('Sent without the accept button — the customer link could not be created');
         return null;
       }
     }
