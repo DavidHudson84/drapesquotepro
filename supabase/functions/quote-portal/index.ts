@@ -111,6 +111,22 @@ async function sha256(s: string) {
 
 const firstName = (n: unknown) => String(n ?? '').trim().split(/\s+/)[0] || '';
 
+// Plain text -> HTML paragraphs. Outlook on Windows renders through Word, which
+// ignores `white-space`, so a pre-wrap block arrives as one run-on paragraph.
+// Real <p> and <br> survive every client. Mirrors emailBodyHtml() in index.html:
+// a blank line starts a paragraph, a single newline is a break inside one.
+function paras(text: unknown, style = '') {
+  const out = String(text ?? '')
+    .replace(/\r\n/g, '\n')
+    .split(/\n{2,}/)
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .map((p) => escapeHtml(p).replace(/\n/g, '<br />'));
+  return out
+    .map((p, i) => `<p style="margin:0 0 ${i === out.length - 1 ? '0' : '12px'}${style}">${p}</p>`)
+    .join('');
+}
+
 // ------------------------------------------------------------------- the view
 // What the customer is allowed to see. Built by naming every field rather than
 // by deleting the private ones, so a new field added to the quote in the app
