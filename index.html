@@ -6985,7 +6985,7 @@
           const btn = $('#ie-send'); btn.disabled = true; btn.textContent = 'Generating & sending…';
           try {
             const pdf_base64 = await inspectionPdf.base64(job, phase);
-            const body_html = '<div style="font-family:Arial,sans-serif;font-size:14px;color:#222;white-space:pre-wrap">' + escapeHtml($('#ie-body').value) + '</div>';
+            const body_html = emailBodyHtml($('#ie-body').value);
             const { data: { session: s } } = await sb.auth.getSession();
             const res = await fetch(`${SUPABASE_URL}/functions/v1/send-inspection-email`, {
               method: 'POST',
@@ -7049,7 +7049,7 @@
           if (!to || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) { errEl.textContent = 'Enter a valid email address.'; errEl.classList.remove('hidden'); return; }
           const btn = $('#ae-send'); btn.disabled = true; btn.textContent = 'Sending…';
           try {
-            const body_html = '<div style="font-family:Arial,sans-serif;font-size:14px;color:#222;white-space:pre-wrap">' + escapeHtml($('#ae-body').value) + '</div>';
+            const body_html = emailBodyHtml($('#ae-body').value);
             const { data: { session: s } } = await sb.auth.getSession();
             // Reuses send-quote-email with no pdf_base64 (PDF now optional in that function).
             const res = await fetch(`${SUPABASE_URL}/functions/v1/send-quote-email`, {
@@ -7429,8 +7429,7 @@ Thanks for considering us.`,
           const btn = $('#fu-send'); btn.disabled = true; btn.textContent = 'Sending…';
           const subject = $('#fu-subject').value;
           try {
-            const body_html = '<div style="font-family:Arial,sans-serif;font-size:14px;color:#222;white-space:pre-wrap">'
-              + escapeHtml($('#fu-body').value) + '</div>';
+            const body_html = emailBodyHtml($('#fu-body').value);
             const payload = { job_id: job.id, to, subject, body_html };
             if ($('#fu-attach').checked) {
               payload.pdf_base64 = quotePdf.base64(job);
@@ -7534,13 +7533,11 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
           try {
             const outro = (session.settings['email-outro'] || '').trim();
             const body_html =
-              '<div style="font-family:Arial,sans-serif;font-size:14px;color:#222;white-space:pre-wrap">' + escapeHtml($('#rv-body').value) + '</div>'
+              emailBodyHtml($('#rv-body').value)
               + (link
                 ? `<div style="margin:24px 0"><a href="${escapeAttr(link)}" style="display:inline-block;background:#0f766e;color:#ffffff;text-decoration:none;font-family:Arial,sans-serif;font-size:15px;font-weight:bold;padding:13px 26px;border-radius:6px">Leave a Google review</a></div>`
                 : '')
-              + (outro
-                ? '<div style="font-family:Arial,sans-serif;font-size:14px;color:#222;white-space:pre-wrap;margin-top:18px">' + escapeHtml(outro) + '</div>'
-                : '');
+              + (outro ? emailBodyHtml(outro, ';margin-top:18px') : '');
             const { data: { session: s } } = await sb.auth.getSession();
             const res = await fetch(`${SUPABASE_URL}/functions/v1/send-quote-email`, {
               method: 'POST',
@@ -7621,10 +7618,7 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
           try {
             // Build the PDF as base64 (no data: prefix) for the attachment.
             const pdf_base64 = quotePdf.base64(job);
-            // Plain-text body → simple HTML (preserve line breaks).
-            const bodyText = $('#ce-body').value;
-            const body_html = '<div style="font-family:Arial,sans-serif;font-size:14px;color:#222;white-space:pre-wrap">'
-              + escapeHtml(bodyText) + '</div>';
+            const body_html = emailBodyHtml($('#ce-body').value);
 
             // The accept button goes under the message, and this same PDF is
             // kept so the Download link on that page hands back the document
@@ -8323,6 +8317,31 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
         ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     }
     function escapeAttr(s) { return escapeHtml(s ?? ''); }
+
+    /* Plain text typed in a compose box → HTML an email client will honour.
+
+       Every outgoing email used to lean on `white-space:pre-wrap` to keep the
+       line breaks the sender typed. Outlook on Windows renders through Word,
+       which ignores `white-space` completely, so the whole message arrived as
+       one run-on paragraph — for our own office and for a good share of our
+       customers, who are exactly the people reading these. Real <p> and <br>
+       survive every client there is.
+
+       A blank line starts a new paragraph; a single newline is a line break
+       inside one. That is how the templates in Admin are already written. */
+    function emailBodyHtml(text, extraStyle = '') {
+      const font = 'font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;color:#222';
+      const paras = String(text ?? '')
+        .replace(/\r\n/g, '\n')
+        .split(/\n{2,}/)
+        .map((para) => para.trim())
+        .filter(Boolean)
+        .map((para) => escapeHtml(para).replace(/\n/g, '<br />'));
+      const body = paras
+        .map((para, i) => `<p style="margin:0 0 ${i === paras.length - 1 ? '0' : '14px'}">${para}</p>`)
+        .join('');
+      return `<div style="${font}${extraStyle}">${body}</div>`;
+    }
     function debounce(fn, ms) {
       let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
     }
