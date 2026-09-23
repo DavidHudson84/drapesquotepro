@@ -9238,20 +9238,47 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
 
       driverId() { return takedownPlan.driver ? takedownPlan.driver.id : null; },
 
-      /* The take-down already on the calendar for this job, if there is one.
-         Matched on the DQP link the sync writes, or on the DRD number in the
-         event title. The 'a' phase is the first visit, so that is the
-         take-down; a 'b' rehang already booked is not what we are asking. */
+      /* Whether this take-down is already dealt with, and how.
+
+         Two ways it can be. The stock may already be off the windows — item
+         tracking knows that and it is the end of the matter. Or it is booked
+         on the calendar ahead, matched on the DQP link the sync writes or on
+         the DRD number in the event title; the 'a' phase is the first visit,
+         so that is the take-down, and a 'b' rehang already booked is not what
+         we are asking about.
+
+         The taken check has to come first, because the calendar only holds
+         today forward. A job taken down last week has no stop to find, and
+         without this the panel would cheerfully offer times for work that is
+         sitting on the rack at the plant. */
       alreadyBooked() {
         const job = takedownPlan.job || {};
+        const items = (job.data && job.data.items) || [];
+        const taken = items.filter((i) => i && i.taken);
+        if (taken.length) {
+          const last = taken
+            .map((i) => i.taken_at)
+            .filter(Boolean)
+            .sort()
+            .pop() || null;
+          return {
+            kind: 'taken',
+            at: last,
+            by: (taken.find((i) => i.taken_by) || {}).taken_by || null,
+            count: taken.length,
+            total: items.length,
+          };
+        }
+
         const drd = (job.drd_number || '').replace(/\D/g, '');
-        return takedownPlan.stops.find((s) => {
+        const stop = takedownPlan.stops.find((s) => {
           const mine = (job.id && s.job_id === job.id)
             || (drd && (s.fergus_job_no || '').replace(/\D/g, '') === drd);
           if (!mine || !s.starts_at) return false;
           const phase = (s.title || '').toLowerCase().match(/drd-?\d{3,5}\s*([a-z])/)?.[1];
           return phase ? phase === 'a' : s.stop_type === 'takedown';
-        }) || null;
+        });
+        return stop ? { kind: 'booked', stop } : null;
       },
 
       jobItemCount() {
@@ -9281,11 +9308,17 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
            morning is a panel nobody trusts by Friday. */
         const booked = takedownPlan.alreadyBooked();
         if (booked) {
+          const s = booked.stop;
           mount.innerHTML = `
             <div class="td-booked">
-              <div class="td-when">${escapeHtml(scheduler.dayLabel(booked.stop_date))}
-                <span class="td-time">${escapeHtml(scheduler.hhmm(scheduler.localMins(booked.starts_at)))}</span></div>
-              <div class="td-why">Already in Fergus as ${escapeHtml(booked.title || 'a booking')}.</div>
+              ${booked.kind === 'taken'
+                ? `<div class="td-when">Already taken down</div>
+                   <div class="td-why">${booked.count} of ${booked.total} item${booked.total === 1 ? '' : 's'}
+                     marked off${booked.at ? ` on ${escapeHtml(fmtStamp(booked.at))}` : ''}${
+                       booked.by ? ` by ${escapeHtml(booked.by)}` : ''}. Nothing to book.</div>`
+                : `<div class="td-when">${escapeHtml(scheduler.dayLabel(s.stop_date))}
+                     <span class="td-time">${escapeHtml(scheduler.hhmm(scheduler.localMins(s.starts_at)))}</span></div>
+                   <div class="td-why">Already in Fergus as ${escapeHtml(s.title || 'a booking')}.</div>`}
             </div>
             <div class="td-foot">
               ${takedownPlan.syncedAt
