@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Your Quote — Dr Drapes Curtain Clinic</title>
+<link rel="icon" type="image/svg+xml" href="brand/drapr-favicon.svg" />
+<style>
+  /* Deliberately the quote PDF's palette, not the app's. The customer is
+     holding the PDF in one hand and this page in the other; they should
+     obviously be the same document. */
+  :root {
+    --navy: #323264; --navy-deep: #26264e; --pink: #C81B55;
+    --ink: #2a2a3a; --muted: #6e6e78; --line: #dde0ea;
+    --card: #ffffff; --bg: #f4f5fa; --ok: #1E7A4B;
+    --r: 14px; --r-sm: 9px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Open Sans', sans-serif;
+    background: var(--bg); color: var(--ink); line-height: 1.5;
+    padding: 16px; -webkit-text-size-adjust: 100%;
+  }
+  .wrap { max-width: 640px; margin: 0 auto; }
+  .card { background: var(--card); border-radius: var(--r); box-shadow: 0 2px 16px rgba(50,50,100,.08); padding: 24px 22px; margin-bottom: 16px; }
+  @media (max-width: 480px) { body { padding: 10px; } .card { padding: 18px 15px; } }
+
+  .logo { display: block; max-width: 190px; height: auto; margin: 0 0 14px; }
+  .qhead { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; flex-wrap: wrap; }
+  .qhead .meta { text-align: right; }
+  .qhead .meta .word { font-size: 22px; font-weight: 800; color: var(--navy); letter-spacing: .02em; }
+  .qhead .meta .num { font-size: 15px; font-weight: 700; color: var(--ink); }
+  .qhead .meta .date { font-size: 12.5px; color: var(--muted); }
+  .rule { height: 2px; background: var(--pink); margin: 14px 0 16px; border-radius: 2px; }
+
+  .contact { font-size: 13px; font-weight: 700; color: var(--navy); margin-top: 2px; }
+  .label { font-size: 11.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+  .for-name { font-size: 16px; font-weight: 700; color: var(--ink); }
+  .for-sub { font-size: 13.5px; color: var(--muted); }
+
+  h2 { font-size: 15px; color: var(--navy); margin: 22px 0 8px; font-weight: 700; }
+  h2:first-of-type { margin-top: 4px; }
+
+  .room-name { font-size: 13px; font-weight: 700; color: var(--navy-deep); background: #f3f4fa; padding: 7px 11px; border-radius: 6px; margin: 14px 0 2px; }
+  .line { display: flex; justify-content: space-between; gap: 12px; padding: 9px 11px; border-bottom: 1px solid var(--line); }
+  .line:last-child { border-bottom: none; }
+  .line .what { min-width: 0; }
+  .line .what .t { font-size: 14px; }
+  .line .what .d { font-size: 12px; color: var(--muted); margin-top: 1px; }
+  .line .amt { font-size: 14px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  .totals { margin-top: 18px; border-top: 2px solid var(--line); padding-top: 12px; }
+  .totals .row { display: flex; justify-content: space-between; padding: 4px 11px; font-size: 14px; }
+  .totals .row.disc { color: var(--pink); }
+  .totals .row.grand { margin-top: 8px; padding-top: 11px; border-top: 2px solid var(--navy); font-size: 18px; font-weight: 800; color: var(--navy); }
+
+  .notes { margin-top: 16px; background: #f8f9fc; border: 1px solid var(--line); border-radius: var(--r-sm); padding: 12px 14px; font-size: 13.5px; white-space: pre-wrap; }
+
+  details.terms { margin-top: 16px; border: 1px solid var(--line); border-radius: var(--r-sm); background: #fafbfd; }
+  details.terms summary { cursor: pointer; padding: 12px 14px; font-weight: 700; font-size: 13.5px; color: var(--navy); }
+  details.terms .body { padding: 0 14px 14px; font-size: 12.5px; color: #44445a; white-space: pre-wrap; max-height: 320px; overflow-y: auto; line-height: 1.55; }
+
+  .choices { display: grid; gap: 10px; margin-top: 4px; }
+  .btn {
+    display: block; width: 100%; padding: 15px 18px; border: none; border-radius: var(--r-sm);
+    font-size: 16px; font-weight: 700; font-family: inherit; cursor: pointer; text-align: center;
+    -webkit-appearance: none;
+  }
+  .btn-accept { background: var(--ok); color: #fff; font-size: 17px; padding: 17px 18px; }
+  .btn-accept:hover { background: #17673e; }
+  .btn-ghost { background: #fff; color: var(--navy); border: 1.5px solid var(--line); font-size: 14.5px; padding: 12px 16px; }
+  .btn-ghost:hover { border-color: var(--navy); }
+  .btn-sub { background: var(--navy); color: #fff; }
+  .btn-sub:hover { background: var(--navy-deep); }
+  .btn[disabled] { opacity: .55; cursor: default; }
+  .btn-link { background: none; border: none; color: var(--muted); font-size: 13.5px; text-decoration: underline; cursor: pointer; font-family: inherit; padding: 8px; }
+
+  .field { margin-bottom: 14px; }
+  label.f { display: block; font-size: 13px; font-weight: 700; color: var(--navy); margin-bottom: 5px; }
+  label.f .opt { color: var(--muted); font-weight: 400; }
+  input, select, textarea {
+    width: 100%; padding: 12px 13px; border: 1.5px solid var(--line); border-radius: var(--r-sm);
+    font-size: 16px; font-family: inherit; background: #fff; color: var(--ink);
+  }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--navy); box-shadow: 0 0 0 3px rgba(50,50,100,.12); }
+  textarea { resize: vertical; min-height: 92px; }
+  .hint { font-size: 12.5px; color: var(--muted); margin-top: -8px; margin-bottom: 14px; }
+
+  .tickbox { display: flex; gap: 11px; align-items: flex-start; background: #f8f9fc; border: 1.5px solid var(--line); border-radius: var(--r-sm); padding: 13px 14px; margin-bottom: 16px; cursor: pointer; }
+  .tickbox input { width: 20px; height: 20px; flex: 0 0 20px; margin-top: 1px; accent-color: var(--ok); }
+  .tickbox span { font-size: 13.5px; }
+
+  .err { background: #fdecef; border: 1px solid #f7c7d2; color: #9c1439; border-radius: var(--r-sm); padding: 11px 14px; font-size: 13.5px; margin-bottom: 14px; }
+  .banner { border-radius: var(--r-sm); padding: 16px 18px; margin-bottom: 4px; }
+  .banner.good { background: #e8f5ee; border: 1px solid #b8e0c9; }
+  .banner.good .t { color: var(--ok); }
+  .banner.closed { background: #f3f4fa; border: 1px solid var(--line); }
+  .banner.closed .t { color: var(--navy); }
+  .banner .t { font-size: 17px; font-weight: 800; margin-bottom: 5px; }
+  .banner .s { font-size: 14px; color: #44445a; }
+
+  .pdf-link { display: inline-block; margin-top: 14px; font-size: 13.5px; color: var(--navy); font-weight: 700; }
+  .foot { text-align: center; font-size: 12.5px; color: var(--muted); padding: 6px 0 24px; }
+  .foot a { color: var(--muted); }
+  .spinner { text-align: center; color: var(--muted); font-size: 14px; padding: 40px 0; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div id="loading" class="card spinner">Loading your quote…</div>
+
+  <div id="fail" class="card hidden">
+    <img class="logo" id="logo-fail" alt="Dr Drapes Curtain Clinic" />
+    <div class="banner closed">
+      <div class="t">We couldn't open this quote</div>
+      <div class="s" id="fail-msg">The link may have expired, or it may have been copied incompletely from the email. Give us a call on 1300 652 866 and we'll sort it out in a minute.</div>
+    </div>
+  </div>
+
+  <div id="quote" class="hidden">
+
+    <div class="card">
+      <img class="logo" id="logo" alt="Dr Drapes Curtain Clinic" />
+      <div class="qhead">
+        <div>
+          <div class="contact">1300 652 866 · drdrapes@hudsongroup.com.au</div>
+        </div>
+        <div class="meta">
+          <div class="word">QUOTE</div>
+          <div class="num" id="q-num"></div>
+          <div class="date" id="q-date"></div>
+        </div>
+      </div>
+      <div class="rule"></div>
+
+      <div class="label">Quote for</div>
+      <div class="for-name" id="q-for"></div>
+      <div class="for-sub" id="q-site"></div>
+      <div class="for-sub" id="q-ref"></div>
+
+      <div id="q-body"></div>
+
+      <div class="totals" id="q-totals"></div>
+
+      <div class="notes hidden" id="q-notes"></div>
+
+      <details class="terms" id="q-terms-wrap">
+        <summary>Terms of trade &amp; cleaning disclaimer</summary>
+        <div class="body" id="q-terms"></div>
+      </details>
+
+      <a class="pdf-link hidden" id="q-pdf" target="_blank" rel="noopener">↓ Download the quote as a PDF</a>
+    </div>
+
+    <!-- The decision. One card, one obvious action, everything else quieter. -->
+    <div class="card" id="decide">
+
+      <div id="settled" class="hidden"></div>
+
+      <div id="choose">
+        <h2 style="margin-top:0">Happy to go ahead?</h2>
+        <div class="choices">
+          <button class="btn btn-accept" id="go-accept">Accept this quote</button>
+          <button class="btn btn-ghost" id="go-question">Ask a question or request a change</button>
+          <button class="btn btn-ghost" id="go-decline">Not proceeding</button>
+        </div>
+      </div>
+
+      <form id="form-accept" class="hidden" autocomplete="on">
+        <h2 style="margin-top:0">Accept quote <span id="a-num"></span></h2>
+        <div class="err hidden" id="a-err"></div>
+        <div class="field">
+          <label class="f" for="a-name">Your full name</label>
+          <input id="a-name" name="name" autocomplete="name" placeholder="e.g. Sarah Mitchell" />
+        </div>
+        <p class="hint">Typing your name here is your signature on this quote.</p>
+        <div class="field">
+          <label class="f" for="a-po">Your order or reference number <span class="opt">— optional</span></label>
+          <input id="a-po" placeholder="e.g. PO-4471 or a claim number" />
+        </div>
+        <p class="hint">If your insurer or employer needs a reference on the invoice, put it here.</p>
+        <label class="tickbox" for="a-terms">
+          <input type="checkbox" id="a-terms" />
+          <span>I've read and accept the terms of trade and cleaning disclaimer above, and I accept this quote of <strong id="a-total"></strong> including GST.</span>
+        </label>
+        <button type="submit" class="btn btn-accept" id="a-send">Accept quote</button>
+        <button type="button" class="btn-link" data-back>Back</button>
+      </form>
+
+      <form id="form-decline" class="hidden">
+        <h2 style="margin-top:0">Not proceeding</h2>
+        <p class="hint" style="margin-top:-4px">No hard feelings — it helps us to know why, and it means we'll stop emailing you about it.</p>
+        <div class="err hidden" id="d-err"></div>
+        <div class="field">
+          <label class="f" for="d-reason">Main reason</label>
+          <select id="d-reason">
+            <option value="price">The price</option>
+            <option value="elsewhere">Going with someone else</option>
+            <option value="timing">Timing — not right now</option>
+            <option value="other">Something else</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="f" for="d-note">Anything you'd like to add <span class="opt">— optional</span></label>
+          <textarea id="d-note" placeholder="Whatever you'd like us to know."></textarea>
+        </div>
+        <button type="submit" class="btn btn-sub" id="d-send">Send</button>
+        <button type="button" class="btn-link" data-back>Back</button>
+      </form>
+
+      <form id="form-question" class="hidden">
+        <h2 style="margin-top:0">Ask us about this quote</h2>
+        <p class="hint" style="margin-top:-4px">The quote stays open — someone will come back to you.</p>
+        <div class="err hidden" id="q-err"></div>
+        <div class="field">
+          <label class="f" for="q-name">Your name</label>
+          <input id="q-name" autocomplete="name" />
+        </div>
+        <div class="field">
+          <label class="f" for="q-msg">Your question</label>
+          <textarea id="q-msg" placeholder="e.g. Could you quote the lounge curtains on their own? Or: can this wait until after Easter?"></textarea>
+        </div>
+        <button type="submit" class="btn btn-sub" id="q-send">Send</button>
+        <button type="button" class="btn-link" data-back>Back</button>
+      </form>
+
+    </div>
+  </div>
+
+  <div class="foot">Dr Drapes Curtain Clinic · 1300 652 866 · <a href="https://www.drdrapes.com.au">drdrapes.com.au</a></div>
+</div>
+
+<script>
+  const SUPABASE_URL = 'https://kspezkqanaqrhbirqmlc.supabase.co';
+  // Public by design, and it opens nothing on its own — the portal function is
+  // the only thing that can resolve a token, and it runs server-side.
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzcGV6a3FhbmFxcmhiaXJxbWxjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwOTU1MDksImV4cCI6MjA5NDY3MTUwOX0.toB3DTsKZ8Cydhxw4DTJjzmanF7tghHlXQNOzJ4xOiA';
+  window.__LOGO__ = 'data:image/png;base64,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';
+
+  const $ = (s) => document.querySelector(s);
+  document.getElementById('logo').src = window.__LOGO__;
+  document.getElementById('logo-fail').src = window.__LOGO__;
+
+  const token = new URLSearchParams(location.search).get('t') || '';
+  let quote = null;
+
+  const money = (n) => '$' + Number(n || 0).toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  async function call(action, payload = {}) {
+    const res = await fetch(SUPABASE_URL + '/functions/v1/quote-portal', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', apikey: SUPABASE_ANON_KEY },
+      body: JSON.stringify({ token, action, ...payload }),
+    });
+    const out = await res.json().catch(() => ({}));
+    if (!res.ok || out.error) throw new Error(out.error || 'request_failed');
+    return out;
+  }
+
+  // Plain English for the handful of failures a customer can actually act on.
+  // Anything else is ours to fix, and says so rather than blaming them.
+  function message(code) {
+    return ({
+      name_required: 'Please enter your full name.',
+      terms_required: 'Please tick the box to confirm you accept the terms.',
+      message_required: 'Please type your question first.',
+      not_open: 'This quote has just been updated at our end. Refresh the page to see where it stands.',
+      already_accepted: 'This quote has already been accepted. Give us a call if that wasn’t you.',
+      already_declined: 'This quote has already been closed off.',
+      no_quote: 'There are no prices on this quote yet. Please give us a call on 1300 652 866.',
+      rate_limited: 'Too many attempts just now — wait a minute and try again.',
+    })[code] || 'Something went wrong at our end. Please try again, or call us on 1300 652 866.';
+  }
+
+  function show(id) {
+    ['choose', 'form-accept', 'form-decline', 'form-question', 'settled'].forEach((k) =>
+      document.getElementById(k).classList.toggle('hidden', k !== id));
+    document.getElementById('decide').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function renderQuote(q) {
+    quote = q;
+    $('#q-num').textContent = q.quote_number;
+    $('#a-num').textContent = q.quote_number;
+    $('#q-date').textContent = q.quote_date || '';
+    $('#q-for').textContent = q.customer_first_name ? q.customer_first_name : '';
+    $('#q-site').textContent = q.site_address || '';
+    const refBits = [];
+    if (q.insurer) refBits.push('Insurer: ' + q.insurer);
+    if (q.reference) refBits.push('Reference: ' + q.reference);
+    $('#q-ref').textContent = refBits.join('  ·  ');
+
+    const lineHtml = (l) => `<div class="line">
+      <div class="what"><div class="t">${esc(l.label)}</div>${l.detail ? `<div class="d">${esc(l.detail)}</div>` : ''}</div>
+      <div class="amt">${money(l.amount)}</div></div>`;
+
+    let html = '';
+    (q.rooms || []).forEach((room) => {
+      html += `<div class="room-name">${esc(room.name)}</div>` + room.lines.map(lineHtml).join('');
+    });
+    if ((q.repairs || []).length) {
+      html += `<h2>Repairs &amp; hardware</h2>` + q.repairs.map(lineHtml).join('');
+    }
+    if ((q.extras || []).length) {
+      html += `<h2>Extras</h2>` + q.extras.map(lineHtml).join('');
+    }
+    $('#q-body').innerHTML = html || '<p class="hint" style="margin-top:14px">See the attached PDF for the full breakdown.</p>';
+
+    let t = '';
+    if (q.discount_amount > 0) {
+      t += `<div class="row disc"><span>Discount applied</span><span>- ${money(q.discount_amount)}</span></div>`;
+    }
+    t += `<div class="row"><span>Subtotal (ex GST)</span><span>${money(q.subtotal)}</span></div>`;
+    t += `<div class="row"><span>GST (10%)</span><span>${money(q.gst)}</span></div>`;
+    t += `<div class="row grand"><span>Total inc GST</span><span>${money(q.total)}</span></div>`;
+    $('#q-totals').innerHTML = t;
+    $('#a-total').textContent = money(q.total);
+
+    if (q.notes) { $('#q-notes').textContent = q.notes; $('#q-notes').classList.remove('hidden'); }
+    if (q.terms) $('#q-terms').textContent = q.terms;
+    else $('#q-terms-wrap').classList.add('hidden');
+    if (q.pdf_url) { $('#q-pdf').href = q.pdf_url; $('#q-pdf').classList.remove('hidden'); }
+
+    $('#q-name').value = q.customer_first_name || '';
+
+    $('#loading').classList.add('hidden');
+    $('#quote').classList.remove('hidden');
+
+    if (q.decided) { settled(q.decision, q); return; }
+
+    // A quote with nothing priced on it is one that isn't finished. Better to
+    // say so than to offer an Accept button that the server will refuse.
+    if (!(Number(q.total) > 0)) {
+      $('#choose').innerHTML = `<div class="banner closed">
+        <div class="t">This quote isn\u2019t ready yet</div>
+        <div class="s">The pricing hasn\u2019t come through on this one. Give us a call on 1300 652 866 and we\u2019ll get it to you.</div>
+      </div>`;
+    }
+  }
+
+  // A quote that has been answered shows what was decided and nothing to press.
+  // The quote itself stays on the page above — people re-open these links
+  // months later looking for what they agreed to.
+  function settled(decision, q, fresh) {
+    const box = $('#settled');
+    if (decision === 'accepted') {
+      const when = q && q.accepted_at ? new Date(q.accepted_at).toLocaleString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+      box.innerHTML = `<div class="banner good">
+        <div class="t">${fresh ? 'Accepted — thank you' : 'This quote has been accepted'}</div>
+        <div class="s">${fresh
+          ? 'We’ve got it. A confirmation is on its way to your inbox, and we’ll be in touch shortly to arrange a time to collect.'
+          : `Accepted${q && q.accepted_by ? ' by ' + esc(q.accepted_by) : ''}${when ? ' on ' + esc(when) : ''}. If you need to change anything, call us on 1300 652 866.`}</div>
+      </div>`;
+    } else if (decision === 'declined') {
+      box.innerHTML = `<div class="banner closed">
+        <div class="t">${fresh ? 'Thanks for letting us know' : 'This quote has been closed'}</div>
+        <div class="s">We’ve closed this one off and you won’t hear from us about it again. If anything changes, just reply to any of our emails and we’ll pick it back up.</div>
+      </div>`;
+    } else {
+      box.innerHTML = `<div class="banner good">
+        <div class="t">Message sent</div>
+        <div class="s">Thanks — that’s come through to the office and someone will come back to you shortly. This quote stays open in the meantime.</div>
+      </div>`;
+    }
+    show('settled');
+  }
+
+  function busy(btn, on, label) {
+    btn.disabled = on;
+    if (on) { btn.dataset.label = btn.textContent; btn.textContent = label; }
+    else if (btn.dataset.label) btn.textContent = btn.dataset.label;
+  }
+
+  function fail(el, code) {
+    el.textContent = message(code);
+    el.classList.remove('hidden');
+  }
+
+  // ---------- wiring ----------
+  $('#go-accept').addEventListener('click', () => show('form-accept'));
+  $('#go-decline').addEventListener('click', () => show('form-decline'));
+  $('#go-question').addEventListener('click', () => show('form-question'));
+  document.querySelectorAll('[data-back]').forEach((b) => b.addEventListener('click', () => show('choose')));
+
+  $('#form-accept').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const err = $('#a-err'); err.classList.add('hidden');
+    const name = $('#a-name').value.trim();
+    if (name.length < 2) return fail(err, 'name_required');
+    if (!$('#a-terms').checked) return fail(err, 'terms_required');
+    const btn = $('#a-send'); busy(btn, true, 'Accepting…');
+    try {
+      await call('accept', { name, terms_confirmed: true, po_number: $('#a-po').value.trim() });
+      settled('accepted', quote, true);
+    } catch (ex) {
+      fail(err, ex.message); busy(btn, false);
+    }
+  });
+
+  $('#form-decline').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const err = $('#d-err'); err.classList.add('hidden');
+    const btn = $('#d-send'); busy(btn, true, 'Sending…');
+    try {
+      await call('decline', { reason: $('#d-reason').value, note: $('#d-note').value.trim() });
+      settled('declined', quote, true);
+    } catch (ex) {
+      fail(err, ex.message); busy(btn, false);
+    }
+  });
+
+  $('#form-question').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const err = $('#q-err'); err.classList.add('hidden');
+    const msg = $('#q-msg').value.trim();
+    if (msg.length < 3) return fail(err, 'message_required');
+    const btn = $('#q-send'); busy(btn, true, 'Sending…');
+    try {
+      await call('question', { name: $('#q-name').value.trim(), message: msg });
+      settled('question', quote, true);
+    } catch (ex) {
+      fail(err, ex.message); busy(btn, false);
+    }
+  });
+
+  // ---------- load ----------
+  (async () => {
+    if (!token) {
+      $('#loading').classList.add('hidden');
+      $('#fail').classList.remove('hidden');
+      return;
+    }
+    try {
+      const out = await call('view');
+      renderQuote(out.quote);
+    } catch (ex) {
+      $('#loading').classList.add('hidden');
+      if (ex.message !== 'not_found') $('#fail-msg').textContent = message(ex.message);
+      $('#fail').classList.remove('hidden');
+    }
+  })();
+</script>
+</body>
+</html>

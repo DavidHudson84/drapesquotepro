@@ -1519,7 +1519,7 @@
         return db.pageAll(() => {
           let q = sb
             .from('jobs')
-            .select('id, quote_number, drd_number, legacy_reference, customer_id, site_id, account_id, account_reference, status, customer_name, customer_phone, customer_email, site_address, data, archived, created_at, updated_at')
+            .select('id, quote_number, drd_number, legacy_reference, customer_id, site_id, account_id, account_reference, status, customer_name, customer_phone, customer_email, site_address, data, archived, created_at, updated_at, fergus_job_id')
             .order('updated_at', { ascending: false })
             .order('id', { ascending: true });
           return includeArchived ? q.eq('archived', true) : q.eq('archived', false);
@@ -1930,6 +1930,52 @@
         return db.saveJob(jobId, { status_history: history }, { status: newStatus });
       },
 
+      /* The customer's link to this quote. Minted the first time it is asked
+         for and the same forever after, so the link in a follow-up is the link
+         in the original email — a customer who kept the first one can still
+         use it in March.
+
+         Written straight to the row rather than through a database function.
+         An RPC has to be published through PostgREST's function cache, and a
+         staff login spent an afternoon being told that function did not exist
+         while the identical call from elsewhere resolved fine. A plain update
+         has no cache to go stale. Nothing is given away by doing it here: the
+         jobs table's own policy already limits every staff login to its own
+         company's jobs, which is the only thing the function was checking. */
+      async acceptToken(jobId) {
+        const read = async () => {
+          const { data, error } = await sb
+            .from('jobs').select('accept_token').eq('id', jobId).single();
+          if (error) throw error;
+          return data?.accept_token || null;
+        };
+
+        const existing = await read();
+        if (existing) return existing;
+
+        // 24 bytes from the browser's cryptographic RNG, base64url — the same
+        // shape and strength the database function produced.
+        const bytes = new Uint8Array(24);
+        crypto.getRandomValues(bytes);
+        const token = btoa(String.fromCharCode(...bytes))
+          .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+
+        // Claim it only if the row is still unclaimed, so two tabs racing can
+        // never hand two different links to the same customer.
+        const { data: won, error } = await sb.from('jobs')
+          .update({ accept_token: token, accept_token_issued_at: new Date().toISOString() })
+          .eq('id', jobId)
+          .is('accept_token', null)
+          .select('accept_token');
+        if (error) throw error;
+        if (won && won.length) return won[0].accept_token;
+
+        // Lost the race — whoever won wrote the link we should be using.
+        const after = await read();
+        if (!after) throw new Error('could not mint the customer link');
+        return after;
+      },
+
       // ---------- PHOTOS (Supabase Storage: job-photos bucket) ----------
       // Path: {company_id}/{job_id}/{phase}/{filename}
       async uploadPhoto(jobId, phase, file) {
@@ -2170,6 +2216,38 @@
       if (!last) return false;
       return (daysSince(last.sent_at) || 0) >= LOST_AFTER_LAST_DAYS;
     }
+
+    /* ---------- THE CUSTOMER'S QUOTE LINK ----------
+       Where accept.html is served from. A setting rather than a constant
+       because the page moves the day the custom domain goes on, and a quote
+       emailed last month has to keep working when it does — the token is what
+       resolves the job, so an old link on the old host still lands. */
+    const PORTAL_BASE_DEFAULT = 'https://davidhudson84.github.io/drapesquotepro/';
+    function portalBase() {
+      const v = String(session.settings['portal-base-url'] || '').trim() || PORTAL_BASE_DEFAULT;
+      return v.endsWith('/') ? v : v + '/';
+    }
+    const acceptUrl = (token) => `${portalBase()}accept.html?t=${encodeURIComponent(token)}`;
+
+    // Never block a send on this. An email that goes out without the button is
+    // the quote email we sent for two years; an email that doesn't go out is a
+    // lost job.
+    //
+    // But never fail silently either. Falling back quietly is what let a whole
+    // afternoon of quotes go out with no button and nobody any the wiser, so
+    // the failure is now said out loud to whoever pressed send.
+    async function acceptUrlFor(jobId) {
+      try {
+        return acceptUrl(await db.acceptToken(jobId));
+      } catch (err) {
+        console.error('accept link unavailable', err);
+        ui.toast('Sent without the accept button — the customer link could not be created');
+        return null;
+      }
+    }
+
+    // Was this one answered by the customer rather than by us?
+    const acceptedOnline = (job) => job?.data?.acceptance?.how === 'online';
 
     /* ============================================================
        ACCOUNTS — display helpers
@@ -2516,6 +2594,13 @@
                 <div class="a-label">To schedule</div>
                 <div class="a-hint">Confirmed, no pre-inspection yet</div>
               </div>
+              <div class="attn-card ${s.acceptedOnlineCount ? '' : 'ok'}" id="attn-online">
+                <div class="a-count">${s.acceptedOnlineCount}</div>
+                <div class="a-label">Accepted online</div>
+                <div class="a-hint">${s.fergusHeld
+                  ? `<strong style="color:var(--red)">${s.fergusHeld} waiting to be pushed to Fergus</strong>`
+                  : 'Customers who said yes from the quote link'}</div>
+              </div>
             </div>
             ${chasePanel}
           </div>
@@ -2533,6 +2618,13 @@
         const chaseCard = $('#attn-chase'); if (chaseCard && s.toChase) chaseCard.addEventListener('click', () => goFiltered('quoted'));
         const lastCard = $('#attn-lastchance'); if (lastCard && s.lastChance) lastCard.addEventListener('click', () => goFiltered('quoted'));
         const sched = $('#attn-schedule'); if (sched && s.toSchedule) sched.addEventListener('click', () => goFiltered('confirmed'));
+        // Straight to the job when there is one held at Fergus — that is the
+        // one thing on this card a person has to act on. Otherwise the list.
+        const onl = $('#attn-online');
+        if (onl && s.acceptedOnlineCount) onl.addEventListener('click', () => {
+          if (s.fergusHeldJobs.length === 1) { route.jobId = s.fergusHeldJobs[0].id; router.go('job'); }
+          else goFiltered('confirmed');
+        });
         document.querySelectorAll('.funnel-step[data-fstatus]').forEach((f) =>
           f.addEventListener('click', () => goFiltered(f.dataset.fstatus)));
 
@@ -2746,7 +2838,8 @@
       /* ---------- JOB PAGE ---------- */
       async jobPage(main) {
         main.innerHTML = `<div class="empty-card"><div class="spin" style="margin:0 auto;border-top-color:var(--navy-mid);border-color:#ddd"></div></div>`;
-        const job = await db.getJob(route.jobId);
+        let job = await db.getJob(route.jobId);
+        job = await backfillOnlineAcceptance(job);
         const d = job.data || {};
 
         // status bar
@@ -3724,6 +3817,7 @@
             || (k === 'review-request-body' ? REVIEW_BODY_DEFAULT : (FOLLOWUP_DEFAULTS[k] || ''));
         });
         state['google-review-link'] = session.settings['google-review-link'] || '';
+        state['portal-base-url'] = session.settings['portal-base-url'] || '';
         FOLLOWUP_STAGES.forEach((st) => { state[st.setting] = session.settings[st.setting] || String(st.days); });
 
         body.innerHTML = `
@@ -3731,6 +3825,11 @@
             <h3>Google review link</h3>
             <p class="section-hint">From your Google Business Profile → "Get more reviews" → share link. Used for the review button on the thank-you email.</p>
             <div class="field"><input data-tkey="google-review-link" value="${escapeAttr(state['google-review-link'])}" placeholder="https://g.page/r/…/review" /></div>
+          </div>
+          <div class="admin-section">
+            <h3>Customer quote link</h3>
+            <p class="section-hint">Where the accept page is served from. Every quote and follow-up sent from Drapr carries a <strong>Review &amp; accept your quote</strong> button pointing here, and the customer can accept, decline or ask a question without ringing anyone. Change this the day the link moves to its own domain — links already sitting in customers' inboxes keep working either way.</p>
+            <div class="field"><input data-tkey="portal-base-url" value="${escapeAttr(state['portal-base-url'])}" placeholder="${escapeAttr(PORTAL_BASE_DEFAULT)}" /></div>
           </div>
           <div class="admin-section">
             <h3>Follow-up timing</h3>
@@ -5695,7 +5794,44 @@
 
         if (isConfirmed) {
           const when = a.confirmed_at ? new Date(a.confirmed_at).toLocaleString('en-AU', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
-          html += `<div class="acc-confirmed-banner">✓ <strong>Accepted</strong> via ${escapeHtml(a.how || '')} · ${escapeHtml(when)} · by ${escapeHtml(a.confirmed_by || '')}${a.terms_confirmed ? ' · terms confirmed' : ''}</div>`;
+          const online = a.online || {};
+          const howWord = a.how === 'online' ? 'the quote link' : (a.how || '');
+          html += `<div class="acc-confirmed-banner">✓ <strong>Accepted</strong> via ${escapeHtml(howWord)} · ${escapeHtml(when)} · by ${escapeHtml(a.confirmed_by || '')}${a.terms_confirmed ? ' · terms confirmed' : ''}</div>`;
+
+          // What a customer acceptance is worth in a dispute is the detail
+          // behind it, so the detail is on the screen rather than buried in
+          // the record: who typed their name, from where, and when.
+          if (a.how === 'online') {
+            const bits = [];
+            if (online.email) bits.push(escapeHtml(online.email));
+            if (online.ip) bits.push('IP ' + escapeHtml(online.ip));
+            if (online.po_number) bits.push('their ref ' + escapeHtml(online.po_number));
+            html += `<div class="section-hint" style="margin:-8px 0 14px">Accepted by the customer themselves${bits.length ? ' — ' + bits.join(' · ') : ''}. The terms of trade were on screen and ticked.</div>`;
+          }
+
+          // An online acceptance raises the Fergus job on its own where the
+          // match was certain. Where it wasn't, this is the only place anyone
+          // finds out — so it says plainly what to do about it.
+          const fg = a.fergus;
+          if (a.how === 'online' && fg && !fg.pushed && !job.fergus_job_id) {
+            html += `<div class="acc-blocked" style="background:#fef3c7;border-color:#fde68a;color:#92400e">Not raised in Fergus yet — ${escapeHtml(fg.reason || 'the push did not complete')}. Use <strong>Push to Fergus</strong> at the top of this page.</div>`;
+          }
+        }
+
+        // Questions asked from the quote link. They arrive by email too, but an
+        // email gets read once and lost; this keeps them against the job.
+        const msgs = job.data?.portal_messages || [];
+        if (msgs.length) {
+          html += `<div class="qb-block-title" style="margin-top:0">From the customer</div>` +
+            msgs.slice().reverse().map((m) => `<div class="log-row"><strong>${escapeHtml(new Date(m.at).toLocaleString('en-AU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))}</strong> — ${escapeHtml(m.name || '')}<div style="white-space:pre-wrap;margin-top:3px">${escapeHtml(m.message)}</div></div>`).join('');
+        }
+
+        // The link itself, for the times the quote goes out from Outlook, or a
+        // customer rings and wants it re-sent while they're on the phone.
+        if (!isConfirmed) {
+          html += `<div class="qb-block-title">Customer quote link</div>
+            <p class="section-hint" style="margin-top:-6px">Added to every quote and follow-up sent from here. Copy it to paste into a text message or an email you're writing yourself.</p>
+            <button class="btn btn-secondary" id="acc-copy-link" style="width:auto">Copy customer link</button>`;
         }
 
         html += `<div><span class="mini-label" style="font-size:12px;font-weight:700;color:var(--muted)">HOW ACCEPTED</span></div>
@@ -5727,6 +5863,26 @@
       },
 
       wire(job) {
+        const copyLink = $('#acc-copy-link');
+        if (copyLink) copyLink.addEventListener('click', async () => {
+          copyLink.disabled = true; copyLink.textContent = 'Getting link…';
+          try {
+            const url = acceptUrl(await db.acceptToken(job.id));
+            // Clipboard access is refused outside a secure context and on some
+            // locked-down browsers, so there is always a copyable fallback.
+            try {
+              await navigator.clipboard.writeText(url);
+              ui.toast('Link copied');
+            } catch (_) {
+              window.prompt('Copy the customer link:', url);
+            }
+          } catch (err) {
+            ui.toast('Could not get the link: ' + (err.message || 'error'));
+          } finally {
+            copyLink.disabled = false; copyLink.textContent = 'Copy customer link';
+          }
+        });
+
         document.querySelectorAll('.acc-chip[data-how]').forEach((c) =>
           c.addEventListener('click', () => { this.draft.how = c.dataset.how; this.render(job); }));
         const tc = $('#acc-terms-cb');
@@ -6004,6 +6160,44 @@
       if (mode === 'blind') return `${calc.widthM.toFixed(2)}m W × ${calc.dropM.toFixed(2)}m H (${calc.sqm} m²)`;
       if (['curtain', 'sheer', 'velvet'].includes(mode)) return `${calc.widthM.toFixed(2)}m W × ${calc.dropM.toFixed(2)}m H`;
       return `${calc.widthM.toFixed(2)}m W`;
+    }
+
+    /* A quote accepted from the customer's link arrives here with the
+       acceptance recorded but no item records and no job card: those come out
+       of the pricing engine in this file, and a second copy of that engine in
+       the Edge Function would have drifted from this one inside a month. So
+       the first person to open the job finishes the job off. It runs once, it
+       is invisible, and it leaves the job identical to one confirmed by hand. */
+    async function backfillOnlineAcceptance(job) {
+      const a = job.data?.acceptance;
+      if (a?.how !== 'online' || !a.confirmed_at) return job;
+
+      const patch = {};
+
+      // Opening the job is what clears it off the dashboard. Not a button —
+      // there is nothing to acknowledge, only something to have seen.
+      if (!a.seen_at) {
+        patch.acceptance = { seen_at: new Date().toISOString(), seen_by: session.profile.name };
+      }
+
+      const needsItems = !(job.data?.items || []).length
+        && ACCEPTED_STATUSES.includes(job.status)
+        && Number(job.data?.quote?.total) > 0;
+      if (needsItems) {
+        patch.items = buildItemsFromQuote(job);
+        patch.items_generated_at = a.confirmed_at;
+        patch.technician_card = { generated_at: a.confirmed_at, text: acceptance.buildCard(job) };
+      }
+
+      if (!Object.keys(patch).length) return job;
+      try {
+        return await db.saveJob(job.id, patch);
+      } catch (err) {
+        // Never block the page on it — the items can be regenerated by saving
+        // the quote again, and a job you can't open helps nobody.
+        console.error('online acceptance backfill failed', err);
+        return job;
+      }
     }
 
     // Build the item list from the saved quote. Pure — takes a job, returns rows.
@@ -7241,7 +7435,12 @@ Thanks for considering us.`,
             if ($('#fu-attach').checked) {
               payload.pdf_base64 = quotePdf.base64(job);
               payload.pdf_filename = `${job.quote_number || 'Quote'}.pdf`;
+              payload.archive_pdf = true;
             }
+            // Every chase carries the button too. The whole point of the ladder
+            // is to make saying yes easy, and the easiest yes is one tap.
+            const accept_url = await acceptUrlFor(job.id);
+            if (accept_url) payload.accept_url = accept_url;
             const { data: { session: s } } = await sb.auth.getSession();
             const res = await fetch(`${SUPABASE_URL}/functions/v1/send-quote-email`, {
               method: 'POST',
@@ -7427,6 +7626,11 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
             const body_html = '<div style="font-family:Arial,sans-serif;font-size:14px;color:#222;white-space:pre-wrap">'
               + escapeHtml(bodyText) + '</div>';
 
+            // The accept button goes under the message, and this same PDF is
+            // kept so the Download link on that page hands back the document
+            // the customer is holding rather than a later rendering of it.
+            const accept_url = await acceptUrlFor(job.id);
+
             // Call the Edge Function with the caller's auth token.
             const { data: { session: s } } = await sb.auth.getSession();
             const res = await fetch(`${SUPABASE_URL}/functions/v1/send-quote-email`, {
@@ -7443,6 +7647,7 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
                 body_html,
                 pdf_base64,
                 pdf_filename: `${job.quote_number || 'Quote'}.pdf`,
+                ...(accept_url ? { accept_url, archive_pdf: true } : {}),
               }),
             });
             const out = await res.json().catch(() => ({}));
@@ -7814,6 +8019,8 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
       let toChase = 0, toSchedule = 0, lastChance = 0, quotesUnsent = 0;
       const chase = [];   // open quotes needing a person to do something
       let declinedMonthVal = 0, declinedMonthCount = 0;
+      let acceptedOnlineCount = 0, fergusHeld = 0;
+      const fergusHeldJobs = [];
       const m = { quotedVal: 0, quotedCount: 0, confirmedVal: 0, confirmedCount: 0, invoicedVal: 0, invoicedCount: 0, newJobs: 0 };
       const w = { invoicedVal: 0, invoicedCount: 0, newJobs: 0 };
       const order = STATUSES;
@@ -7876,6 +8083,18 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
           }
         }
         if (j.status === 'confirmed' && !(j.data?.pre_inspection?.saved_at)) toSchedule++;
+
+        // Answered by the customer, not by us. Counted until someone opens the
+        // job, because that is the moment it stops being news. A Fergus push
+        // the matcher held back is counted separately — that one needs a
+        // decision, not just a read.
+        if (acceptedOnline(j)) {
+          if (!(j.data?.acceptance?.seen_at)) acceptedOnlineCount++;
+          if (!j.fergus_job_id && j.data?.acceptance?.fergus && !j.data.acceptance.fergus.pushed) {
+            fergusHeld++;
+            fergusHeldJobs.push({ id: j.id, quote_number: j.quote_number, customer_name: j.customer_name });
+          }
+        }
       });
 
       // Option B win rate: won ÷ (won + declined)
@@ -7888,6 +8107,7 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
         pipelineVal: round2(pipelineVal), pipelineCount,
         winRate, wonCount, declinedCount, pendingCount,
         avgJobSize, toChase, toSchedule, lastChance, quotesUnsent,
+        acceptedOnlineCount, fergusHeld, fergusHeldJobs,
         // Oldest first — the quote that has been waiting longest is the one
         // most likely to be lost, and the one the panel should lead with.
         chase: chase.sort((a1, b1) => b1.age - a1.age),
