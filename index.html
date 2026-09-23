@@ -483,6 +483,47 @@
     .job-section .sec-body { padding: 0 22px 22px; display: none; }
     .job-section.open .sec-body { display: block; }
 
+    /* ---------- Booking the take-down ---------- */
+    .td-wait { color: var(--muted); font-size: 14px; padding: 8px 0; }
+    .td-warn { background: #fffbeb; border: 1px solid #fde68a; color: #92400e;
+               border-radius: var(--r-sm); padding: 12px 14px; font-size: 13.5px;
+               margin-bottom: 14px; }
+    .td-head { display: flex; flex-wrap: wrap; gap: 8px 26px; margin-bottom: 16px;
+               font-size: 14px; color: var(--navy-dark); }
+    .td-k { display: block; font-size: 11px; font-weight: 700; letter-spacing: .06em;
+            text-transform: uppercase; color: var(--muted); }
+
+    .td-list { display: grid; gap: 12px; margin-bottom: 14px; }
+    .td-card { border: 1px solid var(--line); border-left: 4px solid var(--teal);
+               border-radius: var(--r-sm); padding: 14px 16px; background: #fafbfd; }
+    .td-card.td-stretch { border-left-color: var(--muted); opacity: .85; }
+    .td-booked { border: 1px solid var(--line); border-left: 4px solid var(--teal);
+                 border-radius: var(--r-sm); padding: 14px 16px; background: var(--teal-light); }
+    .td-when { font-size: 16px; font-weight: 700; color: var(--navy-dark); margin-bottom: 5px; }
+    .td-time { font-variant-numeric: tabular-nums; color: var(--teal); margin-left: 8px; }
+    .td-why { font-size: 14px; line-height: 1.5; margin-bottom: 5px; }
+    .td-also { font-size: 12.5px; color: var(--muted); }
+
+    .td-copy { font-size: 13px; padding: 8px 14px; border: 1px solid var(--line);
+               border-radius: var(--r-sm); background: #fff; }
+    .td-all { margin-top: 18px; }
+    .td-all summary { cursor: pointer; font-size: 13.5px; font-weight: 600; color: var(--teal); }
+    .td-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+    .td-table th { text-align: left; font-size: 11px; letter-spacing: .06em;
+                   text-transform: uppercase; color: var(--muted); padding: 6px 8px;
+                   border-bottom: 1px solid var(--line); }
+    .td-table td { padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    .td-table tr.td-off td { color: var(--muted); font-style: italic; }
+    .td-table .td-d { white-space: nowrap; font-weight: 600; }
+    .td-table .td-p { color: var(--muted); white-space: nowrap; }
+    .td-table .td-h { text-align: right; white-space: nowrap;
+                      font-variant-numeric: tabular-nums; color: var(--muted); }
+
+    .td-foot { margin-top: 16px; display: flex; align-items: center; gap: 12px;
+               flex-wrap: wrap; font-size: 12.5px; color: var(--muted); }
+    .td-foot .btn { font-size: 12.5px; padding: 6px 12px; border: 1px solid var(--line);
+                    border-radius: var(--r-sm); background: #fff; }
+
     .detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
     .detail-grid .field { margin: 0; }
 
@@ -1519,11 +1560,41 @@
         return out;
       },
 
+      /* The fortnight ahead, for the take-down suggestions on an accepted
+         job. Written by the sync-schedule Edge Function out of the Fergus
+         calendar — same rule as the run sheet, Fergus owns the schedule. */
+      async listScheduleStops() {
+        const { data, error } = await sb
+          .from('schedule_stops')
+          .select('*')
+          .order('starts_at', { ascending: true, nullsFirst: false });
+        if (error) throw error;
+        return data || [];
+      },
+
+      // Re-pull the fortnight on demand, for a booking made minutes ago.
+      async refreshSchedule() {
+        const { data: { session: s } } = await sb.auth.getSession();
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/sync-schedule`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            apikey: SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${s?.access_token || ''}`,
+          },
+          body: '{}',
+          signal: AbortSignal.timeout(90000),
+        });
+        const out = await res.json().catch(() => ({}));
+        if (!res.ok || out.error) throw new Error(out.message || 'Could not reach Fergus.');
+        return out;
+      },
+
       // Anyone with a Fergus account, for the office's driver picker.
       async listFieldUsers() {
         const { data, error } = await sb
           .from('app_users')
-          .select('id, name, fergus_user_id')
+          .select('id, name, role, fergus_user_id')
           .not('fergus_user_id', 'is', null)
           .eq('active', true)
           .order('name');
@@ -2796,6 +2867,9 @@
           ${section('customer', 'Customer Details', true, customerDetailsHtml(job))}
           ${section('quote', 'Quote', true, `<div id="qb-mount"></div>`)}
           ${section('acceptance', 'Acceptance & Job Card', false, `<div id="acc-mount"></div>`)}
+          ${job.status === 'confirmed'
+            ? section('takedown', 'Booking the take-down', true, `<div id="td-mount"></div>`)
+            : ''}
           ${section('pre', 'Pre-Inspection', false, `<div id="pre-mount"></div>`)}
           ${section('items', 'Items · Takedown · Production · Rehang', ['confirmed','in_progress','complete','invoiced','rehung'].includes(job.status), `<div id="items-mount"></div>`)}
           ${section('post', 'Post-Inspection', false, `<div id="post-mount"></div>`)}
@@ -2832,6 +2906,8 @@
         // initialise inspection forms (pre + post)
         inspection.init('pre', job, main);
         inspection.init('post', job, main);
+        // where the van already is, for putting the take-down in the diary
+        if (job.status === 'confirmed') takedownPlan.init(job, main);
         // items / takedown / production / rehang
         jobItems.init(job, main);
 
@@ -8404,6 +8480,969 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
        Show how many are still untouched right on the tab, refreshed on a
        timer and whenever the tab is brought back to the front.
        ============================================================ */
+    /* ============================================================
+       WHERE IS JOHN? — take-down slot suggestions
+       ============================================================
+       When a quote is accepted the office has to put the take-down
+       somewhere in the next fortnight. Fergus owns that calendar and
+       nobody can hold a fortnight of it in their head, so this works
+       out where the van is already going and says so in words.
+
+       It suggests. It does not book. The customer still has to agree
+       a time on the phone, and customer availability is the one input
+       this thing cannot see — so the output is shaped as "three windows
+       worth offering", not "the answer".
+
+       The run: one van, John, with a second van pulled in when needed.
+       The loose weekly pattern, as the office actually works it:
+
+         Tuesday    north + west, and east + south
+         Wednesday  the long runs — Peninsula, Geelong, Ballarat
+         Thursday   north + west
+         Friday     east + south
+         Monday     no pattern, whatever the week needs
+
+       Loose is the operative word. A job that breaks the pattern is
+       normal and the pattern is worth about as much here as a nudge —
+       an existing stop three suburbs away on the "wrong" day still
+       beats an empty day on the right one. The one place it bites is
+       the far work: a Rosebud take-down on a Thursday costs most of a
+       day, so those are pushed hard at Wednesday.
+       ============================================================ */
+
+    const geo = {
+      /* Suburb centroids, near enough for "is the van already out that
+         way". Region drives the weekday pattern above; far marks the
+         work that only makes sense on a Wednesday.
+
+         Coordinates are approximate — a couple of kilometres out is
+         fine for ranking and nothing is navigated off them. */
+      REGIONS: {
+        inner:     { label: 'inner Melbourne', far: false },
+        north:     { label: 'the north',       far: false },
+        west:      { label: 'the west',        far: false },
+        east:      { label: 'the east',        far: false },
+        south:     { label: 'the south',       far: false },
+        peninsula: { label: 'the Peninsula',   far: true  },
+        geelong:   { label: 'Geelong',         far: true  },
+        ballarat:  { label: 'Ballarat',        far: true  },
+        regional:  { label: 'the country',    far: true  },
+      },
+
+      // The weekly shape. 0 = Sunday. An empty list means no pattern.
+      DAY_PATTERN: {
+        1: [],                                 // Monday — whatever the week needs
+        2: ['north', 'west', 'east', 'south'], // Tuesday — both runs
+        3: ['peninsula', 'geelong', 'ballarat', 'regional'], // Wednesday — the long ones
+        4: ['north', 'west'],                  // Thursday
+        5: ['east', 'south'],                  // Friday
+      },
+
+      // name, lat, lon, region
+      SUBURBS: [
+        // ---- inner ----
+        ['Melbourne', -37.814, 144.963, 'inner'], ['Southbank', -37.823, 144.964, 'inner'],
+        ['Docklands', -37.815, 144.946, 'inner'], ['Carlton', -37.800, 144.967, 'inner'],
+        ['Carlton North', -37.784, 144.971, 'inner'], ['Parkville', -37.785, 144.952, 'inner'],
+        ['North Melbourne', -37.799, 144.942, 'inner'], ['West Melbourne', -37.806, 144.938, 'inner'],
+        ['Kensington', -37.794, 144.928, 'inner'], ['Flemington', -37.787, 144.926, 'inner'],
+        ['East Melbourne', -37.816, 144.983, 'inner'], ['Fitzroy', -37.798, 144.978, 'inner'],
+        ['Fitzroy North', -37.784, 144.979, 'inner'], ['Collingwood', -37.802, 144.988, 'inner'],
+        ['Clifton Hill', -37.789, 144.996, 'inner'], ['Abbotsford', -37.803, 145.000, 'inner'],
+        ['Richmond', -37.818, 145.000, 'inner'], ['Cremorne', -37.831, 144.993, 'inner'],
+        ['Burnley', -37.828, 145.007, 'inner'], ['South Yarra', -37.839, 144.993, 'inner'],
+        ['Prahran', -37.851, 144.993, 'inner'], ['Windsor', -37.856, 144.992, 'inner'],
+        ['South Melbourne', -37.833, 144.960, 'inner'], ['Albert Park', -37.841, 144.954, 'inner'],
+        ['Middle Park', -37.850, 144.958, 'inner'], ['Port Melbourne', -37.840, 144.938, 'inner'],
+        ['St Kilda', -37.868, 144.981, 'inner'], ['St Kilda East', -37.868, 145.000, 'inner'],
+        ['St Kilda West', -37.861, 144.972, 'inner'], ['Elwood', -37.881, 144.984, 'inner'],
+        ['Balaclava', -37.870, 144.992, 'inner'],
+
+        // ---- north ----
+        ['Brunswick', -37.767, 144.960, 'north'], ['Brunswick East', -37.769, 144.976, 'north'],
+        ['Brunswick West', -37.764, 144.942, 'north'], ['Coburg', -37.744, 144.964, 'north'],
+        ['Coburg North', -37.729, 144.966, 'north'], ['Pascoe Vale', -37.729, 144.936, 'north'],
+        ['Pascoe Vale South', -37.742, 144.938, 'north'], ['Oak Park', -37.717, 144.925, 'north'],
+        ['Glenroy', -37.704, 144.914, 'north'], ['Hadfield', -37.708, 144.936, 'north'],
+        ['Fawkner', -37.713, 144.962, 'north'], ['Northcote', -37.769, 145.000, 'north'],
+        ['Thornbury', -37.757, 145.003, 'north'], ['Preston', -37.741, 145.014, 'north'],
+        ['Reservoir', -37.717, 145.010, 'north'], ['Fairfield', -37.777, 145.017, 'north'],
+        ['Alphington', -37.779, 145.030, 'north'], ['Ivanhoe', -37.767, 145.043, 'north'],
+        ['Heidelberg', -37.755, 145.070, 'north'], ['Rosanna', -37.744, 145.066, 'north'],
+        ['Macleod', -37.727, 145.070, 'north'], ['Bundoora', -37.700, 145.060, 'north'],
+        ['Watsonia', -37.711, 145.084, 'north'], ['Greensborough', -37.703, 145.103, 'north'],
+        ['Briar Hill', -37.712, 145.117, 'north'], ['Montmorency', -37.717, 145.121, 'north'],
+        ['Eltham', -37.714, 145.147, 'north'], ['Eltham North', -37.694, 145.145, 'north'],
+        ['Research', -37.703, 145.181, 'north'], ['Diamond Creek', -37.674, 145.157, 'north'],
+        ['Plenty', -37.653, 145.122, 'north'], ['Yarrambat', -37.629, 145.129, 'north'],
+        ['Upper Plenty', -37.516, 145.033, 'north'], ['Doreen', -37.605, 145.147, 'north'],
+        ['Mernda', -37.601, 145.100, 'north'], ['South Morang', -37.650, 145.086, 'north'],
+        ['Epping', -37.652, 145.026, 'north'], ['Lalor', -37.665, 145.020, 'north'],
+        ['Thomastown', -37.682, 145.010, 'north'], ['Mill Park', -37.667, 145.066, 'north'],
+        ['Craigieburn', -37.599, 144.939, 'north'], ['Roxburgh Park', -37.626, 144.930, 'north'],
+        ['Greenvale', -37.643, 144.884, 'north'], ['Meadow Heights', -37.653, 144.918, 'north'],
+        ['Broadmeadows', -37.681, 144.919, 'north'], ['Westmeadows', -37.673, 144.884, 'north'],
+        ['Gladstone Park', -37.688, 144.888, 'north'], ['Tullamarine', -37.705, 144.878, 'north'],
+        ['Airport West', -37.717, 144.885, 'north'], ['Niddrie', -37.744, 144.890, 'north'],
+        ['Essendon', -37.752, 144.918, 'north'], ['Essendon North', -37.738, 144.906, 'north'],
+        ['Moonee Ponds', -37.765, 144.921, 'north'], ['Ascot Vale', -37.777, 144.920, 'north'],
+        ['Aberfeldie', -37.756, 144.900, 'north'], ['Strathmore', -37.738, 144.921, 'north'],
+        ['Keilor East', -37.734, 144.867, 'north'], ['Keilor', -37.718, 144.833, 'north'],
+        ['Wallan', -37.416, 144.982, 'north'], ['Whittlesea', -37.512, 145.119, 'north'],
+        ['Kilmore', -37.294, 144.951, 'north'], ['Beveridge', -37.478, 144.987, 'north'],
+        ['Sunbury', -37.578, 144.727, 'north'], ['Diggers Rest', -37.622, 144.717, 'north'],
+        ['Gisborne', -37.489, 144.592, 'north'], ['Macedon', -37.421, 144.563, 'north'],
+        ['Mount Macedon', -37.398, 144.586, 'north'], ['Woodend', -37.357, 144.527, 'north'],
+        ['Riddells Creek', -37.462, 144.674, 'north'], ['Romsey', -37.351, 144.745, 'north'],
+        ['Kyneton', -37.245, 144.452, 'north'], ['Lancefield', -37.277, 144.742, 'north'],
+
+        // ---- west ----
+        ['Footscray', -37.800, 144.900, 'west'], ['West Footscray', -37.796, 144.877, 'west'],
+        ['Seddon', -37.806, 144.891, 'west'], ['Yarraville', -37.815, 144.891, 'west'],
+        ['Kingsville', -37.808, 144.879, 'west'], ['South Kingsville', -37.822, 144.873, 'west'],
+        ['Newport', -37.842, 144.883, 'west'], ['Spotswood', -37.828, 144.884, 'west'],
+        ['Williamstown', -37.858, 144.895, 'west'], ['Williamstown North', -37.850, 144.887, 'west'],
+        ['Altona', -37.869, 144.830, 'west'], ['Altona North', -37.829, 144.847, 'west'],
+        ['Altona Meadows', -37.881, 144.782, 'west'], ['Laverton', -37.865, 144.771, 'west'],
+        ['Point Cook', -37.906, 144.751, 'west'], ['Werribee', -37.900, 144.661, 'west'],
+        ['Wyndham Vale', -37.887, 144.615, 'west'], ['Hoppers Crossing', -37.881, 144.700, 'west'],
+        ['Tarneit', -37.833, 144.664, 'west'], ['Truganina', -37.821, 144.740, 'west'],
+        ['Williams Landing', -37.866, 144.742, 'west'], ['Sunshine', -37.788, 144.833, 'west'],
+        ['Sunshine West', -37.800, 144.813, 'west'], ['Sunshine North', -37.770, 144.832, 'west'],
+        ['Braybrook', -37.788, 144.859, 'west'], ['Maidstone', -37.783, 144.874, 'west'],
+        ['Maribyrnong', -37.774, 144.888, 'west'], ['Avondale Heights', -37.760, 144.861, 'west'],
+        ['St Albans', -37.745, 144.800, 'west'], ['Deer Park', -37.777, 144.775, 'west'],
+        ['Derrimut', -37.795, 144.767, 'west'], ['Caroline Springs', -37.744, 144.744, 'west'],
+        ['Burnside', -37.760, 144.752, 'west'], ['Taylors Lakes', -37.700, 144.777, 'west'],
+        ['Keilor Downs', -37.727, 144.788, 'west'], ['Sydenham', -37.694, 144.765, 'west'],
+        ['Hillside', -37.690, 144.740, 'west'], ['Melton', -37.683, 144.585, 'west'],
+        ['Melton West', -37.678, 144.565, 'west'], ['Melton South', -37.704, 144.578, 'west'],
+        ['Kurunjang', -37.665, 144.578, 'west'], ['Brookfield', -37.710, 144.558, 'west'],
+        ['Darley', -37.653, 144.436, 'west'], ['Bacchus Marsh', -37.677, 144.438, 'west'],
+        ['Rockbank', -37.732, 144.654, 'west'], ['Aintree', -37.723, 144.630, 'west'],
+
+        // ---- east ----
+        ['Hawthorn', -37.822, 145.035, 'east'], ['Hawthorn East', -37.822, 145.049, 'east'],
+        ['Kew', -37.806, 145.032, 'east'], ['Kew East', -37.797, 145.052, 'east'],
+        ['Balwyn', -37.809, 145.081, 'east'], ['Balwyn North', -37.792, 145.082, 'east'],
+        ['Canterbury', -37.822, 145.077, 'east'], ['Camberwell', -37.842, 145.068, 'east'],
+        ['Surrey Hills', -37.824, 145.097, 'east'], ['Mont Albert', -37.816, 145.106, 'east'],
+        ['Mont Albert North', -37.805, 145.106, 'east'], ['Box Hill', -37.819, 145.122, 'east'],
+        ['Box Hill South', -37.836, 145.117, 'east'], ['Box Hill North', -37.805, 145.127, 'east'],
+        ['Blackburn', -37.819, 145.150, 'east'], ['Blackburn South', -37.838, 145.150, 'east'],
+        ['Nunawading', -37.819, 145.177, 'east'], ['Mitcham', -37.817, 145.194, 'east'],
+        ['Vermont', -37.838, 145.197, 'east'], ['Vermont South', -37.854, 145.187, 'east'],
+        ['Ringwood', -37.814, 145.229, 'east'], ['Ringwood East', -37.816, 145.252, 'east'],
+        ['Croydon', -37.796, 145.281, 'east'], ['Croydon Hills', -37.777, 145.272, 'east'],
+        ['Croydon North', -37.778, 145.288, 'east'], ['Kilsyth', -37.804, 145.315, 'east'],
+        ['Montrose', -37.815, 145.349, 'east'], ['Mooroolbark', -37.784, 145.319, 'east'],
+        ['Lilydale', -37.755, 145.349, 'east'], ['Chirnside Park', -37.762, 145.313, 'east'],
+        ['Coldstream', -37.729, 145.375, 'east'], ['Yarra Glen', -37.658, 145.377, 'east'],
+        ['Healesville', -37.653, 145.516, 'east'], ['Bayswater', -37.841, 145.267, 'east'],
+        ['Bayswater North', -37.828, 145.283, 'east'], ['Boronia', -37.860, 145.285, 'east'],
+        ['Ferntree Gully', -37.881, 145.295, 'east'], ['Upper Ferntree Gully', -37.890, 145.312, 'east'],
+        ['Rowville', -37.928, 145.240, 'east'], ['Lysterfield', -37.930, 145.290, 'east'],
+        ['Scoresby', -37.900, 145.234, 'east'], ['Knoxfield', -37.888, 145.245, 'east'],
+        ['Wantirna', -37.860, 145.230, 'east'], ['Wantirna South', -37.878, 145.225, 'east'],
+        ['Doncaster', -37.788, 145.125, 'east'], ['Doncaster East', -37.784, 145.157, 'east'],
+        ['Templestowe', -37.758, 145.130, 'east'], ['Templestowe Lower', -37.766, 145.117, 'east'],
+        ['Bulleen', -37.769, 145.089, 'east'], ['Warrandyte', -37.744, 145.212, 'east'],
+        ['Park Orchards', -37.775, 145.215, 'east'], ['Donvale', -37.789, 145.185, 'east'],
+        ['Glen Waverley', -37.878, 145.164, 'east'], ['Mount Waverley', -37.874, 145.128, 'east'],
+        ['Wheelers Hill', -37.899, 145.185, 'east'], ['Mulgrave', -37.925, 145.170, 'east'],
+        ['Notting Hill', -37.907, 145.132, 'east'], ['Clayton', -37.924, 145.121, 'east'],
+        ['Oakleigh', -37.900, 145.089, 'east'], ['Oakleigh East', -37.901, 145.113, 'east'],
+        ['Oakleigh South', -37.920, 145.085, 'east'], ['Huntingdale', -37.911, 145.103, 'east'],
+        ['Chadstone', -37.885, 145.089, 'east'], ['Ashburton', -37.863, 145.081, 'east'],
+        ['Ashwood', -37.868, 145.104, 'east'], ['Burwood', -37.851, 145.110, 'east'],
+        ['Burwood East', -37.851, 145.148, 'east'], ['Glen Iris', -37.860, 145.058, 'east'],
+        ['Malvern East', -37.872, 145.045, 'east'], ['Murrumbeena', -37.895, 145.071, 'east'],
+        ['Carnegie', -37.888, 145.058, 'east'], ['Hughesdale', -37.894, 145.083, 'east'],
+
+        // ---- south ----
+        ['Toorak', -37.841, 145.014, 'south'], ['Armadale', -37.856, 145.020, 'south'],
+        ['Malvern', -37.858, 145.028, 'south'], ['Caulfield', -37.881, 145.026, 'south'],
+        ['Caulfield North', -37.872, 145.024, 'south'], ['Caulfield South', -37.893, 145.021, 'south'],
+        ['Caulfield East', -37.877, 145.043, 'south'], ['Elsternwick', -37.885, 145.000, 'south'],
+        ['Gardenvale', -37.893, 145.005, 'south'], ['Ripponlea', -37.876, 144.997, 'south'],
+        ['Brighton', -37.908, 144.988, 'south'], ['Brighton East', -37.913, 145.011, 'south'],
+        ['Bentleigh', -37.918, 145.036, 'south'], ['Bentleigh East', -37.917, 145.062, 'south'],
+        ['McKinnon', -37.909, 145.037, 'south'], ['Ormond', -37.902, 145.041, 'south'],
+        ['Glen Huntly', -37.890, 145.043, 'south'], ['Hampton', -37.937, 145.003, 'south'],
+        ['Hampton East', -37.933, 145.027, 'south'], ['Moorabbin', -37.939, 145.039, 'south'],
+        ['Highett', -37.949, 145.040, 'south'], ['Cheltenham', -37.964, 145.055, 'south'],
+        ['Sandringham', -37.951, 145.011, 'south'], ['Black Rock', -37.971, 145.015, 'south'],
+        ['Beaumaris', -37.982, 145.036, 'south'], ['Mentone', -37.983, 145.064, 'south'],
+        ['Parkdale', -37.995, 145.079, 'south'], ['Mordialloc', -38.005, 145.086, 'south'],
+        ['Aspendale', -38.028, 145.100, 'south'], ['Edithvale', -38.040, 145.107, 'south'],
+        ['Chelsea', -38.053, 145.117, 'south'], ['Bonbeach', -38.064, 145.124, 'south'],
+        ['Carrum', -38.077, 145.124, 'south'], ['Seaford', -38.106, 145.130, 'south'],
+        ['Frankston', -38.143, 145.123, 'south'], ['Frankston North', -38.122, 145.152, 'south'],
+        ['Frankston South', -38.172, 145.135, 'south'], ['Carrum Downs', -38.098, 145.174, 'south'],
+        ['Dandenong', -37.988, 145.215, 'south'], ['Dandenong North', -37.960, 145.207, 'south'],
+        ['Noble Park', -37.966, 145.174, 'south'], ['Springvale', -37.949, 145.153, 'south'],
+        ['Keysborough', -37.996, 145.170, 'south'], ['Braeside', -38.011, 145.115, 'south'],
+        ['Clarinda', -37.940, 145.104, 'south'], ['Clayton South', -37.933, 145.128, 'south'],
+        ['Heatherton', -37.955, 145.088, 'south'], ['Berwick', -38.031, 145.345, 'south'],
+        ['Narre Warren', -38.026, 145.304, 'south'], ['Cranbourne', -38.099, 145.283, 'south'],
+        ['Clyde North', -38.113, 145.339, 'south'], ['Pakenham', -38.071, 145.482, 'south'],
+        ['Officer', -38.062, 145.412, 'south'], ['Hallam', -38.011, 145.276, 'south'],
+        ['Endeavour Hills', -37.977, 145.256, 'south'],
+
+        // ---- Mornington Peninsula ----
+        ['Mount Eliza', -38.187, 145.093, 'peninsula'], ['Mornington', -38.223, 145.038, 'peninsula'],
+        ['Mount Martha', -38.276, 145.019, 'peninsula'], ['Safety Beach', -38.317, 144.991, 'peninsula'],
+        ['Dromana', -38.334, 144.965, 'peninsula'], ['Rosebud', -38.358, 144.906, 'peninsula'],
+        ['Capel Sound', -38.362, 144.880, 'peninsula'], ['Tootgarook', -38.369, 144.858, 'peninsula'],
+        ['Rye', -38.377, 144.824, 'peninsula'], ['Blairgowrie', -38.364, 144.777, 'peninsula'],
+        ['Sorrento', -38.339, 144.744, 'peninsula'], ['Portsea', -38.320, 144.708, 'peninsula'],
+        ['Hastings', -38.303, 145.190, 'peninsula'], ['Somerville', -38.222, 145.180, 'peninsula'],
+        ['Tyabb', -38.257, 145.178, 'peninsula'], ['Bittern', -38.338, 145.176, 'peninsula'],
+        ['Crib Point', -38.360, 145.202, 'peninsula'], ['Somers', -38.394, 145.171, 'peninsula'],
+        ['Balnarring', -38.371, 145.126, 'peninsula'], ['Red Hill', -38.386, 145.024, 'peninsula'],
+        ['Flinders', -38.473, 145.024, 'peninsula'], ['Baxter', -38.192, 145.133, 'peninsula'],
+        ['Langwarrin', -38.163, 145.174, 'peninsula'], ['Pearcedale', -38.203, 145.230, 'peninsula'],
+
+        // ---- Geelong & the coast ----
+        ['Geelong', -38.149, 144.361, 'geelong'], ['South Geelong', -38.160, 144.360, 'geelong'],
+        ['North Geelong', -38.116, 144.353, 'geelong'], ['Geelong West', -38.140, 144.346, 'geelong'],
+        ['Newtown', -38.155, 144.341, 'geelong'], ['Highton', -38.180, 144.325, 'geelong'],
+        ['Belmont', -38.181, 144.344, 'geelong'], ['Grovedale', -38.204, 144.335, 'geelong'],
+        ['Waurn Ponds', -38.214, 144.302, 'geelong'], ['Armstrong Creek', -38.230, 144.334, 'geelong'],
+        ['Corio', -38.077, 144.377, 'geelong'], ['Norlane', -38.088, 144.363, 'geelong'],
+        ['Lara', -38.022, 144.407, 'geelong'], ['Herne Hill', -38.135, 144.336, 'geelong'],
+        ['Bell Post Hill', -38.106, 144.326, 'geelong'], ['Leopold', -38.190, 144.462, 'geelong'],
+        ['Drysdale', -38.174, 144.566, 'geelong'], ['Clifton Springs', -38.150, 144.562, 'geelong'],
+        ['Portarlington', -38.111, 144.652, 'geelong'], ['Queenscliff', -38.267, 144.662, 'geelong'],
+        ['Ocean Grove', -38.266, 144.522, 'geelong'], ['Barwon Heads', -38.276, 144.489, 'geelong'],
+        ['Torquay', -38.332, 144.320, 'geelong'], ['Jan Juc', -38.345, 144.305, 'geelong'],
+        ['Anglesea', -38.408, 144.187, 'geelong'], ['Lorne', -38.540, 143.975, 'geelong'],
+
+        // ---- Ballarat & the spa country ----
+        ['Ballarat', -37.562, 143.860, 'ballarat'], ['Ballarat East', -37.560, 143.879, 'ballarat'],
+        ['Ballarat North', -37.541, 143.850, 'ballarat'], ['Ballarat Central', -37.562, 143.856, 'ballarat'],
+        ['Wendouree', -37.538, 143.826, 'ballarat'], ['Sebastopol', -37.596, 143.841, 'ballarat'],
+        ['Delacombe', -37.586, 143.818, 'ballarat'], ['Alfredton', -37.559, 143.810, 'ballarat'],
+        ['Mount Clear', -37.614, 143.879, 'ballarat'], ['Buninyong', -37.650, 143.888, 'ballarat'],
+        ['Creswick', -37.425, 143.895, 'ballarat'], ['Clunes', -37.293, 143.786, 'ballarat'],
+        ['Daylesford', -37.343, 144.143, 'ballarat'], ['Trentham', -37.389, 144.326, 'ballarat'],
+        ['Ballan', -37.600, 144.231, 'ballarat'], ['Gordon', -37.588, 144.107, 'ballarat'],
+
+        // ---- the odd one that turns up out past the metro ----
+        ['Kealba', -37.729, 144.816, 'west'], ['Deepdene', -37.808, 145.066, 'east'],
+        ['Mambourin', -37.897, 144.588, 'west'], ['Eden Park', -37.514, 145.007, 'north'],
+        ['Horsham', -36.713, 142.199, 'regional'], ['Natimuk', -36.740, 141.943, 'regional'],
+        ['Rupanyup', -36.620, 142.632, 'regional'], ['Streatham', -37.679, 143.045, 'regional'],
+        ['Lakes Entrance', -37.881, 147.981, 'regional'], ['Bendigo', -36.758, 144.283, 'regional'],
+        ['Castlemaine', -37.064, 144.217, 'regional'], ['Seymour', -37.026, 145.139, 'regional'],
+        ['Shepparton', -36.383, 145.398, 'regional'], ['Warragul', -38.166, 145.931, 'regional'],
+        ['Wonthaggi', -38.606, 145.592, 'regional'], ['Phillip Island', -38.487, 145.234, 'regional'],
+        ['Cowes', -38.452, 145.238, 'regional'], ['Inverloch', -38.629, 145.727, 'regional'],
+      ],
+
+      /* The spellings that actually turn up in the address box. Typed by
+         hand into a free-text field for years, so "Wwrribee" and
+         "Caulfied South" are not edge cases, they are Tuesday. */
+      ALIASES: {
+        'wwrribee': 'werribee', 'werribbee': 'werribee',
+        'caulfied south': 'caulfield south', 'caulfied': 'caulfield',
+        'armadele': 'armadale', 'greensborougjh': 'greensborough',
+        'sebastpol': 'sebastopol', 'melboune': 'melbourne',
+        'kuranjang': 'kurunjang', 'taylors lake': 'taylors lakes',
+        'nth dandenong': 'dandenong north', 'north dandenong': 'dandenong north',
+        'mt eliza': 'mount eliza', 'mt waverley': 'mount waverley',
+        'mt martha': 'mount martha', 'mt macedon': 'mount macedon',
+        'mt clear': 'mount clear', 'east malvern': 'malvern east',
+        'roxbugh park': 'roxburgh park', 'sth melbourne': 'south melbourne',
+        'nth melbourne': 'north melbourne', 'n altona': 'altona north',
+        'altona nth': 'altona north', 'sth yarra': 'south yarra',
+        'st kilda rd': 'melbourne', 'sth kingsville': 'south kingsville',
+        'pt cook': 'point cook', 'bacchus march': 'bacchus marsh',
+      },
+
+      // Postcode ranges, used only when the suburb name can't be placed.
+      // Region only — no coordinates, so these days rank on pattern alone.
+      PC_RANGES: [
+        [3000, 3006, 'inner'], [3008, 3008, 'inner'], [3031, 3032, 'inner'],
+        [3051, 3054, 'inner'], [3065, 3068, 'inner'], [3121, 3121, 'inner'],
+        [3141, 3141, 'inner'], [3182, 3184, 'inner'], [3205, 3207, 'inner'],
+        [3011, 3030, 'west'], [3033, 3038, 'west'], [3335, 3341, 'west'],
+        [3039, 3050, 'north'], [3055, 3064, 'north'], [3069, 3120, 'north'],
+        [3427, 3444, 'north'],
+        [3122, 3140, 'east'], [3147, 3160, 'east'], [3166, 3180, 'east'],
+        [3142, 3146, 'south'], [3161, 3165, 'south'], [3181, 3181, 'south'],
+        [3185, 3204, 'south'], [3208, 3212, 'south'], [3800, 3810, 'south'],
+        [3910, 3944, 'peninsula'],
+        [3213, 3235, 'geelong'],
+        [3350, 3364, 'ballarat'], [3460, 3461, 'ballarat'],
+      ],
+
+      _index: null,
+
+      /* Longest names first, so "Balwyn North" is tried before "Balwyn"
+         and "Port Melbourne" before "Melbourne". */
+      index() {
+        if (!geo._index) {
+          geo._index = geo.SUBURBS
+            .map(([name, lat, lon, region]) => ({ name, lat, lon, region, key: name.toLowerCase() }))
+            .sort((a, b) => b.key.length - a.key.length);
+        }
+        return geo._index;
+      },
+
+      tidy(s) {
+        let t = ` ${String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').replace(/\s+/g, ' ').trim()} `;
+        for (const [wrong, right] of Object.entries(geo.ALIASES)) {
+          t = t.split(` ${wrong} `).join(` ${right} `);
+        }
+        return t;
+      },
+
+      /* Find the suburb in a free-text address. Addresses here are one
+         typed line — "12 Belford Road Kew East" — so the suburb is
+         whatever known name sits furthest along the string. Taking the
+         LAST match rather than the first is what stops "90 Old
+         Mornington Road, Mount Eliza" being filed as Mornington. */
+      place(...parts) {
+        const hay = geo.tidy(parts.filter(Boolean).join(' '));
+        let best = null;
+        for (const s of geo.index()) {
+          const at = hay.lastIndexOf(` ${s.key} `);
+          if (at < 0) continue;
+          // Rank on where the name ENDS. "272 Albert Rd South Melbourne"
+          // contains both "South Melbourne" and "Melbourne" and they finish
+          // in the same place, so the longer name takes it.
+          const ends = at + s.key.length;
+          if (!best || ends > best.ends || (ends === best.ends && s.key.length > best.suburb.key.length)) {
+            best = { ends, suburb: s };
+          }
+        }
+        if (best) {
+          const s = best.suburb;
+          return { suburb: s.name, lat: s.lat, lon: s.lon, region: s.region, far: geo.REGIONS[s.region].far };
+        }
+        // Nothing matched — fall back to the postcode for the region.
+        const pc = Number((String(parts.filter(Boolean).join(' ')).match(/\b(3\d{3})\b/) || [])[1]);
+        if (pc) {
+          for (const [lo, hi, region] of geo.PC_RANGES) {
+            if (pc >= lo && pc <= hi) {
+              return { suburb: null, lat: null, lon: null, region, far: geo.REGIONS[region].far };
+            }
+          }
+        }
+        return { suburb: null, lat: null, lon: null, region: null, far: false };
+      },
+
+      // Straight-line kilometres. Melbourne is small enough that the
+      // flat-earth shortcut is worth the readability.
+      km(a, b) {
+        if (!a || !b || a.lat == null || b.lat == null) return null;
+        const dLat = (b.lat - a.lat) * 111;
+        const dLon = (b.lon - a.lon) * 111 * Math.cos(((a.lat + b.lat) / 2) * Math.PI / 180);
+        return Math.sqrt(dLat * dLat + dLon * dLon);
+      },
+
+      /* Rough drive time. Straight-line is about 1.35 of road distance
+         around here, and the average speed climbs as the trip gets
+         longer and more of it is freeway. Deliberately approximate —
+         it is there to say "twenty minutes away", not to navigate. */
+      driveMins(straightKm) {
+        if (straightKm == null) return null;
+        const road = straightKm * 1.35;
+        const speed = road < 8 ? 30 : road < 20 ? 40 : road < 50 ? 55 : 80;
+        return Math.max(5, Math.round((road / speed) * 60 / 5) * 5);
+      },
+    };
+
+    const scheduler = {
+      // John's day, as the calendar actually shows it being worked.
+      DAY_START: 8 * 60,       // 08:00
+      DAY_END: 15.5 * 60,      // 15:30
+      TZ: 'Australia/Melbourne',
+      LOOKAHEAD_DAYS: 14,
+
+      /* An hour is the house default. Size moves it, because a twelve
+         piece house is not the same visit as one sheer in a flat — at
+         the moment both get booked as an hour, which is part of why
+         the big ones run late. */
+      minutesFor(itemCount) {
+        const n = Number(itemCount) || 0;
+        if (n <= 2) return 45;
+        if (n <= 6) return 60;
+        if (n <= 12) return 75;
+        return 90;
+      },
+
+      // Anything that takes John off the road for the day.
+      BLOCK_WORDS: /not working|annual leave|\bleave\b|holiday|public hol|rdo|sick|day off|\bn\/a\b/i,
+
+      melbParts(d) {
+        const out = {};
+        for (const p of new Intl.DateTimeFormat('en-CA', {
+          timeZone: scheduler.TZ, year: 'numeric', month: '2-digit', day: '2-digit',
+          hour: '2-digit', minute: '2-digit', hour12: false, weekday: 'short',
+        }).formatToParts(d)) if (p.type !== 'literal') out[p.type] = p.value;
+        if (out.hour === '24') out.hour = '00';
+        return out;
+      },
+
+      localDate(d) {
+        const p = scheduler.melbParts(d);
+        return `${p.year}-${p.month}-${p.day}`;
+      },
+
+      // Minutes past midnight, Melbourne time.
+      localMins(iso) {
+        const p = scheduler.melbParts(new Date(iso));
+        return Number(p.hour) * 60 + Number(p.minute);
+      },
+
+      hhmm(mins) {
+        const h = Math.floor(mins / 60), m = mins % 60;
+        return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+      },
+
+      dayLabel(iso) {
+        return new Date(`${iso}T12:00:00Z`).toLocaleDateString('en-AU',
+          { weekday: 'long', day: 'numeric', month: 'short' });
+      },
+
+      dowOf(iso) { return new Date(`${iso}T12:00:00Z`).getUTCDay(); },
+
+      /* ---------- the day, assembled ----------------------------------
+         Stops come out of schedule_stops, which is the Fergus calendar
+         and nothing else. A stop with no assigned user still counts as
+         work — plenty of bookings are made without anyone on them. */
+      buildDays(stops, opts) {
+        const { fromDate, days, driverId } = opts;
+        const byDate = new Map();
+
+        for (const s of stops) {
+          if (!s.stop_date) continue;
+          const mine = !driverId
+            || !(s.assigned_user_ids || []).length
+            || (s.assigned_user_ids || []).map(Number).includes(Number(driverId));
+          if (!mine) continue;
+          if (!byDate.has(s.stop_date)) byDate.set(s.stop_date, []);
+          byDate.get(s.stop_date).push(s);
+        }
+
+        const out = [];
+        for (let i = 0; i < days; i++) {
+          const d = new Date(`${fromDate}T12:00:00Z`);
+          d.setUTCDate(d.getUTCDate() + i);
+          const iso = d.toISOString().slice(0, 10);
+          const dow = scheduler.dowOf(iso);
+          const list = (byDate.get(iso) || []).slice()
+            .sort((a, b) => String(a.starts_at || '').localeCompare(String(b.starts_at || '')));
+
+          // Busy intervals inside the working window.
+          const busy = [];
+          let blocked = false;
+          for (const s of list) {
+            if (!s.starts_at || !s.ends_at) continue;
+            const from = scheduler.localMins(s.starts_at);
+            const to = scheduler.localMins(s.ends_at);
+            const span = to - from;
+            if (scheduler.BLOCK_WORDS.test(s.title || '') && span >= 240) blocked = true;
+            if (s.stop_type === 'other' && span >= 300) blocked = true;
+            busy.push([from, to]);
+          }
+          busy.sort((a, b) => a[0] - b[0]);
+
+          const merged = [];
+          for (const b of busy) {
+            const last = merged[merged.length - 1];
+            if (last && b[0] <= last[1]) last[1] = Math.max(last[1], b[1]);
+            else merged.push([b[0], b[1]]);
+          }
+
+          /* Gaps, each carrying the stop on either side of it. Those two
+             stops are what decide whether the gap is really usable: an
+             hour free between Croydon and Richmond is not an hour, it is
+             twenty minutes and a drive. The calendar already has pairs
+             like that booked back to back, which is the mistake this is
+             meant to stop the office repeating. */
+          const jobStops = list.filter((x) => x.starts_at && x.ends_at && scheduler.spot(x));
+          const endsBy = (m) => jobStops.filter((x) => scheduler.localMins(x.ends_at) <= m).pop() || null;
+          const startsAfter = (m) => jobStops.find((x) => scheduler.localMins(x.starts_at) >= m) || null;
+
+          const gaps = [];
+          let cur = scheduler.DAY_START;
+          for (const [from, to] of merged) {
+            if (from > cur) gaps.push({ from: cur, to: Math.min(from, scheduler.DAY_END) });
+            cur = Math.max(cur, to);
+          }
+          if (cur < scheduler.DAY_END) gaps.push({ from: cur, to: scheduler.DAY_END });
+          for (const g of gaps) {
+            g.before = endsBy(g.from);
+            g.after = startsAfter(g.to);
+          }
+
+          const bookedMins = merged.reduce((t, [from, to]) =>
+            t + Math.max(0, Math.min(to, scheduler.DAY_END) - Math.max(from, scheduler.DAY_START)), 0);
+
+          out.push({
+            date: iso, dow, stops: list, gaps: gaps.filter((g) => g.to - g.from >= 30),
+            bookedMins, blocked,
+            weekend: dow === 0 || dow === 6,
+            pattern: geo.DAY_PATTERN[dow] || [],
+          });
+        }
+        return out;
+      },
+
+      /* ---------- scoring ---------------------------------------------
+         Weighted so that a real stop near the address beats the weekly
+         pattern, because that is how the office actually decides. The
+         pattern only wins outright on the far work, where getting it
+         wrong costs the whole day. */
+      scoreDay(day, site, needMins) {
+        if (day.blocked) return null;
+        if (day.weekend && !day.stops.length) return null;
+
+        // Shrink every gap by the drive in and the drive out before asking
+        // whether the job fits in it.
+        const usable = [];
+        for (const g of day.gaps) {
+          const inMins = scheduler.hop(site, g.before);
+          const outMins = scheduler.hop(site, g.after);
+          const from = g.from + inMins;
+          const to = g.to - outMins;
+          if (to - from >= needMins) usable.push({ from, to, gap: g, inMins, outMins });
+        }
+        if (!usable.length) return null;
+
+        const why = [];
+        let score = 0;
+
+        // 1. Is the van already out that way?
+        let nearest = null;
+        for (const s of day.stops) {
+          const at = scheduler.spot(s);
+          const d = geo.km(site, at);
+          if (d == null) continue;
+          if (!nearest || d < nearest.km) nearest = { km: d, at, stop: s };
+        }
+
+        if (nearest) {
+          const mins = geo.driveMins(nearest.km);
+          const where = nearest.at.suburb || 'another job';
+          if (nearest.km <= 6) { score += 50; why.push(`{who} is already in ${where} that day — about ${mins} minutes away`); }
+          else if (nearest.km <= 12) { score += 42; why.push(`{who} is in ${where} that day, roughly ${mins} minutes away`); }
+          else if (nearest.km <= 20) { score += 32; why.push(`${where} is on that day's run, about ${mins} minutes away`); }
+          else if (nearest.km <= 35) { score += 16; why.push(`nearest stop that day is ${where}, about ${mins} minutes away`); }
+          else if (nearest.km <= 60) { score += 4; why.push(`nothing close — nearest is ${where}`); }
+          else { score -= 8; why.push(`nothing near it that day`); }
+        }
+
+        // 2. The weekly pattern.
+        const fits = site.region && day.pattern.includes(site.region);
+        const regionLabel = site.region ? geo.REGIONS[site.region].label : null;
+        if (site.far) {
+          if (day.dow === 3) { score += 30; why.push(`Wednesday is the ${regionLabel.replace(/^the /, '')} day`); }
+          else { score -= 30; why.push(`${regionLabel[0].toUpperCase()}${regionLabel.slice(1)} is normally a Wednesday`); }
+        } else if (fits) {
+          score += 22;
+          if (!nearest) why.push(`${scheduler.dayLabel(day.date).split(' ')[0]}s usually take in ${regionLabel}`);
+          else if (nearest.km > 12) why.push(`${regionLabel} is the usual ${scheduler.dayLabel(day.date).split(' ')[0]} run`);
+        } else if (day.pattern.length && site.region) {
+          score -= 10;
+        } else if (!day.pattern.length) {
+          score += 4; // Monday is open
+        }
+
+        // 3. How full the day already is.
+        const hrs = day.bookedMins / 60;
+        if (!day.stops.length) { score += 6; why.push('nothing booked yet'); }
+        else if (hrs < 3) { score += 14; why.push(`only ${hrs.toFixed(1).replace(/\.0$/, '')} hours booked`); }
+        else if (hrs < 5) score += 8;
+        else if (hrs < 6.5) score += 2;
+        else { score -= 12; why.push('a full day already'); }
+
+        /* 4. Far work only pairs with far work going the same way. An
+              08:15 Ballarat slot in front of a Peninsula run reads fine
+              on a calendar and cannot be driven. */
+        if (site.far) {
+          let farthest = null;
+          for (const st of day.stops) {
+            const d = geo.km(site, scheduler.spot(st));
+            if (d != null && (farthest == null || d > farthest)) farthest = d;
+          }
+          if (farthest != null && farthest > 70) {
+            score -= 35;
+            why.push('that day is already committed the other way');
+          }
+        }
+
+        // 5. Sooner is better, gently.
+        const out = Math.round((new Date(`${day.date}T12:00:00Z`) - new Date(`${scheduler.today()}T12:00:00Z`)) / 86400000);
+        score -= out * 0.8;
+
+        // The window: sit it against the neighbouring stop where we can,
+        // so the office is offering a time that keeps the run tight.
+        const slot = scheduler.pickWindow(usable, nearest, needMins);
+
+        /* 6. What the detour actually costs. Half an hour of driving
+              around a job is the cost of doing business; two hours of it
+              for a one hour take-down is a day's margin gone, and that
+              has to outweigh a tidy-looking gap on the right weekday. */
+        const travel = slot.window.inMins + slot.window.outMins;
+        if (travel > 30) {
+          score -= (travel - 30) * 0.25;
+          if (travel >= 75) why.push(`but it is about ${travel} minutes of driving either side`);
+        }
+
+        return { day, score, why, slot, nearest, usable };
+      },
+
+      /* How long it takes to get between the job and the stop next to it
+         in the calendar. No neighbour (first or last of the day, or an
+         address we can't place) gets a flat ten minutes so the window
+         never starts on the dot of the stop before it. */
+      /* Where a stop is, or null if it can't be placed. This is the test
+         used everywhere rather than stop_type, because the type is guessed
+         off the event title and the titles are typed by hand: "Re Hang -
+         3 windows" reads as 'other' and is a real stop at a real address.
+         Leave and admin events have no address, so they fall out here
+         without needing to be classified correctly first. */
+      spot(stop) {
+        if (!stop) return null;
+        const p = geo.place(stop.address_line, stop.suburb, stop.postcode);
+        return p.lat == null ? null : p;
+      },
+
+      hop(site, stop) {
+        if (!stop) return 0;
+        const d = geo.km(site, scheduler.spot(stop));
+        return d == null ? 15 : geo.driveMins(d);
+      },
+
+      /* Take the window that sits against the nearest stop — that is the
+         one that keeps the driving down — otherwise the roomiest one. */
+      pickWindow(usable, nearest, needMins) {
+        let chosen = null;
+        if (nearest) {
+          chosen = usable.find((u) => u.gap.before === nearest.stop || u.gap.after === nearest.stop) || null;
+        }
+        if (!chosen) chosen = usable.slice().sort((x, y) => (y.to - y.from) - (x.to - x.from))[0];
+
+        // Sit it hard against whichever neighbour is the near one, and
+        // book on the quarter hour like Fergus does.
+        const againstAfter = chosen.gap.after && nearest && chosen.gap.after === nearest.stop;
+        let start = againstAfter
+          ? Math.floor((chosen.to - needMins) / 15) * 15
+          : Math.ceil(chosen.from / 15) * 15;
+        if (start < chosen.from) start = Math.ceil(chosen.from / 15) * 15;
+        if (start + needMins > chosen.to) start = Math.floor((chosen.to - needMins) / 15) * 15;
+        return { start, end: start + needMins, window: chosen };
+      },
+
+      today() { return scheduler.localDate(new Date()); },
+
+      // Suggestions start tomorrow. A take-down still has to be agreed
+      // with the customer on the phone, so today is never the answer.
+      tomorrow() {
+        const d = new Date(`${scheduler.today()}T12:00:00Z`);
+        d.setUTCDate(d.getUTCDate() + 1);
+        return d.toISOString().slice(0, 10);
+      },
+
+      /* ---------- the answer ------------------------------------------
+         Returns the best few days with the sentence to read out. */
+      suggest(stops, job, opts = {}) {
+        const site = geo.place(job.site_address, job.suburb, job.postcode);
+        const needMins = scheduler.minutesFor(job.item_count);
+        const from = opts.fromDate || scheduler.tomorrow();
+
+        const days = scheduler.buildDays(stops, {
+          fromDate: from,
+          days: opts.lookaheadDays || scheduler.LOOKAHEAD_DAYS,
+          driverId: opts.driverId || null,
+        });
+
+        const scored = days.map((d) => scheduler.scoreDay(d, site, needMins)).filter(Boolean);
+        scored.sort((a, b) => b.score - a.score);
+
+        /* A negative score means nothing about the day suits — usually
+           far work with no Wednesday free. Those are still shown when
+           there is nothing better, but marked as a stretch rather than
+           dressed up as a recommendation. */
+        const limit = opts.limit || 4;
+        const good = scored.filter((x) => x.score > 0);
+        const shown = (good.length >= 2 ? good : scored).slice(0, limit);
+        for (const x of shown) x.stretch = x.score <= 0;
+
+        return {
+          site,
+          needMins,
+          placed: !!site.suburb || !!site.region,
+          suggestions: shown,
+          considered: days.length,
+          blockedDays: days.filter((d) => d.blocked).map((d) => d.date),
+        };
+      },
+    };
+
+
+    /* ============================================================
+       BOOKING THE TAKE-DOWN
+       The panel Nicole reads when a job has just been accepted.
+       Nothing here writes to Fergus — it reads the fortnight, ranks
+       the days, and says where the van already is in plain words.
+       ============================================================ */
+    const takedownPlan = {
+      job: null,
+      stops: [],
+      error: null,
+      showAll: false,
+      syncedAt: null,
+      driver: null,      // { id, name } — whose calendar we rank against
+
+      async init(job, main) {
+        takedownPlan.job = job;
+        takedownPlan.error = null;
+        const mount = $('#td-mount');
+        if (!mount) return;
+
+        mount.innerHTML = `<div class="td-wait">Reading the Fergus calendar…</div>`;
+        try {
+          takedownPlan.driver = await takedownPlan.resolveDriver();
+          const rows = await db.listScheduleStops();
+          takedownPlan.stops = rows;
+          takedownPlan.syncedAt = rows.reduce((t, r) =>
+            (!t || (r.synced_at && r.synced_at > t)) ? r.synced_at : t, null);
+        } catch (err) {
+          takedownPlan.error = err.message || 'Could not read the schedule.';
+        }
+        takedownPlan.render();
+      },
+
+      /* Whose calendar the suggestions are ranked against. One van in
+         practice, so this lands on the driver without anybody configuring
+         it; the setting is there for the day there are two. Falling all
+         the way through to null means every stop counts, which overstates
+         how full a day is but never hides work. */
+      async resolveDriver() {
+        const set = String(session.settings['schedule-driver-fergus-id'] || '').trim();
+        if (set) return { id: Number(set), name: null };
+        try {
+          const people = await db.listFieldUsers();
+          const drivers = people.filter((p) => p.fergus_user_id);
+          const named = drivers.find((p) => (p.role || '') === 'driver') || null;
+          if (named) return { id: Number(named.fergus_user_id), name: named.name };
+          if (drivers.length === 1) return { id: Number(drivers[0].fergus_user_id), name: drivers[0].name };
+        } catch (_) { /* fall through to everyone */ }
+        return null;
+      },
+
+      driverId() { return takedownPlan.driver ? takedownPlan.driver.id : null; },
+
+      /* The take-down already on the calendar for this job, if there is one.
+         Matched on the DQP link the sync writes, or on the DRD number in the
+         event title. The 'a' phase is the first visit, so that is the
+         take-down; a 'b' rehang already booked is not what we are asking. */
+      alreadyBooked() {
+        const job = takedownPlan.job || {};
+        const drd = (job.drd_number || '').replace(/\D/g, '');
+        return takedownPlan.stops.find((s) => {
+          const mine = (job.id && s.job_id === job.id)
+            || (drd && (s.fergus_job_no || '').replace(/\D/g, '') === drd);
+          if (!mine || !s.starts_at) return false;
+          const phase = (s.title || '').toLowerCase().match(/drd-?\d{3,5}\s*([a-z])/)?.[1];
+          return phase ? phase === 'a' : s.stop_type === 'takedown';
+        }) || null;
+      },
+
+      jobItemCount() {
+        const j = takedownPlan.job || {};
+        const items = (j.data && j.data.items) || [];
+        if (items.length) return items.length;
+        // Quoted but not yet itemised — count the quote lines instead.
+        const rooms = (j.data && j.data.quote && j.data.quote.rooms) || [];
+        return rooms.reduce((n, r) => n + ((r.items || []).length || 0), 0);
+      },
+
+      render() {
+        const mount = $('#td-mount');
+        if (!mount) return;
+
+        if (takedownPlan.error) {
+          mount.innerHTML = `<div class="td-warn">${escapeHtml(takedownPlan.error)}
+            <button class="btn td-refresh" id="td-refresh">Try again</button></div>`;
+          takedownPlan.wire();
+          return;
+        }
+
+        const job = takedownPlan.job;
+
+        /* If the take-down is already in the Fergus diary, say so and stop.
+           A panel that keeps offering times for a job Nicole booked this
+           morning is a panel nobody trusts by Friday. */
+        const booked = takedownPlan.alreadyBooked();
+        if (booked) {
+          mount.innerHTML = `
+            <div class="td-booked">
+              <div class="td-when">${escapeHtml(scheduler.dayLabel(booked.stop_date))}
+                <span class="td-time">${escapeHtml(scheduler.hhmm(scheduler.localMins(booked.starts_at)))}</span></div>
+              <div class="td-why">Already in Fergus as ${escapeHtml(booked.title || 'a booking')}.</div>
+            </div>
+            <div class="td-foot">
+              ${takedownPlan.syncedAt
+                ? `Fergus last read ${escapeHtml(fmtStamp(takedownPlan.syncedAt))}.`
+                : 'Not synced from Fergus yet.'}
+              <button class="btn td-refresh" id="td-refresh">Refresh from Fergus</button>
+            </div>`;
+          takedownPlan.wire();
+          return;
+        }
+
+        const out = scheduler.suggest(takedownPlan.stops, {
+          site_address: job.site_address,
+          item_count: takedownPlan.jobItemCount(),
+        }, { driverId: takedownPlan.driverId() });
+
+        const where = out.site.suburb
+          ? `${escapeHtml(out.site.suburb)} · ${escapeHtml(geo.REGIONS[out.site.region].label)}`
+          : out.site.region
+            ? escapeHtml(geo.REGIONS[out.site.region].label)
+            : 'address not recognised';
+
+        let html = `
+          <p class="section-hint">Where the van already is over the next fortnight, so the
+          take-down goes in beside work that's already booked. These are windows worth
+          offering the customer — Fergus still has to be booked by hand.</p>
+
+          <div class="td-head">
+            <div><span class="td-k">Site</span> ${where}</div>
+            <div><span class="td-k">Allow</span> ${out.needMins} min${
+              takedownPlan.jobItemCount() ? ` for ${takedownPlan.jobItemCount()} item${takedownPlan.jobItemCount() === 1 ? '' : 's'}` : ''}</div>
+            ${takedownPlan.driver && takedownPlan.driver.name
+              ? `<div><span class="td-k">Against</span> ${escapeHtml(takedownPlan.driver.name)}'s calendar</div>` : ''}
+          </div>`;
+
+        if (!out.placed) {
+          html += `<div class="td-warn">Couldn't work out which suburb
+            "${escapeHtml(job.site_address || '')}" is in, so these are ranked on the
+            week's pattern alone. Worth tidying the address on the job.</div>`;
+        }
+
+        if (!out.suggestions.length) {
+          html += `<div class="td-warn">Nothing in the next fortnight has room for this one.
+            Either the days are full or they're days off.</div>`;
+        } else {
+          if (out.suggestions.every((s) => s.stretch)) {
+            html += `<div class="td-warn">No good fit in the next fortnight — nothing is
+              booked out that way. These are the least bad, not recommendations.</div>`;
+          }
+          html += `<div class="td-list">${out.suggestions.map(takedownPlan.card).join('')}</div>
+            <button class="btn td-copy" id="td-copy">Copy the times for the phone</button>`;
+        }
+
+        html += `
+          <details class="td-all"${takedownPlan.showAll ? ' open' : ''}>
+            <summary>Where the van is, day by day</summary>
+            ${takedownPlan.fortnight(out)}
+          </details>
+          <div class="td-foot">
+            ${takedownPlan.syncedAt
+              ? `Fergus last read ${escapeHtml(fmtStamp(takedownPlan.syncedAt))}.`
+              : 'Not synced from Fergus yet.'}
+            <button class="btn td-refresh" id="td-refresh">Refresh from Fergus</button>
+          </div>`;
+
+        mount.innerHTML = html;
+        takedownPlan.wire();
+      },
+
+      card(s) {
+        const day = scheduler.dayLabel(s.day.date);
+        const seen = [...new Set(s.day.stops
+          .map((x) => (scheduler.spot(x) || {}).suburb)
+          .filter(Boolean))];
+        return `
+          <div class="td-card${s.stretch ? ' td-stretch' : ''}">
+            <div class="td-when">${escapeHtml(day)}
+              <span class="td-time">${scheduler.hhmm(s.slot.start)}–${scheduler.hhmm(s.slot.end)}</span></div>
+            <div class="td-why">${escapeHtml(takedownPlan.sentence(s))}</div>
+            ${seen.length
+              ? `<div class="td-also">Also out that day: ${escapeHtml(seen.join(', '))}</div>`
+              : `<div class="td-also">Nothing else booked that day.</div>`}
+          </div>`;
+      },
+
+      // The reasons come back as clauses; join them into something a person
+      // would actually say down the phone.
+      sentence(s) {
+        const who = (takedownPlan.driver && takedownPlan.driver.name) || 'the van';
+        const parts = s.why.filter(Boolean).map((p) => p.split('{who}').join(who));
+        if (!parts.length) return 'There is room in the day.';
+        const first = parts[0][0].toUpperCase() + parts[0].slice(1);
+        return [first, ...parts.slice(1)].join('; ') + '.';
+      },
+
+      fortnight(out) {
+        const driverId = takedownPlan.driverId();
+        const days = scheduler.buildDays(takedownPlan.stops, {
+          fromDate: scheduler.tomorrow(),
+          days: scheduler.LOOKAHEAD_DAYS,
+          driverId,
+        });
+        const rows = days.filter((d) => !d.weekend || d.stops.length).map((d) => {
+          const subs = [...new Set(d.stops
+            .map((x) => (scheduler.spot(x) || {}).suburb)
+            .filter(Boolean))];
+          const hrs = (d.bookedMins / 60).toFixed(1).replace(/\.0$/, '');
+          const pat = d.pattern.length
+            ? d.pattern.map((r) => geo.REGIONS[r].label).join(', ')
+            : 'no set run';
+          return `
+            <tr${d.blocked ? ' class="td-off"' : ''}>
+              <td class="td-d">${escapeHtml(scheduler.dayLabel(d.date))}</td>
+              <td class="td-p">${escapeHtml(pat)}</td>
+              <td class="td-s">${d.blocked
+                ? 'day off'
+                : subs.length ? escapeHtml(subs.join(', ')) : '—'}</td>
+              <td class="td-h">${d.blocked ? '' : `${hrs}h`}</td>
+            </tr>`;
+        }).join('');
+        return `<table class="td-table"><thead><tr>
+            <th>Day</th><th>Usual run</th><th>Booked in</th><th>Load</th>
+          </tr></thead><tbody>${rows}</tbody></table>`;
+      },
+
+      wire() {
+        const copy = $('#td-copy');
+        if (copy) copy.addEventListener('click', () => {
+          const out = scheduler.suggest(takedownPlan.stops, {
+            site_address: takedownPlan.job.site_address,
+            item_count: takedownPlan.jobItemCount(),
+          }, { driverId: takedownPlan.driverId() });
+          const text = out.suggestions.filter((s) => !s.stretch).map((s) =>
+            `${scheduler.dayLabel(s.day.date)} between ${scheduler.hhmm(s.slot.start)} and ${scheduler.hhmm(s.slot.end)}`
+          ).join('\n');
+          navigator.clipboard?.writeText(text || 'No suitable windows in the next fortnight.')
+            .then(() => ui.toast('Copied'))
+            .catch(() => ui.toast('Could not copy'));
+        });
+
+        const all = document.querySelector('.td-all');
+        if (all) all.addEventListener('toggle', () => { takedownPlan.showAll = all.open; });
+
+        const btn = $('#td-refresh');
+        if (btn) btn.addEventListener('click', async () => {
+          btn.disabled = true; btn.textContent = 'Reading Fergus…';
+          try {
+            await db.refreshSchedule();
+            await takedownPlan.init(takedownPlan.job);
+          } catch (err) {
+            ui.toast('Fergus: ' + (err.message || 'could not refresh'));
+            btn.disabled = false; btn.textContent = 'Refresh from Fergus';
+          }
+        });
+      },
+    };
+
     /* ============================================================
        RUN SHEET
        The day's stops, straight off the Fergus calendar. Built for a
