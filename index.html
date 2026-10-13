@@ -4324,9 +4324,10 @@
         if (line.cat === 'custom') {
           const calc = computeLine(line);
           return `
-            <div class="qb-line" style="grid-template-columns:2fr 1fr auto auto" ${di}>
-              <div><span class="mini-label">Custom item — description</span><input class="qb-clabel" value="${escapeAttr(line.label)}" placeholder="e.g. Oversized specialty blind" /></div>
+            <div class="qb-line" style="grid-template-columns:2fr 1fr auto auto auto" ${di}>
+              <div><span class="mini-label">Custom item — description</span><input class="qb-clabel" value="${escapeAttr(line.label)}" placeholder="e.g. Cushion covers, doona" /></div>
               <div><span class="mini-label">Amount ($ ex GST)</span><input class="qb-camount" type="number" step="0.01" value="${escapeAttr(line.amount)}" /></div>
+              <label class="qb-mould" title="Untick for charges like a rush fee — they stay off the takedown and production lists"><input type="checkbox" class="qb-ctrack" ${line.track ? 'checked' : ''}/> Physical item — track in production</label>
               <div><div class="line-amt">${money(calc.amount)}</div><div class="line-basis">Custom</div></div>
               <button class="qb-del" data-del="${i}" data-room="${roomIdx}" title="Remove">×</button>
             </div>`;
@@ -4399,7 +4400,7 @@
         document.querySelectorAll('.qb-add[data-roomadd]').forEach((b) =>
           b.addEventListener('click', () => {
             const ri = +b.dataset.roomadd, cat = b.dataset.cat;
-            if (cat === 'custom') q.rooms[ri].items.push({ cat: 'custom', label: '', amount: '' });
+            if (cat === 'custom') q.rooms[ri].items.push({ cat: 'custom', label: '', amount: '', track: true });
             else q.rooms[ri].items.push({ cat, item_note: '', width: '', drop: '', mould: false });
             this.render();
           }));
@@ -4444,6 +4445,8 @@
           if (cl) cl.addEventListener('input', (e) => { item.label = e.target.value; });
           const ca = row.querySelector('.qb-camount');
           if (ca) ca.addEventListener('input', (e) => { item.amount = e.target.value; this.recalcRow(row, item); });
+          const ct = row.querySelector('.qb-ctrack');
+          if (ct) ct.addEventListener('change', (e) => { item.track = e.target.checked; });
         });
 
         // room repair edits
@@ -6208,10 +6211,10 @@
       let seq = 0;
       (q.rooms || []).forEach((room) => {
         (room.items || []).forEach((it) => {
-          // Custom lines are usually charges, not things ("7 day turnaround",
-          // "leader"). They have no measurements, so they'd be dead tick rows.
-          // They still print on the sheet under Other Quoted Lines.
-          if (it.cat === 'custom') return;
+          // Custom lines can be charges ("7 day turnaround") or real pieces
+          // (cushion covers, a doona). Only the ones ticked as physical items
+          // get tracked; the charges still print under Other Quoted Lines.
+          if (it.cat === 'custom' && !it.track) return;
           seq += 1;
           out.push({
             ref: `${prefix}-${pad2(seq)}`,
@@ -6396,6 +6399,8 @@
 
         if (t === 'takedown') {
           html += `<button class="btn btn-secondary" id="it-add-extra" style="margin-top:6px">+ Add item found on site</button>`;
+        } else if (t === 'production') {
+          html += `<button class="btn btn-secondary" id="it-add-extra" style="margin-top:6px">+ Add item to production</button>`;
         }
         body.innerHTML = html;
         this.wireBody();
@@ -6411,7 +6416,7 @@
 
         const flags = [];
         if (it.mould) flags.push('<span class="it-flag mould">Mould treatment</span>');
-        if (it.extra) flags.push('<span class="it-flag">Found on site</span>');
+        if (it.extra) flags.push(`<span class="it-flag">${it.added_in === 'production' ? 'Added in plant' : 'Found on site'}</span>`);
         if (Number(it.pieces) > 1) flags.push(`<span class="it-flag">${it.pieces} pieces</span>`);
         if (it.bag) flags.push(`<span class="it-flag bag">Bag ${escapeHtml(it.bag)}</span>`);
         if (it.location) flags.push(`<span class="it-flag loc">${escapeHtml(it.location)}</span>`);
@@ -6499,16 +6504,18 @@
       },
 
       addExtra() {
+        const inPlant = this.tab === 'production';
         const rooms = [...new Set(this.items.map((x) => x.room))];
         const mount = $('#modal-mount');
         mount.innerHTML = `
           <div class="modal-backdrop" id="ie-backdrop">
             <div class="modal">
-              <div class="m-head"><h2>Item found on site</h2><p>Not on the quote — record it so it can be added to the job value.</p></div>
+              <div class="m-head"><h2>${inPlant ? 'Add item to production' : 'Item found on site'}</h2><p>${inPlant ? 'For anything that came in but isn\'t on the list — cushion covers, a doona, a custom piece.' : 'Not on the quote — record it so it can be added to the job value.'}</p></div>
               <div class="m-body">
                 <div class="field"><label>Room</label><input id="ie-room" list="ie-rooms" placeholder="Lounge" />
                   <datalist id="ie-rooms">${rooms.map((r) => `<option value="${escapeAttr(r)}"></option>`).join('')}</datalist></div>
-                <div class="field"><label>Type</label><select id="ie-cat">${Object.entries(CATALOG).map(([k, v]) => `<option value="${k}">${escapeHtml(v.label)}</option>`).join('')}</select></div>
+                <div class="field"><label>Type</label><select id="ie-cat">${Object.entries(CATALOG).map(([k, v]) => `<option value="${k}" ${inPlant && k === 'custom' ? 'selected' : ''}>${escapeHtml(v.label)}</option>`).join('')}</select></div>
+                <div class="field" id="ie-label-wrap"><label>Description</label><input id="ie-label" placeholder="e.g. Cushion covers, doona" /></div>
                 <div class="row2">
                   <div class="field"><label>Width (m or mm)</label><input id="ie-w" placeholder="2.4" /></div>
                   <div class="field"><label>Drop (m or mm)</label><input id="ie-d" placeholder="2.2" /></div>
@@ -6527,21 +6534,27 @@
         const close = () => { mount.innerHTML = ''; };
         $('#ie-cancel').addEventListener('click', close);
         $('#ie-backdrop').addEventListener('click', (e) => { if (e.target.id === 'ie-backdrop') close(); });
+        const syncLabel = () => { $('#ie-label-wrap').style.display = $('#ie-cat').value === 'custom' ? '' : 'none'; };
+        $('#ie-cat').addEventListener('change', syncLabel);
+        syncLabel();
         $('#ie-add').addEventListener('click', () => {
           const cat = $('#ie-cat').value;
+          const desc = $('#ie-label').value.trim();
+          if (cat === 'custom' && !desc) { ui.toast('Give the custom item a description'); return; }
           const stub = { cat, width: $('#ie-w').value, drop: $('#ie-d').value };
           const seq = this.items.length + 1;
           this.items.push({
             ref: `${this.job.quote_number || 'ITEM'}-${pad2(seq)}`,
             seq,
-            room: $('#ie-room').value.trim() || 'Found on site',
+            room: $('#ie-room').value.trim() || (inPlant ? 'Added in plant' : 'Found on site'),
             cat,
-            label: CATALOG[cat]?.label || cat,
+            label: cat === 'custom' ? desc : (CATALOG[cat]?.label || cat),
             dims: cat === 'custom' ? '' : itemDims(stub),
             mould: false,
             note: $('#ie-n').value.trim(),
             pieces: Math.max(1, parseInt($('#ie-p').value, 10) || 1),
             extra: true,
+            added_in: inPlant ? 'production' : 'takedown',
             taken: false, pieces_taken: null, taken_at: null, taken_by: null, condition: '',
             prod_done: false, done_at: null, done_by: null, method: '', issue: '',
             bag: '', location: '',
@@ -6736,7 +6749,7 @@
         const q2 = job.data?.quote || {};
         const extraLines = [];
         (q2.rooms || []).forEach((rm) => {
-          (rm.items || []).filter((x) => x.cat === 'custom').forEach((x) => {
+          (rm.items || []).filter((x) => x.cat === 'custom' && !x.track).forEach((x) => {
             extraLines.push(`${rm.name || 'Room'}: ${x.label || 'Custom item'}`);
           });
           (rm.repairs || []).forEach((r) => {
