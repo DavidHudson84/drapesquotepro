@@ -1295,7 +1295,7 @@
       // ever billed or matched on it.
       async listAccounts(includeInactive = false) {
         let q = sb.from('accounts')
-          .select('id, name, group_name, kind, phone, email, address_line, suburb, state, postcode, reference_label, reference_required, fergus_customer_id, notes, active')
+          .select('*')
           .order('name');
         if (!includeInactive) q = q.eq('active', true);
         const { data, error } = await q;
@@ -1519,7 +1519,7 @@
         return db.pageAll(() => {
           let q = sb
             .from('jobs')
-            .select('id, quote_number, drd_number, legacy_reference, customer_id, site_id, account_id, account_reference, status, customer_name, customer_phone, customer_email, site_address, data, archived, created_at, updated_at, fergus_job_id')
+            .select('*')
             .order('updated_at', { ascending: false })
             .order('id', { ascending: true });
           return includeArchived ? q.eq('archived', true) : q.eq('archived', false);
@@ -1618,7 +1618,7 @@
       async listJobsAll() {
         return db.pageAll(() => sb
           .from('jobs')
-          .select('id, quote_number, drd_number, status, customer_name, account_id, account_reference, data, archived, created_at, updated_at')
+          .select('*')
           .order('created_at', { ascending: false })
           .order('id', { ascending: true }));
       },
@@ -2029,7 +2029,7 @@
         const { error } = await sb.auth.signInWithPassword({ email, password });
         if (error) throw error;
         const ok = await auth.resolveSession();
-        if (!ok) throw new Error('Your account has no active profile. Contact your administrator.');
+        if (!ok) throw new Error('This login has no staff access. Partners sign in at partner.html — otherwise contact your administrator.');
         db.touchLastLogin(session.user.id);
         return true;
       },
@@ -2247,7 +2247,7 @@
     }
 
     // Was this one answered by the customer rather than by us?
-    const acceptedOnline = (job) => job?.data?.acceptance?.how === 'online';
+    const acceptedOnline = (job) => ['online', 'partner'].includes(job?.data?.acceptance?.how);
 
     /* ============================================================
        ACCOUNTS — display helpers
@@ -2261,9 +2261,34 @@
     // a person which store this came from and what that store calls the job.
     function jobAccountLine(j) {
       const acc = jobAccount(j);
-      if (!acc) return '';
+      if (!acc) {
+        // A partner job we bill the customer for has no account (Fergus bills
+        // the customer), but the office still needs to see whose job it is.
+        const p = jobPartner(j);
+        return p ? 'via ' + p.name + (j.account_reference ? ' · ' + j.account_reference : '') : '';
+      }
       return acc.name + (j.account_reference ? ' · ' + j.account_reference : '');
     }
+    function jobPartner(j) {
+      if (!j?.partner_account_id) return null;
+      return (session.accounts || []).find((a) => a.id === j.partner_account_id) || { id: j.partner_account_id, name: 'Partner' };
+    }
+
+    /* Commission is earned on the cleaning and repair lines only, ex GST,
+       after any discount (shared in proportion). Mirrors computeQuote() in the
+       partner-portal function — change both together. */
+    function partnerCommissionBase(quote) {
+      let lines = 0;
+      (quote.rooms || []).forEach((room) => {
+        (room.items || []).forEach((l) => { lines += computeLine(l).amount; });
+        (room.repairs || []).forEach((r) => { lines += computeRepair(r).amount; });
+      });
+      (quote.repairs || []).forEach((r) => { lines += computeRepair(r).amount; });
+      const t = computeQuote(quote);
+      const share = t.preDiscount > 0 ? Math.max(0, (t.preDiscount - t.discountAmt) / t.preDiscount) : 0;
+      return round2(lines * share);
+    }
+    const partnerCommission = (job) => round2((Number(job.data?.partner?.commission_base) || 0) * (Number(job.commission_pct) || 0) / 100);
 
     // Accounts as <option>s, grouped by brand so the Steamatic and Master Dry
     // Cleaners entries sit together without pretending to be one account —
@@ -2864,6 +2889,7 @@
             <div class="status-bar" id="status-bar">${steps}</div>
           </div>
 
+          ${job.partner_account_id ? section('partner', 'Partner & Commission', true, partnerPanel.html(job)) : ''}
           ${section('customer', 'Customer Details', true, customerDetailsHtml(job))}
           ${section('quote', 'Quote', true, `<div id="qb-mount"></div>`)}
           ${section('acceptance', 'Acceptance & Job Card', false, `<div id="acc-mount"></div>`)}
@@ -2899,6 +2925,7 @@
           }
         });
 
+        if (job.partner_account_id) partnerPanel.wire(job, main);
         // initialise the quote builder for this job
         quoteBuilder.init(job);
         // initialise acceptance + job card
@@ -3437,7 +3464,7 @@
         if (!isAdmin()) { router.go('dashboard'); return; }
         const tab = route.adminTab || 'staff';
         const tabs = [
-          ['staff', 'Staff'], ['accounts', 'Accounts'], ['prices', 'Prices'], ['emails', 'Email Templates'],
+          ['staff', 'Staff'], ['accounts', 'Accounts'], ['partners', 'Partners'], ['prices', 'Prices'], ['emails', 'Email Templates'],
           ['terms', 'Terms of Trade'], ['targets', 'Targets'],
           ['production', 'Production'], ['company', 'Company'],
         ];
@@ -3455,6 +3482,7 @@
         const body = $('#admin-body');
         if (tab === 'staff') return adminStaff.render(body);
         if (tab === 'accounts') return adminAccounts.render(body);
+        if (tab === 'partners') return adminPartners.render(body);
         if (tab === 'prices') return adminPrices.render(body);
         if (tab === 'emails') return adminEmails.render(body);
         if (tab === 'terms') return adminTerms.render(body);
@@ -3599,6 +3627,7 @@
                 <label class="acc-terms"><input type="checkbox" id="ac-refreq" ${a.reference_required ? 'checked' : ''} /> Won't accept an invoice without their reference — make it compulsory on every job</label>
                 <label class="acc-terms"><input type="checkbox" id="ac-active" ${a.active ? 'checked' : ''} /> Active — show in the account dropdown</label>
                 <div class="field" style="margin-top:12px"><label>Notes</label><textarea id="ac-notes" rows="2">${escapeHtml(a.notes || '')}</textarea></div>
+                ${adminPartners.accountBlockHtml(a)}
               </div>
               <div class="m-foot">
                 <button class="btn btn-secondary" id="ac-cancel">Cancel</button>
@@ -3607,6 +3636,7 @@
             </div>
           </div>`;
         const close = () => { mount.innerHTML = ''; };
+        if (acct) adminPartners.wireAccountBlock(acct);
         $('#ac-cancel').addEventListener('click', close);
         $('#ac-backdrop').addEventListener('click', (e) => { if (e.target.id === 'ac-backdrop') close(); });
         $('#ac-save').addEventListener('click', async () => {
@@ -3631,6 +3661,7 @@
               fergus_customer_id: fid ? Number(fid) : null,
               notes: $('#ac-notes').value.trim() || null,
               active: $('#ac-active').checked,
+              ...adminPartners.readAccountBlock(),
             });
             close();
             ui.toast('Account saved');
@@ -3644,6 +3675,348 @@
         });
       },
     };
+
+    /* ============================================================
+       PARTNERS
+       Trade partners (Haven Window Furnishings and the like) quote from
+       partner.html under their own login. Their jobs land here like any
+       other, carrying partner_account_id. Who Fergus bills is still
+       account_id: the partner when they bill their own customer, nobody (so
+       the customer) when we do.
+       ============================================================ */
+    async function partnerFn(action, payload = {}) {
+      const { data: { session: s } } = await sb.auth.getSession();
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/partner-portal`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${s?.access_token || ''}` },
+        body: JSON.stringify({ action, ...payload }),
+      });
+      const out = await res.json().catch(() => ({}));
+      if (!res.ok || out.error) throw new Error(out.error || `Error ${res.status}`);
+      return out;
+    }
+
+    const partnerPortalUrl = () => `${portalBase()}partner.html`;
+
+    const partnerPanel = {
+      account(job) {
+        return (session.accounts || []).find((a) => a.id === job.partner_account_id) || null;
+      },
+
+      html(job) {
+        const acct = this.account(job) || { name: 'Partner', commission_referral_pct: 30, commission_install_pct: 50 };
+        const pd = job.data?.partner || {};
+        const q = job.data?.quote || {};
+        const base = partnerCommissionBase(q);
+        const pct = Number(job.commission_pct || 0);
+        const comm = round2(base * pct / 100);
+        const t = computeQuote(q);
+        const installBy = pd.install_by || 'drdrapes';
+        const invoiceTo = pd.invoice_to || (job.account_id === job.partner_account_id ? 'partner' : 'drdrapes');
+        const raised = pd.submitted_at
+          ? `Raised in the partner portal by ${escapeHtml(pd.submitted_by_name || '')} on ${new Date(pd.submitted_at).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}`
+          : 'Referred by this partner';
+        return `
+          <div class="section-hint" style="margin-top:0"><strong>${escapeHtml(acct.name)}</strong> · ${raised}. They get an email each time this job changes status.</div>
+          <div class="row2">
+            <div class="field"><label>Takedown & rehang</label>
+              <select id="pp-install">
+                <option value="drdrapes"${installBy === 'drdrapes' ? ' selected' : ''}>Dr Drapes does it — ${acct.commission_referral_pct}%</option>
+                <option value="partner"${installBy === 'partner' ? ' selected' : ''}>${escapeHtml(acct.name)} does it — ${acct.commission_install_pct}%</option>
+              </select></div>
+            <div class="field"><label>Who bills the customer</label>
+              <select id="pp-invoice">
+                <option value="drdrapes"${invoiceTo === 'drdrapes' ? ' selected' : ''}>Dr Drapes bills the customer, pays commission monthly</option>
+                <option value="partner"${invoiceTo === 'partner' ? ' selected' : ''}>We bill ${escapeHtml(acct.name)}, less commission</option>
+              </select></div>
+          </div>
+          <div class="row2">
+            <div class="field"><label>Commission %</label><input id="pp-pct" type="number" step="0.5" min="0" max="100" value="${escapeAttr(pct)}" /></div>
+            <div class="field"><label>Commission (ex GST)</label>
+              <div style="padding:10px 0;font-weight:700">${money(comm)} <span style="font-weight:400;color:var(--muted)">on ${money(base)} of cleaning & repairs</span></div></div>
+          </div>
+          ${invoiceTo === 'partner' ? `<div class="acc-blocked" style="background:#eef2ff;border-color:#c7d2fe;color:#3730a3">Invoice <strong>${escapeHtml(acct.name)}</strong> ${money(round2(t.subtotal - comm))} ex GST — the quote's ${money(t.subtotal)} less ${money(comm)} commission. Fergus raises this job against ${escapeHtml(acct.name)}.</div>` : ''}
+          <div class="section-hint">${job.commission_paid_at
+            ? `Commission paid ${new Date(job.commission_paid_at).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}${job.commission_paid_ref ? ' · ' + escapeHtml(job.commission_paid_ref) : ''}.`
+            : invoiceTo === 'partner' ? 'Commission is taken off our invoice to the partner — nothing to pay separately.' : 'Commission goes on the partner\'s statement for the month this job is invoiced. Mark it paid in Admin → Partners.'}
+            Changing who does the rehang doesn't change the quote's rehang charge — edit the quote if it should.</div>
+          <button class="btn btn-secondary" id="pp-save">Save partner settings</button>`;
+      },
+
+      wire(job, main) {
+        const btn = $('#pp-save');
+        if (!btn) return;
+        const acct = this.account(job);
+        const syncPct = () => {
+          if (!acct) return;
+          $('#pp-pct').value = $('#pp-install').value === 'partner' ? acct.commission_install_pct : acct.commission_referral_pct;
+        };
+        $('#pp-install').addEventListener('change', syncPct);
+        btn.addEventListener('click', async () => {
+          const install = $('#pp-install').value;
+          const invoice = $('#pp-invoice').value;
+          const pct = Math.max(0, Math.min(100, Number($('#pp-pct').value) || 0));
+          const def = acct ? Number(install === 'partner' ? acct.commission_install_pct : acct.commission_referral_pct) : pct;
+          const accountId = invoice === 'partner'
+            ? job.partner_account_id
+            : (job.account_id === job.partner_account_id ? null : job.account_id);
+          if (job.fergus_job_id && accountId !== job.account_id &&
+              !confirm('This job is already in Fergus. Changing who is billed here won\'t move it in Fergus — change the customer there too. Carry on?')) return;
+          btn.disabled = true; btn.textContent = 'Saving…';
+          try {
+            await db.saveJob(job.id, {
+              partner: {
+                install_by: install, invoice_to: invoice,
+                commission_base: partnerCommissionBase(job.data?.quote || {}),
+                commission_overridden: pct !== def,
+              },
+            }, { commission_pct: pct, account_id: accountId });
+            ui.toast('Partner settings saved');
+            router.jobPage(main);
+          } catch (err) {
+            ui.toast('Save failed: ' + (err.message || 'error'));
+            btn.disabled = false; btn.textContent = 'Save partner settings';
+          }
+        });
+      },
+    };
+
+    const adminPartners = {
+      // ---------- block inside the account edit modal ----------
+      accountBlockHtml(a) {
+        const on = !!a.is_partner;
+        const v = (x) => (x === null || x === undefined ? '' : x);
+        return `
+          <div style="border-top:1px solid var(--line);margin-top:16px;padding-top:14px">
+            <h3 style="margin:0 0 6px">Partner portal</h3>
+            <label class="acc-terms"><input type="checkbox" id="ac-partner" ${on ? 'checked' : ''} /> This business is a partner — they can log in, quote on our price list and earn commission</label>
+            <div id="ac-pfields" class="${on ? '' : 'hidden'}">
+              <div class="row2">
+                <div class="field"><label>Commission — we do takedown & rehang (%)</label><input id="ac-cref" type="number" step="0.5" min="0" max="100" value="${escapeAttr(v(a.commission_referral_pct ?? 30))}" /></div>
+                <div class="field"><label>Commission — they do takedown & rehang (%)</label><input id="ac-cinst" type="number" step="0.5" min="0" max="100" value="${escapeAttr(v(a.commission_install_pct ?? 50))}" /></div>
+              </div>
+              <div class="row2">
+                <div class="field"><label>Rehang charge added when we do it ($ ex GST)</label><input id="ac-prehang" type="number" step="0.01" min="0" value="${escapeAttr(v(a.partner_rehang_fee))}" placeholder="Blank = none" /></div>
+                <div class="field"><label>Transport added to every quote ($ ex GST)</label><input id="ac-ptrans" type="number" step="0.01" min="0" value="${escapeAttr(v(a.partner_transport_fee))}" placeholder="Blank = none" /></div>
+              </div>
+              <div class="row2">
+                <div class="field"><label>Who usually bills the customer</label>
+                  <select id="ac-pinv">
+                    <option value="partner"${a.partner_invoice_default !== 'drdrapes' ? ' selected' : ''}>The partner (we bill them, less commission)</option>
+                    <option value="drdrapes"${a.partner_invoice_default === 'drdrapes' ? ' selected' : ''}>Dr Drapes (we pay commission monthly)</option>
+                  </select></div>
+                <div class="field"><label>Send job updates to</label><input id="ac-pnotify" value="${escapeAttr(v(a.partner_notify_email))}" placeholder="Blank = every login below" /></div>
+              </div>
+              <p class="section-hint" style="margin:0 0 8px">Commission is paid on cleaning and repairs only, ex GST. Partners see these rates; they can't change prices.</p>
+              <div class="qb-block-title" style="margin-top:6px">Logins</div>
+              ${a.id ? `<div id="ac-plogins"><p class="section-hint">Loading…</p></div>
+              <div class="row2" style="margin-top:8px">
+                <div class="field"><label>Name</label><input id="ac-pu-name" placeholder="Sam Smith" /></div>
+                <div class="field"><label>Email</label><input id="ac-pu-email" type="email" placeholder="sam@havenwindowfurnishings.com.au" /></div>
+              </div>
+              <button class="btn btn-secondary" id="ac-pu-invite" type="button">Send login invite</button>
+              <p class="section-hint" style="margin-top:6px">They get an email with a link to set their password (it lasts 7 days). The portal is at <strong>${escapeHtml(partnerPortalUrl())}</strong>.</p>`
+              : '<p class="section-hint">Save the account first, then open it again to add logins.</p>'}
+            </div>
+          </div>`;
+      },
+
+      readAccountBlock() {
+        const cb = $('#ac-partner');
+        if (!cb) return {};
+        const num = (id) => { const x = $(id).value.trim(); return x === '' ? null : Number(x); };
+        return {
+          is_partner: cb.checked,
+          commission_referral_pct: num('#ac-cref') ?? 30,
+          commission_install_pct: num('#ac-cinst') ?? 50,
+          partner_rehang_fee: num('#ac-prehang'),
+          partner_transport_fee: num('#ac-ptrans'),
+          partner_invoice_default: $('#ac-pinv').value,
+          partner_notify_email: $('#ac-pnotify').value.trim() || null,
+        };
+      },
+
+      async wireAccountBlock(acct) {
+        const cb = $('#ac-partner');
+        if (!cb) return;
+        cb.addEventListener('change', () => $('#ac-pfields').classList.toggle('hidden', !cb.checked));
+        const box = $('#ac-plogins');
+        if (!box) return;
+
+        const load = async () => {
+          const { data, error } = await sb.from('partner_users').select('*').eq('account_id', acct.id).order('created_at');
+          if (error) { box.innerHTML = `<p class="section-hint">Couldn't load logins: ${escapeHtml(error.message)}</p>`; return; }
+          const when = (d) => d ? new Date(d).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+          box.innerHTML = (data || []).length ? data.map((u) => `
+            <div style="padding:8px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap">
+              <div><strong>${escapeHtml(u.name)}</strong> · ${escapeHtml(u.email)}${u.active ? '' : ' <span class="acct-tag">switched off</span>'}
+                <div class="section-hint" style="margin:2px 0 0">${u.last_login ? 'Last signed in ' + when(u.last_login) : u.invited_at ? 'Invited ' + when(u.invited_at) + ', not signed in yet' : ''}</div></div>
+              <div style="display:flex;gap:6px">
+                ${u.active ? `<button class="btn btn-secondary" type="button" data-pu-resend="${u.id}">Resend invite</button>` : ''}
+                <button class="btn btn-secondary" type="button" data-pu-active="${u.id}" data-on="${u.active ? '0' : '1'}">${u.active ? 'Switch off' : 'Switch on'}</button>
+              </div>
+            </div>`).join('') : '<p class="section-hint">No logins yet.</p>';
+          box.querySelectorAll('[data-pu-resend]').forEach((b) => b.addEventListener('click', async () => {
+            const u = data.find((x) => x.id === b.dataset.puResend);
+            b.disabled = true;
+            try { await partnerFn('invite', { account_id: acct.id, name: u.name, email: u.email, phone: u.phone }); ui.toast('Invite sent to ' + u.email); load(); }
+            catch (e) { ui.toast(e.message); b.disabled = false; }
+          }));
+          box.querySelectorAll('[data-pu-active]').forEach((b) => b.addEventListener('click', async () => {
+            const on = b.dataset.on === '1';
+            if (!on && !confirm('Switch off this login? They are signed out straight away and can\'t sign in again until you switch it back on.')) return;
+            try { await partnerFn('set_active', { partner_user_id: b.dataset.puActive, active: on }); load(); }
+            catch (e) { ui.toast(e.message); }
+          }));
+        };
+        load();
+
+        $('#ac-pu-invite').addEventListener('click', async () => {
+          const btn = $('#ac-pu-invite');
+          const name = $('#ac-pu-name').value.trim(), email = $('#ac-pu-email').value.trim();
+          if (!name || !email) { ui.toast('Enter their name and email'); return; }
+          btn.disabled = true; btn.textContent = 'Sending…';
+          try {
+            // Ticked but not saved yet: save the partner settings first, or the
+            // invite would be refused for an account that isn't a partner.
+            if (!acct.is_partner || cb.checked) {
+              if (!cb.checked) { ui.toast('Tick "This business is a partner" first'); return; }
+              await db.saveAccount(acct.id, adminPartners.readAccountBlock());
+              acct.is_partner = true;
+            }
+            await partnerFn('invite', { account_id: acct.id, name, email });
+            ui.toast('Invite sent to ' + email);
+            $('#ac-pu-name').value = ''; $('#ac-pu-email').value = '';
+            load();
+          } catch (e) { ui.toast(e.message || 'Invite failed'); }
+          finally { btn.disabled = false; btn.textContent = 'Send login invite'; }
+        });
+      },
+
+      // ---------- Admin → Partners tab ----------
+      async render(body) {
+        body.innerHTML = '<p class="section-hint">Loading…</p>';
+        const [accts, jobsRes] = await Promise.all([
+          db.listAccounts(true),
+          sb.from('jobs')
+            .select('id, quote_number, customer_name, status, account_id, partner_account_id, commission_pct, commission_paid_at, commission_paid_ref, data, created_at')
+            .not('partner_account_id', 'is', null).eq('archived', false)
+            .order('created_at', { ascending: false }).limit(2000),
+        ]);
+        if (jobsRes.error) { body.innerHTML = `<div class="admin-section"><p class="section-hint">Couldn't load partner jobs: ${escapeHtml(jobsRes.error.message)}. Has the partner database update been run?</p></div>`; return; }
+        const partners = accts.filter((a) => a.is_partner);
+        const jobs = jobsRes.data || [];
+        const invoicedAt = (j) => { const h = (j.data?.status_history || []).filter((x) => x.status === 'invoiced').pop(); return h ? h.changed_at : null; };
+        const earned = (j) => ['invoiced', 'rehung'].includes(j.status);
+        const billedByUs = (j) => (j.data?.partner?.invoice_to || (j.account_id === j.partner_account_id ? 'partner' : 'drdrapes')) === 'drdrapes';
+        const comm = (j) => partnerCommission(j);
+        const name = (id) => (accts.find((a) => a.id === id) || {}).name || 'Partner';
+        const fmt = (d) => d ? new Date(d).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+
+        const unpaid = jobs.filter((j) => earned(j) && billedByUs(j) && !j.commission_paid_at && comm(j) > 0);
+        const paid = jobs.filter((j) => j.commission_paid_at).slice(0, 40);
+
+        const sumRow = (a) => {
+          const mine = jobs.filter((j) => j.partner_account_id === a.id);
+          const open = mine.filter((j) => j.status === 'quoted').length;
+          const won = mine.filter((j) => STATUSES.indexOf(j.status) >= STATUSES.indexOf('confirmed'));
+          const owed = round2(unpaid.filter((j) => j.partner_account_id === a.id).reduce((s, j) => s + comm(j), 0));
+          const setup = a.partner_onboarded_at
+            ? `<span style="color:#15803d">Set up ${fmt(a.partner_onboarded_at)}</span>`
+            : '<span style="color:#b45309">Waiting for them to set up</span>';
+          return `<tr><td>${a.partner_logo ? `<img src="${a.partner_logo}" alt="" style="height:22px;max-width:70px;object-fit:contain;vertical-align:middle;margin-right:6px" />` : ''}<strong>${escapeHtml(a.name)}</strong>${a.active ? '' : ' <span class="acct-tag">inactive</span>'}
+              <div class="section-hint" style="margin:2px 0 0">${setup}${a.abn ? ' · ABN ' + escapeHtml(a.abn) : ''}${a.gst_registered === false ? ' · not GST registered' : ''}</div></td>
+            <td>${a.commission_referral_pct}% / ${a.commission_install_pct}%</td><td>${open}</td><td>${won.length}</td>
+            <td>${money(won.reduce((s, j) => s + Number(j.data?.quote?.total || 0), 0))}</td><td><strong>${money(owed)}</strong></td></tr>`;
+        };
+
+        body.innerHTML = `
+          <div class="admin-section">
+            <h3>Partners</h3>
+            <p class="section-hint">Businesses with a partner portal login. The portal is at <strong>${escapeHtml(partnerPortalUrl())}</strong>.</p>
+            <div style="background:#f7f8fc;border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:0 0 16px">
+              <div class="qb-block-title" style="margin-top:0">Add a partner</div>
+              <p class="section-hint" style="margin:0 0 10px">Enter the business name and the email of the person who'll use it. They get a welcome email, set a password, then add their own details and logo. If the business is already one of our accounts, it's switched on as a partner rather than duplicated.</p>
+              <div class="row2">
+                <div class="field"><label>Business name</label><input id="np-name" placeholder="Haven Window Furnishings" /></div>
+                <div class="field"><label>Email</label><input id="np-email" type="email" placeholder="sam@havenwindowfurnishings.com.au" /></div>
+              </div>
+              <div class="row2">
+                <div class="field"><label>Contact name (optional)</label><input id="np-contact" placeholder="They can fill this in themselves" /></div>
+                <div class="row2" style="gap:10px">
+                  <div class="field"><label>Commission, we rehang (%)</label><input id="np-ref" type="number" min="0" max="100" step="0.5" value="30" /></div>
+                  <div class="field"><label>Commission, they rehang (%)</label><input id="np-inst" type="number" min="0" max="100" step="0.5" value="50" /></div>
+                </div>
+              </div>
+              <button class="btn btn-confirm" id="np-go">Send welcome email</button>
+              <span class="section-hint" style="margin-left:8px">Rehang and transport charges, extra logins and billing defaults are under Accounts → Edit.</span>
+            </div>
+            ${partners.length ? `<table class="rep-table" style="width:100%">
+              <thead><tr><th style="text-align:left">Partner</th><th style="text-align:left">Commission (we rehang / they rehang)</th><th style="text-align:left">Open quotes</th><th style="text-align:left">Won</th><th style="text-align:left">Won value inc GST</th><th style="text-align:left">Commission owed</th></tr></thead>
+              <tbody>${partners.map(sumRow).join('')}</tbody></table>` : '<p class="section-hint">No partners yet.</p>'}
+          </div>
+          <div class="admin-section">
+            <h3>Commission to pay</h3>
+            <p class="section-hint">Partner jobs we billed the customer for that have been invoiced. Amounts are ex GST: add GST if the partner is registered. Pay from Xero, then tick them off here with the bill or RCTI number. Partners also get a statement on the 1st of each month.</p>
+            ${unpaid.length ? `
+              <table class="rep-table" style="width:100%">
+                <thead><tr><th></th><th style="text-align:left">Partner</th><th style="text-align:left">Job</th><th style="text-align:left">Customer</th><th style="text-align:left">Invoiced</th><th style="text-align:left">Rate</th><th style="text-align:right">Commission</th></tr></thead>
+                <tbody>${unpaid.map((j) => `<tr>
+                  <td><input type="checkbox" data-cpay="${j.id}" /></td><td>${escapeHtml(name(j.partner_account_id))}</td>
+                  <td><a href="#" data-cjob="${j.id}">${escapeHtml(j.quote_number)}</a></td><td>${escapeHtml(j.customer_name || '')}</td>
+                  <td>${fmt(invoicedAt(j))}</td><td>${Number(j.commission_pct || 0)}%</td><td style="text-align:right">${money(comm(j))}</td></tr>`).join('')}</tbody>
+              </table>
+              <div class="row2" style="margin-top:12px;align-items:end">
+                <div class="field"><label>Xero bill / RCTI number</label><input id="cp-ref" placeholder="e.g. RCTI-0012" /></div>
+                <div><button class="btn btn-confirm" id="cp-go">Mark selected paid</button> <span class="section-hint" id="cp-sum"></span></div>
+              </div>` : '<p class="section-hint">Nothing owed right now.</p>'}
+          </div>
+          <div class="admin-section">
+            <h3>Recently paid</h3>
+            ${paid.length ? `<table class="rep-table" style="width:100%"><tbody>${paid.map((j) => `<tr><td>${escapeHtml(name(j.partner_account_id))}</td><td>${escapeHtml(j.quote_number)}</td><td>${escapeHtml(j.customer_name || '')}</td><td>${fmt(j.commission_paid_at)}</td><td>${escapeHtml(j.commission_paid_ref || '')}</td><td style="text-align:right">${money(comm(j))}</td></tr>`).join('')}</tbody></table>` : '<p class="section-hint">None yet.</p>'}
+          </div>`;
+
+        $('#np-go').addEventListener('click', async () => {
+          const btn = $('#np-go');
+          const business_name = $('#np-name').value.trim(), email = $('#np-email').value.trim();
+          if (!business_name || !email) { ui.toast('Enter the business name and email'); return; }
+          btn.disabled = true; btn.textContent = 'Sending…';
+          try {
+            const out = await partnerFn('create_partner', {
+              business_name, email, contact_name: $('#np-contact').value.trim(),
+              referral_pct: $('#np-ref').value, install_pct: $('#np-inst').value,
+            });
+            await db.refreshAccounts();
+            ui.toast(`Welcome email sent to ${email}${out.reused_account ? ' (existing account switched on as a partner)' : ''}`);
+            adminPartners.render(body);
+          } catch (e) {
+            ui.toast(e.message || 'Could not add the partner');
+            btn.disabled = false; btn.textContent = 'Send welcome email';
+          }
+        });
+        body.querySelectorAll('[data-cjob]').forEach((a) => a.addEventListener('click', (e) => { e.preventDefault(); router.go('job', { jobId: a.dataset.cjob }); }));
+        const sum = () => {
+          const ids = [...body.querySelectorAll('[data-cpay]:checked')].map((c) => c.dataset.cpay);
+          const tot = unpaid.filter((j) => ids.includes(j.id)).reduce((s, j) => s + comm(j), 0);
+          const el = $('#cp-sum'); if (el) el.textContent = ids.length ? `${ids.length} selected · ${money(tot)}` : '';
+          return ids;
+        };
+        body.querySelectorAll('[data-cpay]').forEach((c) => c.addEventListener('change', sum));
+        const go = $('#cp-go');
+        if (go) go.addEventListener('click', async () => {
+          const ids = sum();
+          if (!ids.length) { ui.toast('Tick the jobs you have paid'); return; }
+          go.disabled = true;
+          const { error } = await sb.from('jobs')
+            .update({ commission_paid_at: new Date().toISOString(), commission_paid_ref: $('#cp-ref').value.trim() || null })
+            .in('id', ids);
+          if (error) { ui.toast('Failed: ' + error.message); go.disabled = false; return; }
+          ui.toast(`${ids.length} marked paid`);
+          adminPartners.render(body);
+        });
+      },
+    };
+
 
     const adminProduction = {
       async render(body) {
@@ -4626,7 +4999,9 @@
             subtotal: totals.subtotal, gst: totals.gst, total: totals.total,
             discount_amount: totals.discountAmt,
           };
-          await db.saveJob(this.jobId, { quote });
+          const patch = { quote };
+          if (this.job?.partner_account_id) patch.partner = { commission_base: partnerCommissionBase(quote) };
+          await db.saveJob(this.jobId, patch);
           ui.toast('Quote saved · ' + money(totals.total));
         } catch (err) {
           ui.toast('Save failed: ' + (err.message || 'error'));
@@ -5798,7 +6173,7 @@
         if (isConfirmed) {
           const when = a.confirmed_at ? new Date(a.confirmed_at).toLocaleString('en-AU', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
           const online = a.online || {};
-          const howWord = a.how === 'online' ? 'the quote link' : (a.how || '');
+          const howWord = a.how === 'online' ? 'the quote link' : a.how === 'partner' ? `partner (${a.partner?.account || ''}, reported by ${a.partner?.name || ''})` : (a.how || '');
           html += `<div class="acc-confirmed-banner">✓ <strong>Accepted</strong> via ${escapeHtml(howWord)} · ${escapeHtml(when)} · by ${escapeHtml(a.confirmed_by || '')}${a.terms_confirmed ? ' · terms confirmed' : ''}</div>`;
 
           // What a customer acceptance is worth in a dispute is the detail
@@ -5816,7 +6191,10 @@
           // match was certain. Where it wasn't, this is the only place anyone
           // finds out — so it says plainly what to do about it.
           const fg = a.fergus;
-          if (a.how === 'online' && fg && !fg.pushed && !job.fergus_job_id) {
+          if (a.how === 'partner' && a.partner?.note) {
+            html += `<div class="section-hint" style="margin:-8px 0 14px">Partner's note: ${escapeHtml(a.partner.note)}</div>`;
+          }
+          if (['online', 'partner'].includes(a.how) && fg && !fg.pushed && !job.fergus_job_id) {
             html += `<div class="acc-blocked" style="background:#fef3c7;border-color:#fde68a;color:#92400e">Not raised in Fergus yet — ${escapeHtml(fg.reason || 'the push did not complete')}. Use <strong>Push to Fergus</strong> at the top of this page.</div>`;
           }
         }
@@ -6055,6 +6433,15 @@
           L.push(`Account: ${acc.name}`);
           if (job.account_reference) L.push(`${acc.reference_label}: ${job.account_reference}`);
         }
+        const partner = jobPartner(job);
+        if (partner) {
+          const pd = job.data?.partner || {};
+          if (!acc) {
+            L.push(`Partner: ${partner.name} (we bill the customer)`);
+            if (job.account_reference) L.push(`${partner.reference_label || 'Partner reference'}: ${job.account_reference}`);
+          }
+          L.push(`Takedown & rehang: ${pd.install_by === 'partner' ? partner.name + ' does it' : 'Dr Drapes'}`);
+        }
         L.push(`Customer: ${job.customer_name || ''}`);
         if (job.customer_phone) L.push(`Phone: ${job.customer_phone}`);
         if (job.site_address) L.push(`Address: ${job.site_address}`);
@@ -6173,7 +6560,7 @@
        is invisible, and it leaves the job identical to one confirmed by hand. */
     async function backfillOnlineAcceptance(job) {
       const a = job.data?.acceptance;
-      if (a?.how !== 'online' || !a.confirmed_at) return job;
+      if (!['online', 'partner'].includes(a?.how) || !a.confirmed_at) return job;
 
       const patch = {};
 
@@ -8138,8 +8525,9 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
     // Where a job came from. A converted enquiry carries enquiry_source, and an
     // emailed one also carries source:'email'. Everything else was typed
     // straight into Drapr: phone calls, repeat customers, site visits.
-    const LEAD_SOURCES = [['web', 'Web form'], ['email', 'Email'], ['direct', 'Entered in Drapr']];
-    const jobLeadSource = (j) => j.data?.enquiry_source ? (j.data.enquiry_source.source === 'email' ? 'email' : 'web') : 'direct';
+    const LEAD_SOURCES = [['web', 'Web form'], ['email', 'Email'], ['partner', 'Partner portal'], ['direct', 'Entered in Drapr']];
+    const jobLeadSource = (j) => j.partner_account_id ? 'partner'
+      : j.data?.enquiry_source ? (j.data.enquiry_source.source === 'email' ? 'email' : 'web') : 'direct';
     const enquiryLeadSource = (e) => e.data?.source === 'email' ? 'email' : 'web';
 
     // Enquiries are dated by when they arrived, quotes by when they were raised,

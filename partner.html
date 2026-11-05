@@ -1,0 +1,1282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Partner Portal — Dr Drapes</title>
+<link rel="icon" type="image/svg+xml" href="brand/drapr-favicon.svg" />
+<style>
+  /* The Dr Drapes palette, as on the quote PDF and the customer accept page:
+     partners are quoting under our name, so their screen looks like our
+     paperwork, not like the staff app. */
+  :root {
+    --navy: #323264; --navy-deep: #26264e; --pink: #C81B55;
+    --ink: #2a2a3a; --muted: #6e6e78; --line: #dde0ea;
+    --card: #ffffff; --bg: #f4f5fa; --ok: #1E7A4B; --warn: #B4740E; --bad: #B3261E;
+    --tint: #eef0f8;
+    --r: 12px; --r-sm: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Open Sans', sans-serif; background: var(--bg); color: var(--ink); line-height: 1.45; font-size: 15px; }
+  .hidden { display: none !important; }
+  a { color: var(--navy); }
+
+  /* ---------- top bar ---------- */
+  .top { background: var(--navy); color: #fff; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; position: sticky; top: 0; z-index: 20; }
+  .top .brand { display: flex; align-items: center; gap: 10px; min-width: 0; cursor: pointer; }
+  .top .brand b { font-size: 16px; white-space: nowrap; }
+  .top .brand span { font-size: 12px; color: rgba(255,255,255,.7); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .top .who { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+  .top .who .nm { color: rgba(255,255,255,.8); }
+  .top button { background: rgba(255,255,255,.12); color: #fff; border: 1px solid rgba(255,255,255,.25); border-radius: 6px; padding: 6px 10px; font: inherit; font-size: 13px; cursor: pointer; }
+  @media (max-width: 560px) { .top .who .nm, .top .brand span { display: none; } }
+
+  .wrap { max-width: 920px; margin: 0 auto; padding: 16px; }
+  .card { background: var(--card); border-radius: var(--r); box-shadow: 0 2px 14px rgba(50,50,100,.07); padding: 20px; margin-bottom: 14px; }
+  @media (max-width: 480px) { .wrap { padding: 10px; } .card { padding: 15px; } }
+  h1 { font-size: 21px; color: var(--navy); margin-bottom: 4px; }
+  h2 { font-size: 16px; color: var(--navy); margin-bottom: 10px; }
+  h3 { font-size: 14px; color: var(--navy); margin: 14px 0 8px; }
+  .sub { color: var(--muted); font-size: 13.5px; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .spread { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 600px) { .grid2 { grid-template-columns: 1fr; } }
+
+  /* ---------- forms ---------- */
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-size: 12.5px; font-weight: 700; color: var(--navy); margin-bottom: 4px; }
+  .field .hint { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  input[type=text], input[type=email], input[type=tel], input[type=password], input[type=number], input[type=date], select, textarea {
+    width: 100%; padding: 10px 11px; border: 1.5px solid var(--line); border-radius: var(--r-sm); font: inherit; font-size: 15px; background: #fff; color: var(--ink);
+  }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--navy); }
+  textarea { resize: vertical; min-height: 70px; }
+  .choice { display: flex; gap: 8px; flex-wrap: wrap; }
+  .choice label { flex: 1 1 200px; display: flex; gap: 9px; align-items: flex-start; border: 1.5px solid var(--line); border-radius: var(--r-sm); padding: 10px 12px; cursor: pointer; font-size: 14px; background: #fff; }
+  .choice label small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .choice input { margin-top: 3px; accent-color: var(--navy); }
+  .choice label.on { border-color: var(--navy); background: var(--tint); }
+
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 11px 16px; border-radius: var(--r-sm); border: none; font: inherit; font-size: 14.5px; font-weight: 700; cursor: pointer; text-decoration: none; white-space: nowrap; }
+  .btn-primary { background: var(--pink); color: #fff; }
+  .btn-primary:hover { background: #a8164a; }
+  .btn-navy { background: var(--navy); color: #fff; }
+  .btn-ok { background: var(--ok); color: #fff; }
+  .btn-ghost { background: #fff; color: var(--navy); border: 1.5px solid var(--line); }
+  .btn-ghost:hover { border-color: var(--navy); }
+  .btn-sm { padding: 7px 11px; font-size: 13px; }
+  .btn-link { background: none; border: none; color: var(--muted); text-decoration: underline; cursor: pointer; font: inherit; font-size: 13.5px; padding: 4px; }
+  .btn-x { background: none; border: none; color: var(--muted); font-size: 20px; line-height: 1; cursor: pointer; padding: 4px 8px; }
+  .btn[disabled] { opacity: .55; cursor: default; }
+  .full { width: 100%; }
+
+  .msg { border-radius: var(--r-sm); padding: 10px 12px; font-size: 14px; margin-bottom: 12px; }
+  .msg.err { background: #fdecec; color: var(--bad); }
+  .msg.ok { background: #e8f4ee; color: var(--ok); }
+  .msg.info { background: var(--tint); color: var(--navy); }
+
+  /* ---------- sign-in ---------- */
+  .auth { max-width: 400px; margin: 40px auto; }
+  .auth .logo { display: block; max-width: 200px; margin: 0 auto 18px; }
+
+  /* ---------- job list ---------- */
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .tabs button { border: 1.5px solid var(--line); background: #fff; border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 13px; cursor: pointer; color: var(--ink); }
+  .tabs button.on { background: var(--navy); border-color: var(--navy); color: #fff; }
+  .jobrow { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--r-sm); margin-bottom: 8px; background: #fff; cursor: pointer; }
+  .jobrow:hover { border-color: var(--navy); }
+  .jobrow .t { font-weight: 700; }
+  .jobrow .d { font-size: 13px; color: var(--muted); }
+  .jobrow .amt { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .jobrow .com { text-align: right; font-size: 12.5px; color: var(--ok); }
+  .pill { display: inline-block; font-size: 11.5px; font-weight: 700; padding: 2px 9px; border-radius: 999px; background: var(--tint); color: var(--navy); vertical-align: middle; }
+  .pill.quoted { background: #fff4e0; color: var(--warn); }
+  .pill.confirmed, .pill.in_progress { background: #e6f0fb; color: #1d5fa8; }
+  .pill.complete { background: #eaf5ef; color: var(--ok); }
+  .pill.invoiced, .pill.rehung { background: #eef0f3; color: #444; }
+  .pill.declined { background: #fdecec; color: var(--bad); }
+  .empty { text-align: center; padding: 30px 10px; color: var(--muted); }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+  .stat { background: #fff; border-radius: var(--r-sm); padding: 12px; box-shadow: 0 1px 6px rgba(50,50,100,.06); }
+  .stat .k { font-size: 11.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; font-weight: 700; }
+  .stat .v { font-size: 19px; font-weight: 800; color: var(--navy); font-variant-numeric: tabular-nums; }
+  @media (max-width: 560px) { .stats { grid-template-columns: 1fr 1fr; } .stats .stat:last-child { grid-column: 1 / -1; } }
+
+  /* ---------- quote builder ---------- */
+  .room { border: 1.5px solid var(--line); border-radius: var(--r); padding: 12px; margin-bottom: 12px; background: #fcfcfe; }
+  .room-head { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .room-head input { font-weight: 700; }
+  .item { display: grid; grid-template-columns: 2fr 1fr 1fr auto auto; gap: 8px; align-items: end; padding: 10px 0; border-top: 1px dashed var(--line); }
+  .item:first-of-type { border-top: none; }
+  .item .field { margin: 0; }
+  .item .amt { font-weight: 700; font-variant-numeric: tabular-nums; min-width: 80px; text-align: right; padding-bottom: 10px; }
+  .item .opts { grid-column: 1 / -1; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; font-size: 13px; }
+  .item .opts input[type=text] { flex: 1; min-width: 160px; padding: 7px 9px; font-size: 13.5px; }
+  .item .basis { font-size: 12px; color: var(--muted); }
+  .rep { display: grid; grid-template-columns: 2fr 90px auto auto; gap: 8px; align-items: center; padding: 6px 0; }
+  .rep .amt { font-weight: 700; min-width: 80px; text-align: right; }
+  @media (max-width: 640px) {
+    .item { grid-template-columns: 1fr 1fr; }
+    .item .f-type { grid-column: 1 / -1; }
+    .item .amt { grid-column: 1 / 2; text-align: left; padding: 0; }
+    .rep { grid-template-columns: 1fr 70px auto; }
+    .rep .amt { grid-column: 1 / 2; text-align: left; }
+  }
+  .totals { position: sticky; bottom: 0; background: #fff; border-top: 2px solid var(--navy); box-shadow: 0 -4px 16px rgba(50,50,100,.08); padding: 12px 16px; z-index: 10; }
+  .totals .in { max-width: 920px; margin: 0 auto; display: flex; gap: 16px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+  .totals .nums { display: flex; gap: 18px; flex-wrap: wrap; font-variant-numeric: tabular-nums; }
+  .totals .nums div { font-size: 12px; color: var(--muted); }
+  .totals .nums b { display: block; font-size: 17px; color: var(--navy); }
+  .totals .nums .com b { color: var(--ok); }
+
+  /* ---------- job view ---------- */
+  .kv { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; font-size: 14px; }
+  .kv dt { color: var(--muted); }
+  .lines .room-name { font-size: 13px; font-weight: 700; color: var(--navy-deep); background: #f3f4fa; padding: 6px 10px; border-radius: 6px; margin: 12px 0 2px; }
+  .lines .line { display: flex; justify-content: space-between; gap: 12px; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+  .lines .line .d { font-size: 12px; color: var(--muted); }
+  .lines .line .a { white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .tot .r { display: flex; justify-content: space-between; padding: 3px 10px; font-size: 14px; font-variant-numeric: tabular-nums; }
+  .tot .r.g { border-top: 2px solid var(--navy); margin-top: 6px; padding-top: 8px; font-size: 17px; font-weight: 800; color: var(--navy); }
+  .tot .r.c { color: var(--ok); font-weight: 700; }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .timeline { list-style: none; }
+  .timeline li { position: relative; padding: 0 0 12px 22px; font-size: 14px; }
+  .timeline li::before { content: ''; position: absolute; left: 5px; top: 6px; width: 9px; height: 9px; border-radius: 50%; background: var(--line); }
+  .timeline li.done::before { background: var(--ok); }
+  .timeline li.now::before { background: var(--pink); box-shadow: 0 0 0 4px rgba(200,27,85,.15); }
+  .timeline li::after { content: ''; position: absolute; left: 9px; top: 16px; bottom: 0; width: 1px; background: var(--line); }
+  .timeline li:last-child::after { display: none; }
+  .timeline .when { color: var(--muted); font-size: 12.5px; }
+
+  /* ---------- inspection ---------- */
+  .chk-group { margin-bottom: 12px; }
+  .chk-group h4 { font-size: 13.5px; color: var(--navy); margin-bottom: 6px; }
+  .chk { display: grid; grid-template-columns: minmax(150px, 1fr) 2fr; gap: 8px; align-items: center; padding: 4px 0; }
+  .chk label { display: flex; gap: 7px; align-items: center; font-size: 14px; cursor: pointer; }
+  .chk input[type=text] { padding: 6px 8px; font-size: 13.5px; }
+  @media (max-width: 520px) { .chk { grid-template-columns: 1fr; } }
+  .score { display: flex; gap: 10px; align-items: center; }
+  .score input { flex: 1; accent-color: var(--navy); }
+  .score b { min-width: 26px; text-align: center; color: var(--navy); }
+  .photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+  .photo { position: relative; aspect-ratio: 1; border-radius: 8px; overflow: hidden; background: #eceef5; display: flex; align-items: center; justify-content: center; font-size: 11px; color: var(--muted); }
+  .photo img { width: 100%; height: 100%; object-fit: cover; }
+  .photo .del { position: absolute; top: 3px; right: 3px; background: rgba(0,0,0,.6); color: #fff; border: none; border-radius: 50%; width: 22px; height: 22px; cursor: pointer; font-size: 14px; line-height: 1; }
+  .photo.add { border: 2px dashed var(--line); background: #fff; cursor: pointer; flex-direction: column; font-size: 12px; }
+  .photo.add b { font-size: 24px; color: var(--navy); }
+
+  /* ---------- onboarding ---------- */
+  .welcome { background: linear-gradient(135deg, var(--navy) 0%, #44447e 100%); color: #fff; border-radius: var(--r); padding: 24px 22px; margin-bottom: 14px; }
+  .welcome h1 { color: #fff; font-size: 23px; }
+  .welcome p { color: rgba(255,255,255,.85); margin-top: 6px; }
+  .welcome .rates { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+  .welcome .rate { background: rgba(255,255,255,.12); border-radius: var(--r-sm); padding: 10px 14px; flex: 1 1 200px; }
+  .welcome .rate b { display: block; font-size: 24px; }
+  .welcome .rate span { font-size: 13px; color: rgba(255,255,255,.8); }
+  .steps3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 14px; }
+  .steps3 div { font-size: 13px; color: rgba(255,255,255,.85); }
+  .steps3 b { display: inline-flex; width: 22px; height: 22px; border-radius: 50%; background: var(--pink); color: #fff; align-items: center; justify-content: center; font-size: 12px; margin-right: 6px; }
+  @media (max-width: 600px) { .steps3 { grid-template-columns: 1fr; } }
+  .logo-box { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+  .logo-prev { width: 220px; height: 90px; border: 2px dashed var(--line); border-radius: var(--r-sm); display: flex; align-items: center; justify-content: center; background: #fff; color: var(--muted); font-size: 13px; padding: 8px; }
+  .logo-prev img { max-width: 100%; max-height: 100%; object-fit: contain; }
+  .grid4 { display: grid; grid-template-columns: 2fr 1fr 90px 110px; gap: 12px; }
+  @media (max-width: 600px) { .grid4 { grid-template-columns: 1fr 1fr; } .grid4 .f-street { grid-column: 1 / -1; } }
+
+  /* ---------- modal + toast ---------- */
+  .modal-bg { position: fixed; inset: 0; background: rgba(20,20,40,.45); display: flex; align-items: flex-start; justify-content: center; padding: 40px 12px; z-index: 50; overflow-y: auto; }
+  .modal { background: #fff; border-radius: var(--r); width: 100%; max-width: 520px; padding: 20px; }
+  .toast { position: fixed; left: 50%; bottom: 90px; transform: translateX(-50%); background: var(--navy-deep); color: #fff; padding: 10px 16px; border-radius: 8px; font-size: 14px; z-index: 60; max-width: 90vw; }
+  .loading { text-align: center; color: var(--muted); padding: 40px 0; }
+</style>
+</head>
+<body>
+
+<div class="top hidden" id="top">
+  <div class="brand" id="go-home"><b>Dr Drapes</b><span id="top-partner"></span></div>
+  <div class="who"><span class="nm" id="top-name"></span><button id="btn-profile">Business details</button><button id="btn-signout">Sign out</button></div>
+</div>
+
+<main id="app"><div class="loading">Loading…</div></main>
+<div id="totals-mount"></div>
+
+<script type="module">
+  import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
+  import { jsPDF } from 'https://esm.sh/jspdf@2.5.1';
+
+  const SUPABASE_URL = 'https://kspezkqanaqrhbirqmlc.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtzcGV6a3FhbmFxcmhiaXJxbWxjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwOTU1MDksImV4cCI6MjA5NDY3MTUwOX0.toB3DTsKZ8Cydhxw4DTJjzmanF7tghHlXQNOzJ4xOiA';
+  const FN = `${SUPABASE_URL}/functions/v1/partner-portal`;
+  const LOGO = 'data:image/png;base64,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';
+  const LOGO_ASPECT = 520 / 120;
+  const BLUE = [50, 50, 100], PINK = [200, 27, 85];
+
+  // Read the set-password token before anything touches the URL.
+  const INVITE = (location.hash.match(/(?:^|[#&])invite=([^&]+)/) || [])[1] || null;
+  if (INVITE) history.replaceState(null, '', location.pathname + location.search);
+
+  // Own storage key, so a staff login and a partner login in the same browser
+  // never pick up each other's session.
+  const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { storageKey: 'drdrapes-partner-auth', persistSession: true, autoRefreshToken: true } });
+
+  const $ = (s, el = document) => el.querySelector(s);
+  const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+  const app = $('#app');
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const money = (n) => '$' + Number(n || 0).toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmtDate = (d) => new Date(d).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+  const fmtWhen = (d) => new Date(d).toLocaleString('en-AU', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
+  const clip = (s, n) => { s = String(s || ''); return s.length > n ? s.slice(0, n - 1) + '…' : s; };
+
+  const STATUS = {
+    quoted: 'Quote sent / awaiting customer', confirmed: 'Accepted — booking in', in_progress: 'In our workshop',
+    complete: 'Cleaned & ready', invoiced: 'Invoiced', rehung: 'Completed', declined: 'Declined',
+  };
+  const SHORT = { quoted: 'Quoted', confirmed: 'Accepted', in_progress: 'Cleaning', complete: 'Ready', invoiced: 'Invoiced', rehung: 'Completed', declined: 'Declined' };
+  const FLOW = ['quoted', 'confirmed', 'in_progress', 'complete', 'invoiced', 'rehung'];
+  const DECLINE = [['price', 'Price / too expensive'], ['elsewhere', 'Went elsewhere'], ['timing', 'Timing / not now'], ['no_response', 'No response'], ['other', 'Other']];
+
+  const INSPECT = {
+    curtains: [['mould', 'Mould'], ['smoke', 'Smoke'], ['pet_hair', 'Pet hair'], ['fading', 'Fading'], ['fraying', 'Fraying'], ['shrinkage', 'Shrinkage risk'], ['water', 'Water damage'], ['chalky_backing', 'Chalky backing'], ['backing_sticking', 'Backing sticking together'], ['water_marks', 'Water marks/stains'], ['heavily_stained', 'Heavily stained']],
+    blinds: [['mould', 'Mould'], ['mechanism', 'Mechanism damage'], ['slat', 'Slat damage'], ['cord', 'Cord/chain issues'], ['sun_fading', 'Sun damage/fading'], ['water_stains', 'Water stains'], ['heavily_stained', 'Heavily stained']],
+    hardware: [['track', 'Track damage'], ['bracket', 'Bracket issues'], ['motor', 'Motor faults'], ['parts_missing', 'Parts missing']],
+  };
+
+  let ME = null;            // { user, account, rates, catalog, repairs, pdf }
+  let toastTimer = null;
+
+  function toast(m) {
+    let t = $('.toast'); if (!t) { t = document.createElement('div'); t.className = 'toast'; document.body.appendChild(t); }
+    t.textContent = m; t.style.display = '';
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.style.display = 'none'; }, 3500);
+  }
+
+  async function call(action, payload = {}, { anon = false } = {}) {
+    let token = SUPABASE_ANON_KEY;
+    if (!anon) {
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) { showSignIn(); throw new Error('Please sign in again'); }
+      token = session.access_token;
+    }
+    const res = await fetch(FN, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ action, ...payload }),
+    });
+    const out = await res.json().catch(() => ({}));
+    if (res.status === 401 && !anon) { await sb.auth.signOut(); showSignIn('Your session ended. Please sign in again.'); throw new Error('signed out'); }
+    if (!res.ok || out.error) throw new Error(out.error || `Error ${res.status}`);
+    return out;
+  }
+
+  function modal(html, wire) {
+    const bg = document.createElement('div');
+    bg.className = 'modal-bg';
+    bg.innerHTML = `<div class="modal">${html}</div>`;
+    document.body.appendChild(bg);
+    const close = () => bg.remove();
+    bg.addEventListener('click', (e) => { if (e.target === bg) close(); });
+    $$('[data-close]', bg).forEach((b) => b.addEventListener('click', close));
+    wire?.(bg, close);
+    return close;
+  }
+
+  // ================================================================ auth
+
+  function showSignIn(note = '') {
+    $('#top').classList.add('hidden');
+    $('#totals-mount').innerHTML = '';
+    app.innerHTML = `
+      <div class="auth wrap">
+        <img class="logo" src="${LOGO}" alt="Dr Drapes Curtain Clinic" />
+        <div class="card">
+          <h1>Partner portal</h1>
+          <p class="sub" style="margin-bottom:16px">Quote curtain and blind cleaning, send quotes to your customers, and follow every job through to rehang.</p>
+          ${note ? `<div class="msg info">${esc(note)}</div>` : ''}
+          <div id="si-err"></div>
+          <form id="si-form">
+            <div class="field"><label>Email</label><input type="email" id="si-email" autocomplete="username" required /></div>
+            <div class="field"><label>Password</label><input type="password" id="si-pass" autocomplete="current-password" required /></div>
+            <button class="btn btn-primary full" id="si-btn">Sign in</button>
+          </form>
+          <div style="text-align:center;margin-top:10px"><button class="btn-link" id="si-forgot">Forgot password, or never set one?</button></div>
+        </div>
+        <p class="sub" style="text-align:center">Need a login? Call Dr Drapes on <a href="tel:1300652866">1300 652 866</a>.</p>
+      </div>`;
+    $('#si-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = $('#si-btn'); btn.disabled = true; btn.textContent = 'Signing in…';
+      const { error } = await sb.auth.signInWithPassword({ email: $('#si-email').value.trim(), password: $('#si-pass').value });
+      if (error) {
+        $('#si-err').innerHTML = `<div class="msg err">That email and password don't match. Try again, or use "Forgot password".</div>`;
+        btn.disabled = false; btn.textContent = 'Sign in'; return;
+      }
+      boot();
+    });
+    $('#si-forgot').addEventListener('click', () => {
+      modal(`
+        <div class="spread"><h2>Set a new password</h2><button class="btn-x" data-close>×</button></div>
+        <p class="sub" style="margin-bottom:12px">Enter your login email. If it's a partner login, we'll email you a link to set a new password.</p>
+        <div class="field"><input type="email" id="fp-email" value="${esc($('#si-email').value)}" placeholder="you@business.com.au" /></div>
+        <button class="btn btn-primary full" id="fp-go">Email me a link</button>`, (m, close) => {
+        $('#fp-go', m).addEventListener('click', async () => {
+          await call('forgot', { email: $('#fp-email', m).value.trim() }, { anon: true }).catch(() => {});
+          close(); toast('If that email has a partner login, a link is on its way. Check your junk folder too.');
+        });
+      });
+    });
+  }
+
+  async function redeemInvite() {
+    app.innerHTML = '<div class="loading">Opening your link…</div>';
+    try {
+      await sb.auth.signOut();
+      const r = await call('redeem_invite', { token: INVITE }, { anon: true });
+      const { error } = await sb.auth.verifyOtp({ token_hash: r.token_hash, type: 'recovery' });
+      if (error) throw error;
+      showSetPassword(r.name, r.email);
+    } catch (e) {
+      showSignIn(e.message || 'That link didn\'t work. Use "Forgot password" to get a new one.');
+    }
+  }
+
+  function showSetPassword(name, email) {
+    $('#top').classList.add('hidden');
+    app.innerHTML = `
+      <div class="auth wrap">
+        <img class="logo" src="${LOGO}" alt="Dr Drapes Curtain Clinic" />
+        <div class="card">
+          <h1>Welcome${name ? ', ' + esc(name.split(' ')[0]) : ''}</h1>
+          <p class="sub" style="margin-bottom:14px">Choose a password for <b>${esc(email)}</b>. You'll use it with that email to sign in from now on.</p>
+          <div id="sp-err"></div>
+          <form id="sp-form">
+            <div class="field"><label>New password</label><input type="password" id="sp-1" autocomplete="new-password" minlength="8" required /><div class="hint">At least 8 characters.</div></div>
+            <div class="field"><label>Same again</label><input type="password" id="sp-2" autocomplete="new-password" required /></div>
+            <button class="btn btn-primary full" id="sp-btn">Save password and continue</button>
+          </form>
+        </div>
+      </div>`;
+    $('#sp-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const a = $('#sp-1').value, b = $('#sp-2').value;
+      if (a.length < 8) { $('#sp-err').innerHTML = '<div class="msg err">Use at least 8 characters.</div>'; return; }
+      if (a !== b) { $('#sp-err').innerHTML = '<div class="msg err">The two passwords don\'t match.</div>'; return; }
+      $('#sp-btn').disabled = true;
+      const { error } = await sb.auth.updateUser({ password: a });
+      if (error) { $('#sp-err').innerHTML = `<div class="msg err">${esc(error.message)}</div>`; $('#sp-btn').disabled = false; return; }
+      toast('Password saved. You\'re in.');
+      boot();
+    });
+  }
+
+  // ================================================================ boot + routing
+
+  async function boot() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) return showSignIn();
+    try {
+      ME = await call('me');
+    } catch (e) {
+      if (e.message === 'signed out') return;
+      await sb.auth.signOut();
+      return showSignIn(e.message);
+    }
+    ME.logoDims = await imageDims(ME.account.logo);
+    $('#top').classList.remove('hidden');
+    $('#top-partner').textContent = ME.account.name;
+    $('#top-name').textContent = ME.user.name !== ME.account.name ? ME.user.name : '';
+    if (!ME.account.onboarded) return profileScreen(true);
+    route();
+  }
+
+  function imageDims(src) {
+    return new Promise((resolve) => {
+      if (!src) return resolve(null);
+      const img = new Image();
+      img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
+      img.onerror = () => resolve(null);
+      img.src = src;
+    });
+  }
+
+  window.addEventListener('hashchange', () => { if (ME) route(); });
+  $('#go-home').addEventListener('click', () => { if (ME?.account.onboarded) location.hash = '#/'; });
+  $('#btn-profile').addEventListener('click', () => { location.hash = '#/profile'; });
+  $('#btn-signout').addEventListener('click', async () => { await sb.auth.signOut(); ME = null; location.hash = ''; showSignIn('Signed out.'); });
+
+  function route() {
+    $('#totals-mount').innerHTML = '';
+    const h = location.hash;
+    const legacy = h.match(/^#job=([0-9a-f-]{36})/i);   // links in our emails
+    if (legacy) { location.replace('#/job/' + legacy[1]); return; }
+    let m;
+    if (!ME.account.onboarded) return profileScreen(true);
+    if (h === '#/profile') return profileScreen(false);
+    if (h === '#/new') return quoteEditor(null);
+    if ((m = h.match(/^#\/job\/([0-9a-f-]{36})\/edit$/i))) return loadAndEdit(m[1]);
+    if ((m = h.match(/^#\/job\/([0-9a-f-]{36})$/i))) return jobView(m[1]);
+    return home();
+  }
+
+  // ================================================================ home
+
+  let homeFilter = 'open';
+  async function home() {
+    window.scrollTo(0, 0);
+    app.innerHTML = `<div class="wrap"><div class="loading">Loading your jobs…</div></div>`;
+    let jobs = [];
+    try { jobs = (await call('list_jobs')).jobs; } catch (e) { app.innerHTML = `<div class="wrap"><div class="msg err">${esc(e.message)}</div></div>`; return; }
+
+    const a = ME.account;
+    const open = jobs.filter((j) => j.status === 'quoted');
+    const live = jobs.filter((j) => ['confirmed', 'in_progress', 'complete'].includes(j.status));
+    const done = jobs.filter((j) => ['invoiced', 'rehung'].includes(j.status));
+    const declined = jobs.filter((j) => j.status === 'declined');
+    const yearStart = new Date(new Date().getFullYear(), new Date().getMonth() < 6 ? -6 : 6, 1); // Australian FY start
+    const earned = jobs.filter((j) => ['invoiced', 'rehung'].includes(j.status) && new Date(j.updated_at) >= yearStart).reduce((s, j) => s + j.commission, 0);
+    const pipeline = [...open, ...live].reduce((s, j) => s + j.commission, 0);
+    const lists = { open, live, done, declined, all: jobs };
+
+    const draw = () => {
+      const list = lists[homeFilter];
+      $('#joblist').innerHTML = list.length ? list.map((j) => `
+        <div class="jobrow" data-id="${j.id}">
+          <div>
+            <div class="t">${esc(j.customer_name || 'No name')} <span class="pill ${j.status}">${esc(SHORT[j.status] || j.status)}</span></div>
+            <div class="d">${esc(j.quote_number)}${j.reference ? ' · ' + esc(j.reference) : ''} · ${fmtDate(j.created_at)}${j.site_address ? ' · ' + esc(clip(j.site_address, 48)) : ''}</div>
+            ${j.status === 'quoted' && !j.sent_at ? '<div class="d" style="color:var(--warn)">Not emailed from here yet</div>' : ''}
+          </div>
+          <div><div class="amt">${money(j.total)}</div><div class="com">${money(j.commission)} comm.</div></div>
+        </div>`).join('') : `<div class="empty">${homeFilter === 'open' ? 'No open quotes. Press <b>New quote</b> to start one.' : 'Nothing here yet.'}</div>`;
+      $$('#joblist .jobrow').forEach((r) => r.addEventListener('click', () => { location.hash = '#/job/' + r.dataset.id; }));
+      $$('.tabs button').forEach((b) => b.classList.toggle('on', b.dataset.f === homeFilter));
+    };
+
+    app.innerHTML = `
+      <div class="wrap">
+        <div class="spread" style="margin-bottom:14px">
+          <div><h1>${esc(a.name)}</h1><div class="sub">Commission: ${a.commission_referral_pct}% when we do the takedown & rehang · ${a.commission_install_pct}% when you do</div></div>
+          <a class="btn btn-primary" href="#/new">+ New quote</a>
+        </div>
+        <div class="stats">
+          <div class="stat"><div class="k">Open quotes</div><div class="v">${open.length}</div></div>
+          <div class="stat"><div class="k">Commission in progress</div><div class="v">${money(pipeline)}</div></div>
+          <div class="stat"><div class="k">Earned this FY</div><div class="v">${money(earned)}</div></div>
+        </div>
+        <div class="card">
+          <div class="tabs">
+            <button data-f="open">Open quotes (${open.length})</button>
+            <button data-f="live">Accepted & in progress (${live.length})</button>
+            <button data-f="done">Completed (${done.length})</button>
+            <button data-f="declined">Declined (${declined.length})</button>
+            <button data-f="all">All</button>
+          </div>
+          <div id="joblist"></div>
+        </div>
+      </div>`;
+    $$('.tabs button').forEach((b) => b.addEventListener('click', () => { homeFilter = b.dataset.f; draw(); }));
+    draw();
+  }
+
+  // ================================================================ onboarding + business details
+
+  function profileScreen(first) {
+    window.scrollTo(0, 0);
+    $('#totals-mount').innerHTML = '';
+    const a = ME.account, u = ME.user;
+    let logo = a.logo || null;
+    const STATES = ['VIC', 'NSW', 'QLD', 'SA', 'WA', 'TAS', 'ACT', 'NT'];
+    const userName = u.name && u.name !== a.name ? u.name : '';
+
+    app.innerHTML = `
+      <div class="wrap">
+        ${first ? `
+        <div class="welcome">
+          <h1>Welcome to the Dr Drapes partner program</h1>
+          <p>Quote curtain and blind cleaning for your customers on our price list. We do the cleaning, you keep the customer, and you earn commission on every job.</p>
+          <div class="rates">
+            <div class="rate"><b>${a.commission_referral_pct}%</b><span>commission when Dr Drapes takes down and rehangs</span></div>
+            <div class="rate"><b>${a.commission_install_pct}%</b><span>commission when you take down and rehang</span></div>
+          </div>
+          <div class="steps3">
+            <div><b>1</b>Add your business details and logo (below)</div>
+            <div><b>2</b>Create a quote from measurements</div>
+            <div><b>3</b>Send it to your customer and track the job</div>
+          </div>
+        </div>` : `<div style="margin-bottom:10px"><a href="#/">← All jobs</a></div><h1 style="margin-bottom:12px">Business details</h1>`}
+        <div id="pf-err"></div>
+        <div class="card">
+          <h2>You</h2>
+          <div class="grid2">
+            <div class="field"><label>Your name *</label><input type="text" id="pf-uname" value="${esc(userName)}" autocomplete="name" /></div>
+            <div class="field"><label>Your mobile</label><input type="tel" id="pf-uphone" value="${esc(u.phone || '')}" /></div>
+          </div>
+          <div class="sub">You sign in as ${esc(u.email)}.</div>
+        </div>
+        <div class="card">
+          <h2>Your business</h2>
+          <p class="sub" style="margin:-4px 0 12px">Your business name, phone and email print on the quotes your customers receive, next to ours.</p>
+          <div class="grid2">
+            <div class="field"><label>Business name *</label><input type="text" id="pf-name" value="${esc(a.name)}" /></div>
+            <div class="field"><label>ABN</label><input type="text" id="pf-abn" value="${esc(a.abn)}" inputmode="numeric" placeholder="11 digits" /></div>
+            <div class="field"><label>Phone for customers *</label><input type="tel" id="pf-phone" value="${esc(a.phone || '')}" /></div>
+            <div class="field"><label>Email for customers *</label><input type="email" id="pf-email" value="${esc(a.email || '')}" /></div>
+            <div class="field"><label>Website</label><input type="text" id="pf-web" value="${esc(a.website)}" placeholder="www.yourbusiness.com.au" /></div>
+            <div class="field"><label>Registered for GST?</label>
+              <div class="choice" id="pf-gst">
+                <label class="${a.gst_registered === true ? 'on' : ''}"><input type="radio" name="gst" value="yes" ${a.gst_registered === true ? 'checked' : ''}/> Yes</label>
+                <label class="${a.gst_registered === false ? 'on' : ''}"><input type="radio" name="gst" value="no" ${a.gst_registered === false ? 'checked' : ''}/> No</label>
+              </div></div>
+          </div>
+          <div class="grid4">
+            <div class="field f-street"><label>Street address</label><input type="text" id="pf-street" value="${esc(a.address_line)}" /></div>
+            <div class="field"><label>Suburb</label><input type="text" id="pf-suburb" value="${esc(a.suburb)}" /></div>
+            <div class="field"><label>State</label><select id="pf-state">${STATES.map((x) => `<option ${x === (a.state || 'VIC') ? 'selected' : ''}>${x}</option>`).join('')}</select></div>
+            <div class="field"><label>Postcode</label><input type="text" id="pf-pc" value="${esc(a.postcode)}" inputmode="numeric" /></div>
+          </div>
+        </div>
+        <div class="card">
+          <h2>Your logo</h2>
+          <p class="sub" style="margin:-4px 0 12px">It goes on your quotes beside the Dr Drapes logo. A PNG with a transparent background looks best, but a JPG is fine.</p>
+          <div class="logo-box">
+            <div class="logo-prev" id="pf-logo-prev">${logo ? `<img src="${logo}" alt="Your logo" />` : 'No logo yet'}</div>
+            <div class="row">
+              <button class="btn btn-ghost btn-sm" id="pf-logo-pick" type="button">${logo ? 'Change logo' : 'Upload logo'}</button>
+              <button class="btn-link ${logo ? '' : 'hidden'}" id="pf-logo-rm" type="button">Remove</button>
+            </div>
+            <input type="file" id="pf-logo-file" accept="image/png,image/jpeg" class="hidden" />
+          </div>
+        </div>
+        <button class="btn btn-primary full" id="pf-save" style="margin-bottom:30px">${first ? 'Finish setup and start quoting' : 'Save details'}</button>
+      </div>`;
+
+    $$('#pf-gst input').forEach((r) => r.addEventListener('change', () => $$('#pf-gst label').forEach((l) => l.classList.toggle('on', $('input', l).checked))));
+    const showLogo = () => {
+      $('#pf-logo-prev').innerHTML = logo ? `<img src="${logo}" alt="Your logo" />` : 'No logo yet';
+      $('#pf-logo-pick').textContent = logo ? 'Change logo' : 'Upload logo';
+      $('#pf-logo-rm').classList.toggle('hidden', !logo);
+    };
+    $('#pf-logo-pick').addEventListener('click', () => $('#pf-logo-file').click());
+    $('#pf-logo-rm').addEventListener('click', () => { logo = null; showLogo(); });
+    $('#pf-logo-file').addEventListener('change', async (e) => {
+      const f = e.target.files?.[0]; e.target.value = '';
+      if (!f) return;
+      try { logo = await logoDataUrl(f); showLogo(); } catch (_) { toast('Couldn\'t read that image. Try a PNG or JPG.'); }
+    });
+
+    $('#pf-save').addEventListener('click', async () => {
+      const gst = $('#pf-gst input:checked')?.value;
+      const payload = {
+        user_name: $('#pf-uname').value.trim(), user_phone: $('#pf-uphone').value.trim(),
+        business_name: $('#pf-name').value.trim(), abn: $('#pf-abn').value.trim(),
+        phone: $('#pf-phone').value.trim(), email: $('#pf-email').value.trim(), website: $('#pf-web').value.trim(),
+        gst_registered: gst === 'yes' ? true : gst === 'no' ? false : null,
+        address_line: $('#pf-street').value.trim(), suburb: $('#pf-suburb').value.trim(), state: $('#pf-state').value, postcode: $('#pf-pc').value.trim(),
+        logo: logo === (a.logo || null) ? undefined : logo,
+      };
+      const btn = $('#pf-save'); btn.disabled = true; btn.textContent = 'Saving…';
+      try {
+        await call('save_profile', payload);
+        ME = await call('me');
+        ME.logoDims = await imageDims(ME.account.logo);
+        $('#top-partner').textContent = ME.account.name;
+        $('#top-name').textContent = ME.user.name !== ME.account.name ? ME.user.name : '';
+        toast(first ? 'You\'re all set. Let\'s create your first quote.' : 'Details saved');
+        const to = first ? '#/new' : '#/';
+        if (location.hash === to) route(); else location.hash = to;
+      } catch (e) {
+        $('#pf-err').innerHTML = `<div class="msg err">${esc(e.message)}</div>`; window.scrollTo(0, 0);
+        btn.disabled = false; btn.textContent = first ? 'Finish setup and start quoting' : 'Save details';
+      }
+    });
+  }
+
+  // Logos arrive any size. Fit inside 600×240 and keep transparency; fall back
+  // to JPEG on white if a busy logo is still too heavy as PNG.
+  function logoDataUrl(file) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const k = Math.min(1, 600 / img.width, 240 / img.height);
+        const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(img.width * k)); c.height = Math.max(1, Math.round(img.height * k));
+        const g = c.getContext('2d'); g.drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(img.src);
+        let out = c.toDataURL('image/png');
+        if (out.length > 350000) {
+          const j = document.createElement('canvas'); j.width = c.width; j.height = c.height;
+          const jg = j.getContext('2d'); jg.fillStyle = '#fff'; jg.fillRect(0, 0, j.width, j.height); jg.drawImage(c, 0, 0);
+          out = j.toDataURL('image/jpeg', 0.85);
+        }
+        resolve(out);
+      };
+      img.onerror = reject;
+      img.src = URL.createObjectURL(file);
+    });
+  }
+
+  // ================================================================ quote editor
+
+  async function loadAndEdit(id) {
+    app.innerHTML = `<div class="wrap"><div class="loading">Loading…</div></div>`;
+    try {
+      const { job } = await call('get_job', { job_id: id });
+      if (!job.editable) { toast('This quote has been answered, so it can\'t be changed here.'); location.hash = '#/job/' + id; return; }
+      quoteEditor(job);
+    } catch (e) { app.innerHTML = `<div class="wrap"><div class="msg err">${esc(e.message)}</div></div>`; }
+  }
+
+  function blankItem() { return { cat: 'curtain', width: '', drop: '', mould: false, item_note: '' }; }
+
+  function quoteEditor(job) {
+    window.scrollTo(0, 0);
+    const a = ME.account;
+    const st = {
+      customer: { name: job?.customer_name || '', phone: job?.customer_phone || '', email: job?.customer_email || '', address: job?.site_address || '' },
+      reference: job?.reference || '',
+      install_by: job?.partner.install_by || 'drdrapes',
+      invoice_to: job?.partner.invoice_to || a.invoice_default || 'partner',
+      quote: {
+        rooms: job ? job.quote.rooms.map((r) => ({
+          name: r.name,
+          items: (r.items || []).filter((i) => i.cat !== 'custom').map((i) => ({ cat: i.cat, width: i.width, drop: i.drop, mould: !!i.mould, item_note: i.item_note || '' })),
+          repairs: (r.repairs || []).map((x) => ({ key: x.key, qty: x.qty })),
+        })) : [{ name: 'Lounge', items: [blankItem()], repairs: [] }],
+        notes: job?.quote.notes || '', insurer_name: job?.quote.insurer_name || '', claim_number: job?.quote.claim_number || '',
+      },
+      priced: null,
+    };
+
+    const catOpts = (sel) => Object.entries(ME.catalog).map(([k, v]) => `<option value="${k}" ${sel === k ? 'selected' : ''}>${esc(v.label)}</option>`).join('');
+    const repOpts = (sel) => ME.repairs.map(([k, l]) => `<option value="${k}" ${sel === k ? 'selected' : ''}>${esc(l)}</option>`).join('');
+    const needsDrop = (cat) => ['curtain', 'sheer', 'velvet', 'blind'].includes(ME.catalog[cat]?.mode);
+
+    const roomsHtml = () => st.quote.rooms.map((r, ri) => `
+      <div class="room" data-ri="${ri}">
+        <div class="room-head">
+          <input type="text" class="r-name" value="${esc(r.name)}" placeholder="Room name, e.g. Lounge" />
+          ${st.quote.rooms.length > 1 ? `<button class="btn-x r-del" title="Remove room">×</button>` : ''}
+        </div>
+        ${r.items.map((it, ii) => `
+          <div class="item" data-ii="${ii}">
+            <div class="field f-type"><label>Item</label><select class="i-cat">${catOpts(it.cat)}</select></div>
+            <div class="field"><label>Width</label><input type="text" inputmode="decimal" class="i-w" value="${esc(it.width)}" placeholder="m or mm" /></div>
+            <div class="field ${needsDrop(it.cat) ? '' : 'hidden'}"><label>Drop</label><input type="text" inputmode="decimal" class="i-d" value="${esc(it.drop)}" placeholder="m or mm" /></div>
+            <div class="amt" data-amt="${ri}-${ii}">—</div>
+            <button class="btn-x i-del" title="Remove item">×</button>
+            <div class="opts">
+              <label><input type="checkbox" class="i-mould" ${it.mould ? 'checked' : ''}/> Mould treatment</label>
+              <input type="text" class="i-note" value="${esc(it.item_note)}" placeholder="Note, e.g. left window, pinch pleat" />
+              <span class="basis" data-basis="${ri}-${ii}"></span>
+            </div>
+          </div>`).join('')}
+        ${r.repairs.map((rp, pi) => `
+          <div class="rep" data-pi="${pi}">
+            <select class="p-key">${repOpts(rp.key)}</select>
+            <input type="number" min="1" class="p-qty" value="${esc(rp.qty)}" />
+            <div class="amt" data-ramt="${ri}-${pi}">—</div>
+            <button class="btn-x p-del" title="Remove">×</button>
+          </div>`).join('')}
+        <div class="row" style="margin-top:8px">
+          <button class="btn btn-ghost btn-sm i-add">+ Curtain / blind</button>
+          <button class="btn btn-ghost btn-sm p-add">+ Repair / hardware</button>
+        </div>
+      </div>`).join('');
+
+    app.innerHTML = `
+      <div class="wrap" style="padding-bottom:110px">
+        <div class="spread" style="margin-bottom:12px">
+          <div><h1>${job ? 'Edit quote ' + esc(job.quote_number) : 'New quote'}</h1><div class="sub">Priced on Dr Drapes' current price list. Widths and drops in metres (2.4) or millimetres (2400).</div></div>
+          <a class="btn btn-ghost btn-sm" href="${job ? '#/job/' + job.id : '#/'}">Cancel</a>
+        </div>
+        <div id="qe-err"></div>
+
+        <div class="card">
+          <h2>Customer</h2>
+          <div class="grid2">
+            <div class="field"><label>Name *</label><input type="text" id="c-name" value="${esc(st.customer.name)}" autocomplete="off" /></div>
+            <div class="field"><label>Phone</label><input type="tel" id="c-phone" value="${esc(st.customer.phone)}" /></div>
+            <div class="field"><label>Email</label><input type="email" id="c-email" value="${esc(st.customer.email)}" /><div class="hint">Needed to email the quote from here.</div></div>
+            <div class="field"><label>${esc(a.reference_label || 'Your reference')}</label><input type="text" id="c-ref" value="${esc(st.reference)}" /></div>
+          </div>
+          <div class="field"><label>Site address</label><input type="text" id="c-addr" value="${esc(st.customer.address)}" placeholder="Street, suburb, postcode" /></div>
+        </div>
+
+        <div class="card">
+          <h2>Who does the takedown and rehang?</h2>
+          <div class="choice" id="ch-install">
+            <label class="${st.install_by === 'drdrapes' ? 'on' : ''}"><input type="radio" name="install" value="drdrapes" ${st.install_by === 'drdrapes' ? 'checked' : ''}/><span>Dr Drapes<small>We take down, clean and rehang. Your commission: ${a.commission_referral_pct}%${a.rehang_fee ? ` · rehang charge ${money(a.rehang_fee)} added` : ''}</small></span></label>
+            <label class="${st.install_by === 'partner' ? 'on' : ''}"><input type="radio" name="install" value="partner" ${st.install_by === 'partner' ? 'checked' : ''}/><span>${esc(a.name)}<small>You take down and rehang, we clean. Your commission: ${a.commission_install_pct}%</small></span></label>
+          </div>
+          <h2 style="margin-top:16px">Who bills the customer?</h2>
+          <div class="choice" id="ch-invoice">
+            <label class="${st.invoice_to === 'partner' ? 'on' : ''}"><input type="radio" name="invoice" value="partner" ${st.invoice_to === 'partner' ? 'checked' : ''}/><span>${esc(a.name)}<small>You bill your customer, alongside any of your own work. We invoice you our price less your commission.</small></span></label>
+            <label class="${st.invoice_to === 'drdrapes' ? 'on' : ''}"><input type="radio" name="invoice" value="drdrapes" ${st.invoice_to === 'drdrapes' ? 'checked' : ''}/><span>Dr Drapes<small>We invoice the customer directly and pay your commission monthly.</small></span></label>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Items</h2>
+          <div id="rooms">${roomsHtml()}</div>
+          <button class="btn btn-ghost" id="room-add">+ Add another room</button>
+        </div>
+
+        <div class="card">
+          <h2>Notes</h2>
+          <div class="field"><label>Notes for the customer (printed on the quote)</label><textarea id="q-notes">${esc(st.quote.notes)}</textarea></div>
+          <details ${st.quote.insurer_name || st.quote.claim_number ? 'open' : ''}><summary class="sub" style="cursor:pointer">Insurance claim?</summary>
+            <div class="grid2" style="margin-top:10px">
+              <div class="field"><label>Insurer</label><input type="text" id="q-ins" value="${esc(st.quote.insurer_name)}" /></div>
+              <div class="field"><label>Claim number</label><input type="text" id="q-claim" value="${esc(st.quote.claim_number)}" /></div>
+            </div>
+          </details>
+        </div>
+      </div>`;
+
+    $('#totals-mount').innerHTML = `
+      <div class="totals"><div class="in">
+        <div class="nums">
+          <div>Ex GST<b id="t-sub">—</b></div>
+          <div>Total inc GST<b id="t-total">—</b></div>
+          <div class="com">Your commission<b id="t-com">—</b></div>
+        </div>
+        <button class="btn btn-primary" id="q-save">${job ? 'Save changes' : 'Save quote'}</button>
+      </div></div>`;
+
+    // ---- pricing (server is the source of truth; debounced)
+    let priceTimer = null, priceSeq = 0;
+    const reprice = () => {
+      clearTimeout(priceTimer);
+      priceTimer = setTimeout(async () => {
+        const seq = ++priceSeq;
+        try {
+          const r = await call('price', { quote: st.quote, install_by: st.install_by });
+          if (seq !== priceSeq) return;
+          st.priced = r;
+          $('#t-sub').textContent = money(r.totals.subtotal);
+          $('#t-total').textContent = money(r.totals.total);
+          $('#t-com').textContent = `${money(r.commission)} (${r.commission_pct}%)`;
+          // map priced lines back onto the inputs; the server drops lines with
+          // no type, so walk both lists in step
+          r.quote.rooms.forEach((room, ri) => {
+            room.items.forEach((it, ii) => {
+              const el = $(`[data-amt="${ri}-${ii}"]`); if (el) el.textContent = it.amount ? money(it.amount) : '—';
+              const b = $(`[data-basis="${ri}-${ii}"]`);
+              if (b && it.calc) {
+                const c = it.calc;
+                b.textContent = !c.widthM ? '' : ME.catalog[it.cat]?.mode === 'blind'
+                  ? `${c.sqm} m² × $${c.rateUsed}/m²` : `${c.widthM.toFixed(2)} m × $${c.rateUsed}/m`;
+              }
+            });
+            room.repairs.forEach((rp, pi) => { const el = $(`[data-ramt="${ri}-${pi}"]`); if (el) el.textContent = money(rp.amount); });
+          });
+        } catch (e) { /* totals just stay as they were */ }
+      }, 350);
+    };
+
+    const redrawRooms = () => { $('#rooms').innerHTML = roomsHtml(); wireRooms(); reprice(); };
+    const wireRooms = () => {
+      $$('#rooms .room').forEach((rd) => {
+        const ri = +rd.dataset.ri, room = st.quote.rooms[ri];
+        $('.r-name', rd).addEventListener('input', (e) => { room.name = e.target.value; });
+        $('.r-del', rd)?.addEventListener('click', () => {
+          if ((room.items.length || room.repairs.length) && !confirm(`Remove ${room.name || 'this room'} and everything in it?`)) return;
+          st.quote.rooms.splice(ri, 1); redrawRooms();
+        });
+        $$('.item', rd).forEach((row) => {
+          const it = room.items[+row.dataset.ii];
+          $('.i-cat', row).addEventListener('change', (e) => { it.cat = e.target.value; redrawRooms(); });
+          $('.i-w', row).addEventListener('input', (e) => { it.width = e.target.value; reprice(); });
+          $('.i-d', row).addEventListener('input', (e) => { it.drop = e.target.value; reprice(); });
+          $('.i-mould', row).addEventListener('change', (e) => { it.mould = e.target.checked; reprice(); });
+          $('.i-note', row).addEventListener('input', (e) => { it.item_note = e.target.value; });
+          $('.i-del', row).addEventListener('click', () => { room.items.splice(+row.dataset.ii, 1); redrawRooms(); });
+        });
+        $$('.rep', rd).forEach((row) => {
+          const rp = room.repairs[+row.dataset.pi];
+          $('.p-key', row).addEventListener('change', (e) => { rp.key = e.target.value; reprice(); });
+          $('.p-qty', row).addEventListener('input', (e) => { rp.qty = e.target.value; reprice(); });
+          $('.p-del', row).addEventListener('click', () => { room.repairs.splice(+row.dataset.pi, 1); redrawRooms(); });
+        });
+        $('.i-add', rd).addEventListener('click', () => {
+          const last = room.items[room.items.length - 1];
+          room.items.push({ ...blankItem(), cat: last?.cat || 'curtain' }); redrawRooms();
+          const rows = $$(`.room[data-ri="${ri}"] .item`); rows[rows.length - 1]?.querySelector('.i-w')?.focus();
+        });
+        $('.p-add', rd).addEventListener('click', () => { room.repairs.push({ key: ME.repairs[0][0], qty: '1' }); redrawRooms(); });
+      });
+    };
+    wireRooms();
+    $('#room-add').addEventListener('click', () => { st.quote.rooms.push({ name: '', items: [blankItem()], repairs: [] }); redrawRooms(); $$('.r-name').pop()?.focus(); });
+
+    const radio = (box, key) => $$(`#${box} input`).forEach((r) => r.addEventListener('change', () => {
+      st[key] = r.value;
+      $$(`#${box} label`).forEach((l) => l.classList.toggle('on', $('input', l).checked));
+      reprice();
+    }));
+    radio('ch-install', 'install_by'); radio('ch-invoice', 'invoice_to');
+
+    $('#q-save').addEventListener('click', async () => {
+      st.customer = { name: $('#c-name').value.trim(), phone: $('#c-phone').value.trim(), email: $('#c-email').value.trim(), address: $('#c-addr').value.trim() };
+      st.reference = $('#c-ref').value.trim();
+      st.quote.notes = $('#q-notes').value;
+      st.quote.insurer_name = $('#q-ins').value.trim();
+      st.quote.claim_number = $('#q-claim').value.trim();
+      const err = (m) => { $('#qe-err').innerHTML = `<div class="msg err">${esc(m)}</div>`; window.scrollTo(0, 0); };
+      if (st.customer.name.length < 2) return err('Enter the customer\'s name.');
+      const missing = st.quote.rooms.some((r) => r.items.some((i) => !parseFloat(i.width) || (needsDrop(i.cat) && !parseFloat(i.drop))));
+      if (missing) return err('Every curtain and blind needs a width, and a drop where asked. Remove any rows you don\'t need.');
+      if (!st.quote.rooms.some((r) => r.items.length || r.repairs.length)) return err('Add at least one item.');
+      const btn = $('#q-save'); btn.disabled = true; btn.textContent = 'Saving…';
+      try {
+        const r = await call('save_quote', { job_id: job?.id || null, customer: st.customer, reference: st.reference, install_by: st.install_by, invoice_to: st.invoice_to, quote: st.quote });
+        toast(r.created ? `Quote ${r.quote_number} saved` : 'Changes saved');
+        location.hash = '#/job/' + r.job_id;
+      } catch (e) { err(e.message); btn.disabled = false; btn.textContent = job ? 'Save changes' : 'Save quote'; }
+    });
+
+    reprice();
+  }
+
+  // ================================================================ job view
+
+  async function jobView(id) {
+    window.scrollTo(0, 0);
+    app.innerHTML = `<div class="wrap"><div class="loading">Loading…</div></div>`;
+    let job;
+    try { job = (await call('get_job', { job_id: id })).job; } catch (e) { app.innerHTML = `<div class="wrap"><a href="#/">← Back</a><div class="msg err" style="margin-top:12px">${esc(e.message)}</div></div>`; return; }
+    const a = ME.account, t = job.totals, q = job.quote;
+    const statusIdx = FLOW.indexOf(job.status);
+    const when = {}; job.timeline.forEach((h) => { when[h.status] = h.at; });
+
+    const linesHtml = q.rooms.map((r) => `
+      <div class="room-name">${esc(r.name)}</div>
+      ${r.items.map((it) => `<div class="line"><div><div>${esc(it.label)}</div><div class="d">${esc(detailFor(it))}</div></div><div class="a">${money(it.amount)}</div></div>`).join('')}
+      ${r.repairs.map((rp) => `<div class="line"><div><div>${esc(rp.label)}</div><div class="d">qty ${esc(rp.qty)}</div></div><div class="a">${money(rp.amount)}</div></div>`).join('')}`).join('');
+    const ex = q.extras || {};
+    const extras = [['transport', 'Transport'], ['rehang', 'Takedown & rehang'], ['callout', 'Call-out'], ['storage', 'Storage']]
+      .filter(([k]) => Number(ex[k])).map(([k, l]) => `<div class="line"><div>${l}</div><div class="a">${money(ex[k])}</div></div>`).join('');
+
+    app.innerHTML = `
+      <div class="wrap">
+        <div style="margin-bottom:10px"><a href="#/">← All jobs</a></div>
+        <div class="card">
+          <div class="spread">
+            <div><h1>${esc(job.customer_name || 'No name')}</h1><div class="sub">${esc(job.quote_number)}${job.reference ? ' · ' + esc(job.reference) : ''} · raised ${fmtDate(job.created_at)}${job.partner.submitted_by_name ? ' by ' + esc(job.partner.submitted_by_name) : ''}</div></div>
+            <span class="pill ${job.status}" style="font-size:13px;padding:4px 12px">${esc(STATUS[job.status] || job.status)}</span>
+          </div>
+          <dl class="kv" style="margin-top:14px">
+            ${job.site_address ? `<dt>Site</dt><dd>${esc(job.site_address)}</dd>` : ''}
+            ${job.customer_phone ? `<dt>Phone</dt><dd><a href="tel:${esc(job.customer_phone)}">${esc(job.customer_phone)}</a></dd>` : ''}
+            ${job.customer_email ? `<dt>Email</dt><dd>${esc(job.customer_email)}</dd>` : ''}
+            <dt>Takedown & rehang</dt><dd>${job.partner.install_by === 'partner' ? esc(a.name) : 'Dr Drapes'}</dd>
+            <dt>Customer billed by</dt><dd>${job.partner.invoice_to === 'partner' ? esc(a.name) + ' (we invoice you less commission)' : 'Dr Drapes'}</dd>
+            ${job.sent.at ? `<dt>Emailed</dt><dd>${fmtWhen(job.sent.at)} to ${esc(job.sent.to)}</dd>` : ''}
+          </dl>
+          ${job.status === 'quoted' ? `
+            <div class="actions" style="margin-top:16px">
+              <button class="btn btn-primary" id="a-email">Email to customer</button>
+              <button class="btn btn-navy" id="a-pdf">Download PDF</button>
+              ${job.editable ? `<a class="btn btn-ghost" href="#/job/${job.id}/edit">Edit quote</a>` : ''}
+            </div>
+            <div class="actions" style="margin-top:8px">
+              <button class="btn btn-ok btn-sm" id="a-accept">Customer has accepted</button>
+              <button class="btn btn-ghost btn-sm" id="a-decline">Customer declined</button>
+            </div>
+            <p class="sub" style="margin-top:8px">Emailed quotes carry an <b>Accept online</b> button, so you won't need to tell us. If you sent the PDF yourself, press <b>Customer has accepted</b> when they say yes.</p>`
+          : `<div class="actions" style="margin-top:16px"><button class="btn btn-ghost" id="a-pdf">Download quote PDF</button></div>`}
+        </div>
+
+        <div class="grid2" style="align-items:start">
+          <div class="card">
+            <h2>Quote</h2>
+            <div class="lines">${linesHtml}${extras ? '<div class="room-name">Extras</div>' + extras : ''}</div>
+            <div class="tot" style="margin-top:10px">
+              ${t.discountAmt > 0 ? `<div class="r"><span>Discount</span><span>− ${money(t.discountAmt)}</span></div>` : ''}
+              <div class="r"><span>Subtotal (ex GST)</span><span>${money(t.subtotal)}</span></div>
+              <div class="r"><span>GST</span><span>${money(t.gst)}</span></div>
+              <div class="r g"><span>Total</span><span>${money(t.total)}</span></div>
+              <div class="r c" style="margin-top:8px"><span>Your commission (${job.commission_pct}%, ex GST)</span><span>${money(job.commission)}</span></div>
+              ${job.commission_paid_at ? `<div class="r" style="color:var(--ok)"><span>Paid</span><span>${fmtDate(job.commission_paid_at)}</span></div>` : ''}
+            </div>
+            ${q.notes ? `<div class="msg info" style="margin-top:12px;white-space:pre-wrap">${esc(q.notes)}</div>` : ''}
+          </div>
+          <div class="card">
+            <h2>Progress</h2>
+            ${job.status === 'declined' ? `<div class="msg err">Declined${job.declined?.at ? ' ' + fmtDate(job.declined.at) : ''}${job.declined?.reason ? ' — ' + esc((DECLINE.find(([k]) => k === job.declined.reason) || [, job.declined.reason])[1]) : ''}</div>` : `
+            <ul class="timeline">
+              ${FLOW.map((s, i) => `<li class="${i < statusIdx ? 'done' : i === statusIdx ? 'now' : ''}"><div>${esc(STATUS[s])}</div>${when[s] ? `<div class="when">${fmtWhen(when[s])}</div>` : ''}</li>`).join('')}
+            </ul>
+            <p class="sub">We email you at each step.</p>`}
+          </div>
+        </div>
+
+        <div class="card" id="pre-card"></div>
+      </div>`;
+
+    $('#a-pdf')?.addEventListener('click', () => { buildPdf(job).save(`${job.quote_number}.pdf`); });
+    $('#a-email')?.addEventListener('click', () => emailModal(job));
+    $('#a-accept')?.addEventListener('click', () => acceptModal(job));
+    $('#a-decline')?.addEventListener('click', () => declineModal(job));
+    preInspection(job);
+  }
+
+  function detailFor(it) {
+    const c = it.calc; if (!c) return it.item_note || '';
+    const mode = ME.catalog[it.cat]?.mode;
+    let d = mode === 'blind' ? `${c.widthM.toFixed(2)}m W × ${c.dropM.toFixed(2)}m H = ${c.sqm} m²`
+      : ['curtain', 'sheer', 'velvet'].includes(mode) ? `${c.widthM.toFixed(2)}m W × ${c.dropM.toFixed(2)}m H` : `${c.widthM.toFixed(2)}m W`;
+    if (it.item_note) d += ' · ' + it.item_note;
+    if (it.mould) d += ' · incl. mould treatment';
+    return d;
+  }
+
+  function emailModal(job) {
+    const first = (job.customer_name || '').trim().split(/\s+/)[0] || '';
+    const def = `Hi ${first},\n\nPlease find your quote for curtain and blind cleaning attached. ${ME.account.name} has partnered with Dr Drapes Curtain Clinic to look after your curtains.\n\nYou can accept it online using the button below, or just reply to this email with any questions.\n\nThanks,\n${ME.user.name}\n${ME.account.name}`;
+    modal(`
+      <div class="spread"><h2>Email quote ${esc(job.quote_number)}</h2><button class="btn-x" data-close>×</button></div>
+      <div id="em-err"></div>
+      <div class="field"><label>Customer email</label><input type="email" id="em-to" value="${esc(job.customer_email || '')}" /></div>
+      <div class="field"><label>Message</label><textarea id="em-msg" rows="9">${esc(def)}</textarea><div class="hint">The quote PDF is attached and an <b>Accept online</b> button goes under your message. You're copied in, and replies come to you and to us.</div></div>
+      <button class="btn btn-primary full" id="em-go">Send</button>`, (m, close) => {
+      $('#em-go', m).addEventListener('click', async () => {
+        const btn = $('#em-go', m); btn.disabled = true; btn.textContent = 'Sending…';
+        try {
+          const doc = buildPdf(job);
+          const pdf_base64 = doc.output('datauristring').split(',')[1];
+          await call('email_quote', { job_id: job.id, to: $('#em-to', m).value.trim(), message: $('#em-msg', m).value, pdf_base64 });
+          close(); toast('Quote emailed'); jobView(job.id);
+        } catch (e) { $('#em-err', m).innerHTML = `<div class="msg err">${esc(e.message)}</div>`; btn.disabled = false; btn.textContent = 'Send'; }
+      });
+    });
+  }
+
+  function acceptModal(job) {
+    modal(`
+      <div class="spread"><h2>Customer has accepted</h2><button class="btn-x" data-close>×</button></div>
+      <p class="sub" style="margin-bottom:12px">This confirms the job with Dr Drapes${job.partner.install_by === 'partner' ? '' : ' and we\'ll contact the customer to book the takedown'}. Only press it once the customer has said yes to this quote and our terms.</p>
+      <div id="ac-err"></div>
+      <div class="field"><label>Who accepted</label><input type="text" id="ac-name" value="${esc(job.customer_name || '')}" /></div>
+      <div class="field"><label>Anything we should know? (access, timing, parking)</label><textarea id="ac-note"></textarea></div>
+      <button class="btn btn-ok full" id="ac-go">Confirm acceptance</button>`, (m, close) => {
+      $('#ac-go', m).addEventListener('click', async () => {
+        const btn = $('#ac-go', m); btn.disabled = true; btn.textContent = 'Confirming…';
+        try { await call('customer_accepted', { job_id: job.id, accepted_by: $('#ac-name', m).value, note: $('#ac-note', m).value }); close(); toast('Confirmed — thanks. We\'ll take it from here.'); jobView(job.id); }
+        catch (e) { $('#ac-err', m).innerHTML = `<div class="msg err">${esc(e.message)}</div>`; btn.disabled = false; btn.textContent = 'Confirm acceptance'; }
+      });
+    });
+  }
+
+  function declineModal(job) {
+    modal(`
+      <div class="spread"><h2>Customer declined</h2><button class="btn-x" data-close>×</button></div>
+      <div id="dc-err"></div>
+      <div class="field"><label>Reason</label><select id="dc-r">${DECLINE.map(([k, l]) => `<option value="${k}">${l}</option>`).join('')}</select></div>
+      <div class="field"><label>Note (optional)</label><textarea id="dc-note"></textarea></div>
+      <button class="btn btn-navy full" id="dc-go">Mark declined</button>`, (m, close) => {
+      $('#dc-go', m).addEventListener('click', async () => {
+        try { await call('customer_declined', { job_id: job.id, reason: $('#dc-r', m).value, note: $('#dc-note', m).value }); close(); toast('Marked declined'); jobView(job.id); }
+        catch (e) { $('#dc-err', m).innerHTML = `<div class="msg err">${esc(e.message)}</div>`; }
+      });
+    });
+  }
+
+  // ================================================================ pre-inspection
+
+  function preInspection(job) {
+    const box = $('#pre-card');
+    const locked = ['in_progress', 'complete', 'invoiced', 'rehung', 'declined'].includes(job.status);
+    const saved = job.pre_inspection;
+    const s = {
+      date: saved?.date || new Date().toISOString().slice(0, 10),
+      curt_checks: saved?.curt_checks || [], blind_checks: saved?.blind_checks || [], hw_checks: saved?.hw_checks || [],
+      curt_na: !!saved?.curt_na, blind_na: !!saved?.blind_na,
+      curt_score: saved?.curt_score ?? 5, blind_score: saved?.blind_score ?? 5,
+      cust_notes: saved?.cust_notes || '', job_notes: saved?.job_notes || '',
+      photos: saved?.photos || [], newPhotos: [], remove: [],
+    };
+    let open = false;
+
+    const groupHtml = (key, title, arrKey, naKey) => {
+      const arr = s[arrKey];
+      const na = naKey ? `<label style="font-size:13px;display:flex;gap:6px;align-items:center;margin-bottom:6px"><input type="checkbox" data-na="${naKey}" ${s[naKey] ? 'checked' : ''}/> None on this job</label>` : '';
+      if (naKey && s[naKey]) return `<div class="chk-group"><h4>${title}</h4>${na}</div>`;
+      return `<div class="chk-group"><h4>${title}</h4>${na}${INSPECT[key].map(([id, label]) => {
+        const on = arr.find((c) => c.id === id);
+        return `<div class="chk" data-arr="${arrKey}" data-id="${id}" data-label="${esc(label)}">
+          <label><input type="checkbox" ${on ? 'checked' : ''}/> ${esc(label)}</label>
+          <input type="text" placeholder="note (optional)" value="${esc(on?.note || '')}" ${on ? '' : 'disabled'} /></div>`;
+      }).join('')}</div>`;
+    };
+
+    const draw = () => {
+      if (locked) {
+        box.innerHTML = `<h2>Pre-inspection</h2>${saved ? `<p class="sub">Done ${fmtDate(saved.saved_at)} by ${esc(saved.inspector)}. The job is with our team now.</p>` : '<p class="sub">Not done from the portal. Our team does it at takedown.</p>'}`;
+        return;
+      }
+      if (!open) {
+        box.innerHTML = `<div class="spread"><div><h2 style="margin:0">Pre-inspection</h2><div class="sub">${saved ? 'Saved ' + fmtWhen(saved.saved_at) : 'Record the condition and take photos before anything is touched. It protects you, the customer and us.'}</div></div>
+          <button class="btn btn-ghost" id="pi-open">${saved ? 'View / edit' : 'Start pre-inspection'}</button></div>`;
+        $('#pi-open').addEventListener('click', () => { open = true; draw(); });
+        return;
+      }
+      box.innerHTML = `
+        <div class="spread"><h2 style="margin:0">Pre-inspection</h2>${saved ? `<span class="sub">Saved ${fmtWhen(saved.saved_at)}</span>` : ''}</div>
+        <div id="pi-err" style="margin-top:10px"></div>
+        <div class="field" style="max-width:220px;margin-top:10px"><label>Date</label><input type="date" id="pi-date" value="${esc(s.date)}" /></div>
+        ${groupHtml('curtains', 'Curtains', 'curt_checks', 'curt_na')}
+        ${groupHtml('blinds', 'Blinds', 'blind_checks', 'blind_na')}
+        ${groupHtml('hardware', 'Hardware', 'hw_checks')}
+        ${s.curt_na ? '' : `<div class="field"><label>Curtains overall condition (1 poor – 10 excellent)</label><div class="score"><input type="range" min="1" max="10" id="pi-cs" value="${s.curt_score}"/><b id="pi-csv">${s.curt_score}</b></div></div>`}
+        ${s.blind_na ? '' : `<div class="field"><label>Blinds overall condition (1 poor – 10 excellent)</label><div class="score"><input type="range" min="1" max="10" id="pi-bs" value="${s.blind_score}"/><b id="pi-bsv">${s.blind_score}</b></div></div>`}
+        <div class="field"><label>Notes for the customer (appear on the inspection report)</label><textarea id="pi-cust">${esc(s.cust_notes)}</textarea></div>
+        <div class="field"><label>Notes for Dr Drapes (internal — access, fragile items, anything we should know)</label><textarea id="pi-job">${esc(s.job_notes)}</textarea></div>
+        <h3>Photos (up to 8)</h3>
+        <div class="photos" id="pi-photos"></div>
+        <input type="file" id="pi-file" accept="image/*" multiple class="hidden" />
+        <div class="actions" style="margin-top:14px"><button class="btn btn-primary" id="pi-save">Save pre-inspection</button><button class="btn btn-ghost" id="pi-cancel">Close</button></div>`;
+      wire();
+      drawPhotos();
+    };
+
+    const drawPhotos = async () => {
+      const grid = $('#pi-photos'); if (!grid) return;
+      const total = s.photos.length + s.newPhotos.length;
+      grid.innerHTML = s.photos.map((p, i) => `<div class="photo" data-p="${esc(p.path)}"><span class="ph">loading…</span><button class="del" data-di="${i}">×</button></div>`).join('')
+        + s.newPhotos.map((p, i) => `<div class="photo"><img src="data:image/jpeg;base64,${p.base64}"/><button class="del" data-ni="${i}">×</button></div>`).join('')
+        + (total < 8 ? `<div class="photo add" id="pi-add"><b>+</b>Add photo</div>` : '');
+      $('#pi-add')?.addEventListener('click', () => $('#pi-file').click());
+      $$('[data-di]', grid).forEach((b) => b.addEventListener('click', () => { s.remove.push(s.photos[+b.dataset.di].path); s.photos.splice(+b.dataset.di, 1); drawPhotos(); }));
+      $$('[data-ni]', grid).forEach((b) => b.addEventListener('click', () => { s.newPhotos.splice(+b.dataset.ni, 1); drawPhotos(); }));
+      if (s.photos.length) {
+        try {
+          const { urls } = await call('photo_url', { job_id: job.id, paths: s.photos.map((p) => p.path) });
+          $$('[data-p]', grid).forEach((el) => {
+            const u = urls[el.dataset.p], ph = $('.ph', el);
+            if (u && ph) ph.outerHTML = `<img src="${esc(u)}" alt="" />`;
+          });
+        } catch (_) { /* thumbnails stay as placeholders */ }
+      }
+    };
+
+    const wire = () => {
+      $('#pi-date').addEventListener('change', (e) => { s.date = e.target.value; });
+      $$('[data-na]', box).forEach((cb) => cb.addEventListener('change', () => { collect(); s[cb.dataset.na] = cb.checked; draw(); }));
+      $$('.chk', box).forEach((row) => {
+        const cb = $('input[type=checkbox]', row), note = $('input[type=text]', row);
+        cb.addEventListener('change', () => { note.disabled = !cb.checked; if (!cb.checked) note.value = ''; });
+      });
+      $('#pi-cs')?.addEventListener('input', (e) => { s.curt_score = +e.target.value; $('#pi-csv').textContent = e.target.value; });
+      $('#pi-bs')?.addEventListener('input', (e) => { s.blind_score = +e.target.value; $('#pi-bsv').textContent = e.target.value; });
+      $('#pi-file').addEventListener('change', async (e) => {
+        const files = [...(e.target.files || [])].slice(0, 8 - s.photos.length - s.newPhotos.length);
+        for (const f of files) { try { s.newPhotos.push({ name: f.name, base64: await shrink(f) }); } catch (_) { toast('Couldn\'t read ' + f.name); } }
+        e.target.value = ''; drawPhotos();
+      });
+      $('#pi-cancel').addEventListener('click', () => { open = false; draw(); });
+      $('#pi-save').addEventListener('click', async () => {
+        collect();
+        const btn = $('#pi-save'); btn.disabled = true; btn.textContent = s.newPhotos.length ? 'Uploading photos…' : 'Saving…';
+        try {
+          const r = await call('save_inspection', {
+            job_id: job.id,
+            pre_inspection: { date: s.date, curt_checks: s.curt_checks, blind_checks: s.blind_checks, hw_checks: s.hw_checks, curt_na: s.curt_na, blind_na: s.blind_na, curt_score: s.curt_score, blind_score: s.blind_score, cust_notes: s.cust_notes, job_notes: s.job_notes },
+            new_photos: s.newPhotos, remove_photos: s.remove,
+          });
+          toast('Pre-inspection saved');
+          jobView(job.id);
+        } catch (e) { $('#pi-err').innerHTML = `<div class="msg err">${esc(e.message)}</div>`; btn.disabled = false; btn.textContent = 'Save pre-inspection'; }
+      });
+    };
+
+    const collect = () => {
+      ['curt_checks', 'blind_checks', 'hw_checks'].forEach((k) => {
+        const rows = $$(`.chk[data-arr="${k}"]`, box);
+        if (!rows.length) return;   // group hidden as N/A — keep what it had
+        s[k] = rows.filter((r) => $('input[type=checkbox]', r).checked).map((r) => ({ id: r.dataset.id, label: r.dataset.label, note: $('input[type=text]', r).value }));
+      });
+      if ($('#pi-cust')) s.cust_notes = $('#pi-cust').value;
+      if ($('#pi-job')) s.job_notes = $('#pi-job').value;
+    };
+
+    draw();
+  }
+
+  // Phone photos are 4–12MB. Shrink to 1600px JPEG before upload so a
+  // pre-inspection saves in seconds on 4G.
+  function shrink(file) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const max = 1600, k = Math.min(1, max / Math.max(img.width, img.height));
+        const c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(img.src);
+        resolve(c.toDataURL('image/jpeg', 0.8).split(',')[1]);
+      };
+      img.onerror = reject;
+      img.src = URL.createObjectURL(file);
+    });
+  }
+
+  // ================================================================ quote PDF
+  // The staff app's quote PDF, co-branded: our logo and terms, the partner's
+  // name and contact under it. Amounts come from the server's pricing.
+
+  function buildPdf(job) {
+    const q = job.quote, t = job.totals, a = ME.account;
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    const PW = 210, M = 16, CW = PW - M * 2;
+    const grey = [110, 110, 120], ink = [40, 40, 55];
+    let y = 16;
+    const line = (x1, y1, x2, y2, col = [220, 222, 232], w = 0.3) => { doc.setDrawColor(...col); doc.setLineWidth(w); doc.line(x1, y1, x2, y2); };
+    const ensure = (need) => { if (y + need > 270) { doc.addPage(); y = 20; } };
+
+    let logoBottom = y;
+    try { const w = 52, h = w / LOGO_ASPECT; doc.addImage(LOGO, 'PNG', M, y, w, h); logoBottom = y + h; } catch (_) {}
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(22); doc.setTextColor(...BLUE);
+    doc.text('QUOTE', PW - M, y + 6, { align: 'right' });
+    doc.setFontSize(11); doc.setTextColor(...ink); doc.text(job.quote_number || '', PW - M, y + 13, { align: 'right' });
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...grey);
+    doc.text(fmtDate(new Date()), PW - M, y + 18, { align: 'right' });
+    if (job.reference) doc.text('Ref: ' + clip(job.reference, 28), PW - M, y + 23, { align: 'right' });
+
+    let cy = logoBottom + 6;
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(...BLUE);
+    doc.text('1300 652 866   ·   drdrapes@hudsongroup.com.au', M, cy);
+    cy += 5;
+    const pc = [a.phone, a.email, a.website].filter(Boolean).join('   ·   ');
+    const dims = ME.logoDims;
+    if (a.logo && dims) {
+      // "In partnership with" + their logo + their name and contact.
+      const h = 11, w = Math.min(42, h * dims.w / dims.h);
+      const hh = w < h * dims.w / dims.h ? w * dims.h / dims.w : h;
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(...PINK);
+      doc.text('In partnership with', M, cy + 2.5);
+      try { doc.addImage(a.logo, a.logo.startsWith('data:image/jpeg') ? 'JPEG' : 'PNG', M + 30, cy - 2, w, hh, 'partnerlogo', 'FAST'); } catch (_) {}
+      const tx = M + 30 + w + 4;
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(9.5); doc.setTextColor(...ink); doc.text(a.name, tx, cy + 1.5);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(...grey); if (pc) doc.text(pc, tx, cy + 6);
+      cy += Math.max(hh, 8) + 1;
+    } else {
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); doc.setTextColor(...PINK);
+      doc.text(`In partnership with ${a.name}${pc ? '   ·   ' + pc : ''}`, M, cy);
+    }
+    y = cy + 5; line(M, y, PW - M, y, PINK, 0.8); y += 9;
+
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(...BLUE); doc.text('QUOTE FOR', M, y);
+    doc.setFont('helvetica', 'normal'); doc.setTextColor(...ink); doc.text(job.customer_name || '', M, y + 5);
+    let yy = y + 5; doc.setFontSize(9); doc.setTextColor(...grey);
+    if (job.site_address) { yy += 4.5; doc.text(clip(job.site_address, 70), M, yy); }
+    if (job.customer_phone) { yy += 4.5; doc.text(job.customer_phone, M, yy); }
+    y = yy + 9;
+
+    if (q.insurer_name || q.claim_number) {
+      doc.setFillColor(245, 246, 250); doc.rect(M, y - 4, CW, 10, 'F');
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(...BLUE); doc.text('INSURANCE', M + 3, y + 2);
+      doc.setFont('helvetica', 'normal'); doc.setTextColor(...ink);
+      doc.text([q.insurer_name && 'Insurer: ' + q.insurer_name, q.claim_number && 'Claim: ' + q.claim_number].filter(Boolean).join('     '), M + 28, y + 2);
+      y += 12;
+    }
+    if (ME.pdf.intro) {
+      doc.setFontSize(9.5); doc.setTextColor(...ink);
+      const l = doc.splitTextToSize(ME.pdf.intro, CW); doc.text(l, M, y); y += l.length * 4.6 + 4;
+    }
+
+    const col = { item: M, detail: M + 64, rate: PW - M - 52, amt: PW - M };
+    const head = () => {
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); doc.setTextColor(...grey);
+      doc.text('ITEM', col.item, y); doc.text('DETAIL', col.detail, y); doc.text('RATE', col.rate, y, { align: 'right' }); doc.text('AMOUNT', col.amt, y, { align: 'right' });
+      y += 2; line(M, y, PW - M, y); y += 4.5;
+    };
+    const row = (label, detail, rateStr, amt) => {
+      doc.setFontSize(8.5);
+      const dl = doc.splitTextToSize(detail || '', col.rate - 14 - col.detail);
+      const h = Math.max(6, dl.length * 4 + 2); ensure(h);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); doc.setTextColor(...ink); doc.text(clip(label, 32), col.item, y);
+      doc.setFontSize(8.5); doc.setTextColor(...grey); doc.text(dl, col.detail, y);
+      doc.setFontSize(9.5); doc.setTextColor(...ink);
+      if (rateStr) doc.text(rateStr, col.rate, y, { align: 'right' });
+      doc.text(money(amt), col.amt, y, { align: 'right' }); y += h;
+    };
+    q.rooms.forEach((r) => {
+      ensure(18);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(...BLUE); doc.text(r.name || 'Room', M, y); y += 5; head();
+      r.items.forEach((it) => {
+        const mode = ME.catalog[it.cat]?.mode;
+        const rateStr = !it.calc ? '' : mode === 'blind' ? `$${it.calc.rateUsed}/m²` : `$${it.calc.rateUsed}/m`;
+        row(it.label, detailFor(it), rateStr, it.amount);
+      });
+      r.repairs.forEach((rp) => row(rp.label, `qty ${rp.qty}`, '$' + (rp.calc?.rateUsed ?? ''), rp.amount));
+      y += 3;
+    });
+    const ex = q.extras || {};
+    const exRows = [['transport', 'Transport'], ['rehang', 'Takedown & rehang'], ['callout', 'Call-out'], ['storage', 'Storage']].filter(([k]) => Number(ex[k]));
+    if (ex.fuel_on && Number(ex.fuel_amt)) exRows.unshift(['fuel_amt', 'Fuel levy']);
+    if (Number(ex.other_amt)) exRows.push(['other_amt', ex.other_desc || 'Other']);
+    if (exRows.length) {
+      ensure(10 + exRows.length * 6);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(...BLUE); doc.text('Extras', M, y); y += 5; line(M, y, PW - M, y); y += 4.5;
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); doc.setTextColor(...ink);
+      exRows.forEach(([k, l]) => { doc.text(l, col.item, y); doc.text(money(ex[k]), col.amt, y, { align: 'right' }); y += 6; });
+      y += 3;
+    }
+
+    ensure(34);
+    const bx = PW - M - 78;
+    line(bx, y, PW - M, y); y += 6; doc.setFontSize(10); doc.setTextColor(...ink);
+    const tl = (l, v, b) => { doc.setFont('helvetica', b ? 'bold' : 'normal'); doc.text(l, bx, y); doc.text(v, PW - M, y, { align: 'right' }); y += 6; };
+    if (t.discountAmt > 0) { tl('Subtotal', money(t.preDiscount)); doc.setTextColor(...PINK); tl('Discount', '- ' + money(t.discountAmt)); doc.setTextColor(...ink); }
+    tl('Subtotal (ex GST)', money(t.subtotal)); tl('GST (10%)', money(t.gst));
+    doc.setDrawColor(...BLUE); doc.setLineWidth(0.5); doc.line(bx, y - 1, PW - M, y - 1); y += 3;
+    doc.setFontSize(13); doc.setTextColor(...BLUE); tl('TOTAL (inc GST)', money(t.total), true);
+
+    if (q.notes) {
+      ensure(20); y += 2;
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(9.5); doc.setTextColor(...BLUE); doc.text('Notes', M, y); y += 5;
+      doc.setFont('helvetica', 'normal'); doc.setTextColor(...ink);
+      const nl = doc.splitTextToSize(q.notes, CW); doc.text(nl, M, y); y += nl.length * 4.6;
+    }
+    if (ME.pdf.outro) {
+      ensure(24); y += 4; doc.setFontSize(9); doc.setTextColor(...grey);
+      const ol = doc.splitTextToSize(ME.pdf.outro, CW); doc.text(ol, M, y); y += ol.length * 4.2;
+    }
+
+    if (ME.pdf.terms) {
+      doc.addPage();
+      let ty = 18;
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(13); doc.setTextColor(...BLUE); doc.text('Terms of Trade & Cleaning Disclaimer', M, ty); ty += 6;
+      line(M, ty, PW - M, ty, PINK, 0.6); ty += 5;
+      const gap = 8, colW = (CW - gap) / 2, colX = [M, M + colW + gap], startY = ty, avail = 286 - startY;
+      const paras = ME.pdf.terms.split(/\n/);
+      let chosen = null;
+      for (let fs = 9.5; fs >= 6.5; fs -= 0.1) {
+        doc.setFontSize(fs); const lh = fs * 0.42, w = [];
+        paras.forEach((p) => { if (!p.trim()) { w.push(''); return; } doc.splitTextToSize(p, colW).forEach((l) => w.push(l)); });
+        if (w.length <= Math.floor(avail / lh) * 2) { chosen = { fs, lh, lines: w }; break; }
+      }
+      if (!chosen) { doc.setFontSize(6.5); const w = []; paras.forEach((p) => { if (!p.trim()) { w.push(''); return; } doc.splitTextToSize(p, colW).forEach((l) => w.push(l)); }); chosen = { fs: 6.5, lh: 6.5 * 0.42, lines: w }; }
+      const half = Math.ceil(chosen.lines.length / 2);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(chosen.fs); doc.setTextColor(...ink);
+      let py = startY, ci = 0;
+      chosen.lines.forEach((l, i) => { if (i === half) { ci = 1; py = startY; } doc.text(l, colX[ci], py); py += chosen.lh; });
+    }
+
+    const pages = doc.getNumberOfPages();
+    for (let p = 1; p <= pages; p++) {
+      doc.setPage(p); doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(...grey);
+      doc.text(`Dr Drapes Curtain Clinic  ·  1300 652 866  ·  drdrapes.com.au  ·  in partnership with ${a.name}`, M, 290);
+      doc.text(`Page ${p} of ${pages}`, PW - M, 290, { align: 'right' });
+    }
+    return doc;
+  }
+
+  // ================================================================ start
+  if (INVITE) redeemInvite(); else boot();
+</script>
+</body>
+</html>
