@@ -329,6 +329,13 @@ Deno.serve(async (req) => {
       if (action === 'notify_status') return json(await notifyStatus(admin, body));
       return json(await statements(admin, body));
     }
+    // Setting a partner up from the database or a script (no staff login to
+    // hand), e.g. select net.http_post(...) with the report secret.
+    if (action === 'create_partner' && req.headers.get('x-report-secret')) {
+      await requireSecret(admin, req);
+      const { data: co } = await admin.from('companies').select('id').order('created_at').limit(1).single();
+      return json(await createPartner(admin, { company_id: body?.company_id || co.id }, body));
+    }
 
     // ---------------------------------------------------------- public
     if (action === 'redeem_invite') return json(await redeemInvite(admin, body));
