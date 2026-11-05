@@ -1519,7 +1519,7 @@
         return db.pageAll(() => {
           let q = sb
             .from('jobs')
-            .select('id, quote_number, drd_number, legacy_reference, customer_id, site_id, account_id, account_reference, partner_account_id, commission_pct, status, customer_name, customer_phone, customer_email, site_address, data, archived, created_at, updated_at, fergus_job_id')
+            .select('*')
             .order('updated_at', { ascending: false })
             .order('id', { ascending: true });
           return includeArchived ? q.eq('archived', true) : q.eq('archived', false);
@@ -1618,7 +1618,7 @@
       async listJobsAll() {
         return db.pageAll(() => sb
           .from('jobs')
-          .select('id, quote_number, drd_number, status, customer_name, account_id, account_reference, partner_account_id, commission_pct, data, archived, created_at, updated_at')
+          .select('*')
           .order('created_at', { ascending: false })
           .order('id', { ascending: true }));
       },
