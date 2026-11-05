@@ -23,10 +23,18 @@ alter table public.accounts
   add column if not exists is_partner               boolean not null default false,
   add column if not exists commission_referral_pct  numeric(5,2) not null default 30,
   add column if not exists commission_install_pct   numeric(5,2) not null default 50,
-  add column if not exists partner_invoice_default  text not null default 'drdrapes',
+  -- Usually the partner bills their own customer (often alongside their own
+  -- blinds, curtains or shutters) and we bill the partner, less commission.
+  add column if not exists partner_invoice_default  text not null default 'partner',
   add column if not exists partner_rehang_fee       numeric(10,2),
   add column if not exists partner_transport_fee    numeric(10,2),
-  add column if not exists partner_notify_email     text;
+  add column if not exists partner_notify_email     text,
+  -- Filled in by the partner on their first login (the onboarding screen).
+  add column if not exists abn                      text,
+  add column if not exists website                  text,
+  add column if not exists gst_registered           boolean,
+  add column if not exists partner_logo             text,
+  add column if not exists partner_onboarded_at     timestamptz;
 
 do $$ begin
   alter table public.accounts
@@ -44,6 +52,10 @@ comment on column public.accounts.partner_rehang_fee is
   'Takedown & rehang charge (ex GST) added to a partner quote when Dr Drapes does the install. Blank = none.';
 comment on column public.accounts.partner_transport_fee is
   'Transport charge (ex GST) added to every partner quote. Blank = none.';
+comment on column public.accounts.partner_logo is
+  'Partner logo as a small PNG data URL (resized in the browser, max ~300KB). Printed on their co-branded quotes.';
+comment on column public.accounts.partner_onboarded_at is
+  'When the partner finished the onboarding screen. Null = they see it on next login.';
 comment on column public.accounts.partner_notify_email is
   'Where job updates go. Blank = every active login on the account.';
 

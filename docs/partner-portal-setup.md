@@ -24,25 +24,37 @@ Nothing is live until the three steps below are done.
 3. **Publish.** Merge the branch. GitHub Pages publishes `partner.html` and the
    Drapr changes.
 
-## Setting up a partner (about two minutes)
+## Setting up a partner (about thirty seconds)
 
-1. Drapr → **Admin → Accounts** → add or edit the partner's account (for
-   example Haven Window Furnishings). Put their phone and email in, because both
-   print on the co-branded quote.
-2. Tick **This business is a partner** and set:
-   - Commission when **we** do the takedown and rehang (default 30%)
-   - Commission when **they** do it (default 50%)
-   - Rehang charge added when we do it, and transport added to every quote
-     (ex GST, blank = none). Partners can't change prices, so these are how
-     our install and transport get onto their quotes.
-   - Who usually bills the customer (they can change it per quote)
-   - Where job updates go (blank = every login)
-3. **Save account**, open it again, and under **Logins** enter the person's
-   name and email → **Send login invite**. They get an email with a
-   set-password link that lasts 7 days. Add as many people as they need. **Switch
-   off** ends a login immediately.
+1. Drapr → **Admin → Partners** → **Add a partner**. Enter the business name and
+   the email of the person who'll use it. The contact name is optional, and you
+   can change the two commission rates from 30% and 50% if you need to. Press
+   **Send welcome email**.
+2. They get a welcome email that explains the arrangement, shows their
+   commission rates, and has a button to set their password.
+3. The first time they sign in, they land on a setup screen: their name, the
+   business name, ABN (check-digit validated), GST status, the phone, email and
+   website that print on their quotes, their address, and **their logo**. They
+   press **Finish setup** and go straight to their first quote. You get an email
+   with their details.
 
-You create the logins. Partners can't sign themselves up.
+If the business is already one of your accounts (same name), it's switched on
+as a partner rather than duplicated, so its Fergus link carries over.
+
+Under **Admin → Accounts → Edit** you can also:
+
+- add more logins for the same business, resend an invite, or switch a login
+  off (that ends their session immediately)
+- set a rehang charge (added to their quotes when we do the install) and a
+  transport charge (added to every quote). Partners can't change prices, so
+  this is how our install and transport get onto their quotes.
+- change who usually bills the customer. It defaults to **the partner**.
+- send job updates to a shared inbox instead of every login
+
+Admin → Partners shows each partner's setup status, logo, ABN, open quotes,
+won work and commission owed.
+
+You create the partner. Partners can't sign themselves up.
 
 ## What happens on a partner job
 
@@ -56,12 +68,17 @@ You create the logins. Partners can't sign themselves up.
 
 ## Who bills the customer (set per job)
 
+The default is the partner, because they usually sell the job to their own
+customer, often alongside new blinds, curtains or shutters of their own.
+
+- **Partner bills their customer (default).** Fergus raises the job against the
+  partner's account. The job page shows what to invoice them: our quote less
+  their commission. There's nothing to pay separately. They can also download
+  the quote PDF and fold our cleaning into their own quote, rather than sending
+  ours.
 - **Dr Drapes bills the customer.** Fergus raises the job against the
   customer. Commission is paid to the partner monthly. Pay it from Xero, then tick it off in
   **Admin → Partners → Commission to pay** with the bill or RCTI number.
-- **Partner bills their customer.** Fergus raises the job against the partner's
-  account. The job page shows what to invoice them: the quote less their
-  commission. Nothing to pay separately.
 
 Change either on the job's **Partner & Commission** panel. You can also
 override the commission % on any single job there.

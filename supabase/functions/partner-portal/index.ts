@@ -8,11 +8,13 @@
 // Three kinds of caller:
 //
 //   PARTNER (Authorization: Bearer <partner session>)
-//     me, list_jobs, get_job, price, save_quote, save_inspection, photo_url,
+//     me, save_profile, list_jobs, get_job, price, save_quote, save_inspection, photo_url,
 //     email_quote, customer_accepted, customer_declined
 //
 //   STAFF ADMIN (Authorization: Bearer <staff session>, role admin)
-//     invite        { account_id, name, email, phone? }  — also re-sends
+//     create_partner { business_name, email, contact_name?, referral_pct?, install_pct? }
+//                   — makes (or switches on) the account and sends the welcome email
+//     invite        { account_id, name, email, phone? }  — another login, or a re-send
 //     set_active    { partner_user_id, active }
 //
 //   PUBLIC (no session)
@@ -339,8 +341,9 @@ Deno.serve(async (req) => {
     const { data: { user }, error: uErr } = await admin.auth.getUser(jwt);
     if (uErr || !user) fail(401, 'Not signed in');
 
-    if (action === 'invite' || action === 'set_active') {
+    if (action === 'invite' || action === 'set_active' || action === 'create_partner') {
       const staff = await requireStaffAdmin(admin, user!.id);
+      if (action === 'create_partner') return json(await createPartner(admin, staff, body));
       if (action === 'invite') return json(await invite(admin, staff, body));
       return json(await setActive(admin, staff, body));
     }
@@ -348,6 +351,7 @@ Deno.serve(async (req) => {
     const ctx = await partnerContext(admin, user!.id);
     switch (action) {
       case 'me': return json(await me(admin, ctx));
+      case 'save_profile': return json(await saveProfile(admin, ctx, body));
       case 'list_jobs': return json(await listJobs(admin, ctx));
       case 'get_job': return json(await getJob(admin, ctx, body));
       case 'price': return json(price(ctx, body));
@@ -430,9 +434,13 @@ async function me(admin: any, ctx: Ctx) {
   const a = ctx.account;
   return {
     ok: true,
-    user: { name: ctx.user.name, email: ctx.user.email },
+    user: { name: ctx.user.name, email: ctx.user.email, phone: ctx.user.phone || '' },
     account: {
       name: a.name, phone: a.phone, email: a.email,
+      address_line: a.address_line || '', suburb: a.suburb || '', state: a.state || 'VIC', postcode: a.postcode || '',
+      abn: a.abn || '', website: a.website || '', gst_registered: a.gst_registered,
+      logo: a.partner_logo || null,
+      onboarded: !!a.partner_onboarded_at,
       commission_referral_pct: Number(a.commission_referral_pct),
       commission_install_pct: Number(a.commission_install_pct),
       invoice_default: a.partner_invoice_default,
@@ -866,21 +874,94 @@ async function sendSetPasswordEmail(admin: any, pu: any, account: any, settings:
     invite_expires_at: new Date(Date.now() + hours * 3600_000).toISOString(),
     invited_at: new Date().toISOString(),
   }).eq('id', pu.id);
-  const url = `${portalBase(settings)}partner.html#invite=${encodeURIComponent(token)}`;
+  const base = portalBase(settings);
+  const url = `${base}partner.html#invite=${encodeURIComponent(token)}`;
+  // A login on a partner that hasn't onboarded yet is the welcome: it sells
+  // the arrangement, then walks them into the setup screen.
+  const welcome = kind === 'invite' && !account.partner_onboarded_at;
+  const hi = pu.name && pu.name !== account.name ? `Hi ${escapeHtml(firstName(pu.name))},` : 'Hi there,';
+  const footer = `
+      <p style="color:#555;font-size:13px;margin:0 0 10px">The link works once and lasts ${kind === 'invite' ? `${INVITE_DAYS} days` : `${RESET_HOURS} hours`}. After that, sign in any time at <a href="${escapeHtml(base)}partner.html">${escapeHtml(base)}partner.html</a>. It's worth bookmarking.</p>
+      <p style="color:#999;font-size:12px;margin:0">Questions? Call Dr Drapes on 1300 652 866.</p>`;
+
+  if (welcome) {
+    return sendEmail({
+      to: [pu.email],
+      subject: `Welcome to the Dr Drapes partner program — ${account.name}`,
+      html: shell(`
+        <p style="color:#333;font-size:15px;margin:0 0 14px">${hi}</p>
+        <p style="color:#444;font-size:14px;margin:0 0 14px;line-height:1.55">Welcome aboard. <strong>${escapeHtml(account.name)}</strong> is now a Dr Drapes partner. You can quote curtain and blind cleaning for your customers on our price list, and earn commission on every job.</p>
+        <p style="color:#444;font-size:14px;margin:0 0 8px;line-height:1.55">How it works:</p>
+        <ul style="color:#444;font-size:14px;line-height:1.6;margin:0 0 16px;padding-left:20px">
+          <li>Quote in minutes: enter widths and drops and the portal prices it.</li>
+          <li>Send your customer a quote with your business name and logo alongside ours, or add our cleaning to your own quote.</li>
+          <li>We clean. You or we take down and rehang, whichever suits the job.</li>
+          <li>We invoice you at our price less your commission, so the customer stays yours.</li>
+          <li>You get an email at every step: accepted, collected, cleaned and ready, invoiced, done.</li>
+        </ul>
+        ${table([
+          ['Your commission', `${Number(account.commission_referral_pct)}% when we take down and rehang · ${Number(account.commission_install_pct)}% when you do`],
+          ['Paid on', 'Cleaning and repairs, ex GST'],
+          ['Your login', pu.email],
+        ])}
+        ${button(url, 'Set your password and get started')}
+        <p style="color:#555;font-size:13px;margin:0 0 10px">The first time you sign in, you'll add your business details and logo. That takes about two minutes, and then you're ready to quote.</p>
+        ${footer}`, 'Partner program'),
+    });
+  }
+
   const intro = kind === 'invite'
-    ? `You've been set up with a login to the Dr Drapes partner portal for <strong>${escapeHtml(account.name)}</strong>. Use it to quote curtain and blind cleaning against our price list, do pre-inspections, send quotes to your customers and follow each job through to rehang.`
+    ? `You've been set up with a login to the Dr Drapes partner portal for <strong>${escapeHtml(account.name)}</strong>. Use it to quote curtain and blind cleaning on our price list, do pre-inspections, send quotes to your customers and follow each job through to rehang.`
     : 'Someone asked to reset the password for your Dr Drapes partner portal login. Use the button below to set a new one. If it wasn\'t you, ignore this email.';
   return sendEmail({
     to: [pu.email],
     subject: kind === 'invite' ? `Your Dr Drapes partner login — ${account.name}` : 'Reset your Dr Drapes partner portal password',
     html: shell(`
-      <p style="color:#333;font-size:15px;margin:0 0 14px">Hi ${escapeHtml(firstName(pu.name))},</p>
+      <p style="color:#333;font-size:15px;margin:0 0 14px">${hi}</p>
       <p style="color:#555;font-size:14px;margin:0 0 18px;line-height:1.5">${intro}</p>
       ${table([['Business', account.name], ['Login', pu.email]])}
       ${button(url, kind === 'invite' ? 'Set your password' : 'Set a new password')}
-      <p style="color:#555;font-size:13px;margin:0 0 10px">The link works once and lasts ${kind === 'invite' ? `${INVITE_DAYS} days` : `${RESET_HOURS} hours`}. After that, sign in any time at <a href="${escapeHtml(portalBase(settings))}partner.html">${escapeHtml(portalBase(settings))}partner.html</a> — worth bookmarking.</p>
-      <p style="color:#999;font-size:12px;margin:0">Questions? Call Dr Drapes on 1300 652 866.</p>`, 'Partner portal'),
+      ${footer}`, 'Partner portal'),
   });
+}
+
+// Finds or creates the auth user + partner_users row for this email on this
+// account. Refuses staff emails and emails already on another partner.
+async function ensurePartnerUser(admin: any, account: any, name: string, email: string, phone: string | null) {
+  const { data: staffUser } = await admin.from('app_users').select('id').ilike('email', email).maybeSingle();
+  if (staffUser) fail(409, 'That email is a Drapr staff login. Partners need their own email address.');
+
+  const { data: existing } = await admin.from('partner_users').select('*').ilike('email', email).maybeSingle();
+  if (existing && existing.account_id !== account.id) fail(409, 'That email already has a partner login for a different business.');
+  if (existing) {
+    const patch: any = { active: true };
+    if (name) patch.name = name;
+    if (phone) patch.phone = phone;
+    await admin.from('partner_users').update(patch).eq('id', existing.id);
+    return { ...existing, ...patch };
+  }
+
+  let userId: string | null = null;
+  const { data: createdUser, error: cErr } = await admin.auth.admin.createUser({
+    email, email_confirm: true, password: randomToken(24),
+    user_metadata: { partner: true, name },
+  });
+  if (cErr) {
+    // Already in auth (an old login with no profile): reuse it.
+    const { data: list } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+    const found = (list?.users || []).find((u: any) => (u.email || '').toLowerCase() === email);
+    if (!found) { console.error('createUser failed', cErr); fail(500, 'Couldn\'t create the login'); }
+    userId = found.id;
+  } else {
+    userId = createdUser.user.id;
+  }
+  const { data: inserted, error: iErr } = await admin.from('partner_users').insert({
+    // No contact name given: the business name stands in until they enter
+    // their own on the onboarding screen.
+    id: userId, company_id: account.company_id, account_id: account.id, name: name || account.name, email, phone, active: true,
+  }).select('*').single();
+  if (iErr) { console.error('partner_users insert failed', iErr); fail(500, 'Couldn\'t create the login'); }
+  return inserted;
 }
 
 async function invite(admin: any, staff: any, body: any) {
@@ -888,48 +969,129 @@ async function invite(admin: any, staff: any, body: any) {
   const name = String(body?.name ?? '').trim().slice(0, 120);
   const email = String(body?.email ?? '').trim().toLowerCase().slice(0, 160);
   const phone = String(body?.phone ?? '').trim().slice(0, 40) || null;
-  if (name.length < 2) fail(400, 'Enter their name');
   if (!validEmail(email)) fail(400, 'Enter a valid email');
 
   const { data: account } = await admin.from('accounts').select('*').eq('id', accountId).maybeSingle();
   if (!account || account.company_id !== staff.company_id) fail(404, 'Account not found');
   if (!account.is_partner) fail(400, 'Switch on the partner portal for this account first, and save');
 
-  const { data: staffUser } = await admin.from('app_users').select('id').ilike('email', email).maybeSingle();
-  if (staffUser) fail(409, 'That email is a Drapr staff login. Partners need their own email address.');
-
-  let { data: pu } = await admin.from('partner_users').select('*').ilike('email', email).maybeSingle();
-  if (pu && pu.account_id !== account.id) fail(409, 'That email already has a partner login for a different business.');
-
-  if (!pu) {
-    let userId: string | null = null;
-    const { data: createdUser, error: cErr } = await admin.auth.admin.createUser({
-      email, email_confirm: true, password: randomToken(24),
-      user_metadata: { partner: true, name },
-    });
-    if (cErr) {
-      // Already in auth (an old login with no profile): reuse it.
-      const { data: list } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-      const found = (list?.users || []).find((u: any) => (u.email || '').toLowerCase() === email);
-      if (!found) { console.error('createUser failed', cErr); fail(500, 'Couldn\'t create the login'); }
-      userId = found.id;
-    } else {
-      userId = createdUser.user.id;
-    }
-    const { data: inserted, error: iErr } = await admin.from('partner_users').insert({
-      id: userId, company_id: account.company_id, account_id: account.id, name, email, phone, active: true,
-    }).select('*').single();
-    if (iErr) { console.error('partner_users insert failed', iErr); fail(500, 'Couldn\'t create the login'); }
-    pu = inserted;
-  } else {
-    await admin.from('partner_users').update({ name, phone, active: true }).eq('id', pu.id);
-    pu = { ...pu, name, phone, active: true };
-  }
-
+  const pu = await ensurePartnerUser(admin, account, name, email, phone);
   const settings = await loadSettings(admin, account.company_id);
   const sent = await sendSetPasswordEmail(admin, pu, account, settings, 'invite');
   if (!sent) fail(502, 'The login was created but the invite email didn\'t send. Press Resend invite.');
   return { ok: true, partner_user_id: pu.id };
+}
+
+// The one-step setup: business name + email. Reuses an existing account of
+// the same name (an agent we already deal with), switching the portal on.
+async function createPartner(admin: any, staff: any, body: any) {
+  const name = String(body?.business_name ?? '').trim().slice(0, 120);
+  const email = String(body?.email ?? '').trim().toLowerCase().slice(0, 160);
+  const contact = String(body?.contact_name ?? '').trim().slice(0, 120);
+  const pct = (v: unknown, d: number) => { const n = Number(v); return isFinite(n) && n >= 0 && n <= 100 && String(v ?? '') !== '' ? n : d; };
+  if (name.length < 2) fail(400, 'Enter the business name');
+  if (!validEmail(email)) fail(400, 'Enter a valid email');
+
+  const { data: same } = await admin.from('accounts').select('*').eq('company_id', staff.company_id).ilike('name', name).maybeSingle();
+  let account = same;
+  const partnerCols = {
+    is_partner: true, active: true,
+    commission_referral_pct: pct(body?.referral_pct, Number(same?.commission_referral_pct ?? 30)),
+    commission_install_pct: pct(body?.install_pct, Number(same?.commission_install_pct ?? 50)),
+    partner_invoice_default: 'partner',
+  };
+  if (account) {
+    const { data: upd, error } = await admin.from('accounts').update({ ...partnerCols, email: account.email || email, updated_at: new Date().toISOString() })
+      .eq('id', account.id).select('*').single();
+    if (error) { console.error(error); fail(500, 'Couldn\'t update the account'); }
+    account = upd;
+  } else {
+    const { data: ins, error } = await admin.from('accounts').insert({
+      company_id: staff.company_id, name, kind: 'agent', email, reference_label: 'Your reference', reference_required: false,
+      ...partnerCols,
+    }).select('*').single();
+    if (error) { console.error(error); fail(500, 'Couldn\'t create the account'); }
+    account = ins;
+  }
+
+  const pu = await ensurePartnerUser(admin, account, contact, email, null);
+  const settings = await loadSettings(admin, account.company_id);
+  const sent = await sendSetPasswordEmail(admin, pu, account, settings, 'invite');
+  if (!sent) fail(502, 'The partner was created but the welcome email didn\'t send. Press Resend invite.');
+  return { ok: true, account_id: account.id, partner_user_id: pu.id, reused_account: !!same };
+}
+
+// ABN check digit: subtract 1 from the first digit, weight, sum, mod 89.
+function validAbn(abn: string) {
+  const d = abn.replace(/\D/g, '');
+  if (d.length !== 11) return false;
+  const w = [10, 1, 3, 5, 7, 9, 11, 13, 15, 17, 19];
+  const sum = d.split('').reduce((s, c, i) => s + (Number(c) - (i === 0 ? 1 : 0)) * w[i], 0);
+  return sum % 89 === 0;
+}
+
+// The onboarding screen, and the Business details page after it.
+async function saveProfile(admin: any, ctx: Ctx, body: any) {
+  const s = (v: unknown, n: number) => String(v ?? '').trim().slice(0, n);
+  const userName = s(body?.user_name, 120);
+  const business = s(body?.business_name, 120);
+  const phone = s(body?.phone, 40);
+  const email = s(body?.email, 160).toLowerCase();
+  const abn = s(body?.abn, 20).replace(/\s+/g, '');
+  if (userName.length < 2) fail(400, 'Enter your name');
+  if (business.length < 2) fail(400, 'Enter your business name');
+  if (!phone) fail(400, 'Enter a business phone number. It prints on your quotes.');
+  if (!validEmail(email)) fail(400, 'Enter a business email. It prints on your quotes.');
+  if (abn && !validAbn(abn)) fail(400, 'That ABN doesn\'t look right. Check the 11 digits.');
+
+  let logo: string | null | undefined = undefined;           // undefined = leave as is
+  if (body?.logo === null) logo = null;
+  else if (typeof body?.logo === 'string') {
+    if (!/^data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+$/.test(body.logo)) fail(400, 'The logo must be a PNG or JPG image');
+    if (body.logo.length > 400_000) fail(400, 'That logo is too large. Try a smaller image.');
+    logo = body.logo;
+  }
+
+  const patch: any = {
+    phone, email,
+    address_line: s(body?.address_line, 160) || null,
+    suburb: s(body?.suburb, 80) || null,
+    state: s(body?.state, 10) || 'VIC',
+    postcode: s(body?.postcode, 10) || null,
+    abn: abn ? abn.replace(/^(\d{2})(\d{3})(\d{3})(\d{3})$/, '$1 $2 $3 $4') : null,
+    website: s(body?.website, 160) || null,
+    gst_registered: body?.gst_registered === true ? true : body?.gst_registered === false ? false : null,
+    updated_at: new Date().toISOString(),
+  };
+  if (logo !== undefined) patch.partner_logo = logo;
+  // The account name is how Fergus finds them until it's linked; once it is,
+  // a rename here is just a display change. Before that, keep it in step.
+  if (business !== ctx.account.name) patch.name = business;
+  if (!ctx.account.partner_onboarded_at) patch.partner_onboarded_at = new Date().toISOString();
+
+  const { error } = await admin.from('accounts').update(patch).eq('id', ctx.account.id);
+  if (error) {
+    if (/duplicate|unique/i.test(error.message || '')) fail(409, 'Another business already uses that name with us. Call 1300 652 866 and we\'ll sort it.');
+    console.error('profile save failed', error); fail(500, 'Couldn\'t save your details');
+  }
+  await admin.from('partner_users').update({ name: userName, phone: s(body?.user_phone, 40) || null }).eq('id', ctx.user.id);
+
+  if (!ctx.account.partner_onboarded_at) {
+    await sendEmail({
+      to: officeRecipients(ctx),
+      subject: `Partner set up: ${business}`,
+      html: shell(`
+        <div style="font-size:18px;font-weight:700;color:#323264;margin:0 0 12px">${escapeHtml(business)} has finished setting up</div>
+        ${table([
+          ['Contact', `${userName} · ${ctx.user.email}`], ['Phone', phone], ['Email', email], ['ABN', patch.abn || 'not given'],
+          ['GST registered', patch.gst_registered === null ? 'not said' : patch.gst_registered ? 'Yes' : 'No'],
+          ['Address', [patch.address_line, patch.suburb, patch.state, patch.postcode].filter(Boolean).join(' ')],
+          ['Logo', logo ? 'uploaded' : 'none yet'],
+        ])}
+        <p style="color:#777;font-size:12px;margin:18px 0 0">They can quote now. Check the account in Drapr → Admin → Accounts and link it to Fergus if it isn't already.</p>`, 'Partner portal'),
+    });
+  }
+  return { ok: true };
 }
 
 async function setActive(admin: any, staff: any, body: any) {

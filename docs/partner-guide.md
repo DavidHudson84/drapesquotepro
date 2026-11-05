@@ -9,21 +9,25 @@ job through to rehang. It works on a phone, a tablet or a computer.
 
 ---
 
-## 1. Set up your login (once)
+## 1. Get started (once, about two minutes)
 
-You don't sign up yourself. Dr Drapes sets up a login for each person in your
-business.
+1. Look for an email from **Dr Drapes Curtain Clinic** titled *Welcome to the
+   Dr Drapes partner program*. Check your junk folder.
+2. Click **Set your password and get started** and choose one with at least 8
+   characters. The link works once and lasts 7 days.
+3. Add your business details: your name, business name, ABN, whether you're
+   registered for GST, the phone, email and website for customers, and your
+   address.
+4. Upload your **logo** (a PNG with a transparent background looks best). It
+   prints on your quotes beside ours.
+5. Press **Finish setup and start quoting**.
 
-1. Look for an email from **Dr Drapes Curtain Clinic** with the subject *Your
-   Dr Drapes partner login*. Check your junk folder if it isn't there.
-2. Click **Set your password** and choose one (at least 8 characters). The
-   link works once and lasts 7 days.
-3. You're in. From now on, sign in at the portal address above with your email
-   and that password.
+From then on, sign in at the portal with your email and password. You can
+change your details or logo any time under **Business details** at the top of
+the screen.
 
-**Forgot your password, or the link expired?** On the sign-in page, click
-*Forgot password, or never set one?*, enter your email, and we'll send you a fresh
-link.
+Forgot your password, or the link expired? On the sign-in page, click *Forgot
+password, or never set one?* and we'll email a fresh link.
 
 ## 2. Create a quote
 
@@ -36,10 +40,12 @@ link.
      to the quote.
    - *Your business*: you take down and rehang, we clean. You earn the higher
      commission rate.
-4. **Who bills the customer?**
-   - *Dr Drapes*: we invoice your customer and pay your commission monthly.
-   - *Your business*: we invoice you at the quote price less your commission,
-     and you bill your customer.
+4. **Who bills the customer?** This is usually you.
+   - *Your business* (the default): you bill your customer, alongside any of
+     your own work such as new blinds, curtains or shutters. We invoice you at
+     our price less your commission.
+   - *Dr Drapes*: we invoice your customer directly and pay your commission
+     monthly.
 5. **Items.** Name the room, then for each window choose the item type and enter
    the **width** and **drop** (the drop isn't needed for pelmets, swags and
    valances). You can enter metres (2.4) or millimetres (2400). Tick **Mould
@@ -71,8 +77,12 @@ Open the job and choose one:
   the job and press **Customer has accepted**, then add anything we should know
   (access, timing, pets). If they say no, press **Customer declined**.
 
-The quote carries the Dr Drapes branding, "In partnership with" your business
-name and contact details, and our terms of trade.
+The quote shows the Dr Drapes branding, "In partnership with" your logo,
+business name and contact details, and our terms of trade.
+
+Quoting the customer for other work as well? Download the PDF for the
+measurements and prices, add our cleaning to your own quote, and press
+**Customer has accepted** when they say yes.
 
 ## 4. Do a pre-inspection
 
@@ -117,10 +127,11 @@ Each email has a button that opens the job in the portal.
 - Commission is on the **cleaning and repair** amounts, **ex GST**. Transport,
   rehang and call-out charges aren't included.
 - It's earned in the month the job is invoiced. On the 1st of each month you
-  get a statement listing each job and the amount. If you're registered for GST,
-  GST is added when we pay.
-- On jobs where you bill the customer, your commission is already taken off our
-  invoice to you, so nothing is paid separately.
+  get a statement listing each job and the amount.
+- On the occasional job where we bill your customer directly, we pay your
+  commission monthly, plus GST if you're registered.
+- When you bill the customer (the usual way), we invoice you at our price
+  less your commission, so there's nothing to pay separately.
 
 ## Tips
 

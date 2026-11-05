@@ -169,6 +169,24 @@
   .photo.add { border: 2px dashed var(--line); background: #fff; cursor: pointer; flex-direction: column; font-size: 12px; }
   .photo.add b { font-size: 24px; color: var(--navy); }
 
+  /* ---------- onboarding ---------- */
+  .welcome { background: linear-gradient(135deg, var(--navy) 0%, #44447e 100%); color: #fff; border-radius: var(--r); padding: 24px 22px; margin-bottom: 14px; }
+  .welcome h1 { color: #fff; font-size: 23px; }
+  .welcome p { color: rgba(255,255,255,.85); margin-top: 6px; }
+  .welcome .rates { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+  .welcome .rate { background: rgba(255,255,255,.12); border-radius: var(--r-sm); padding: 10px 14px; flex: 1 1 200px; }
+  .welcome .rate b { display: block; font-size: 24px; }
+  .welcome .rate span { font-size: 13px; color: rgba(255,255,255,.8); }
+  .steps3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 14px; }
+  .steps3 div { font-size: 13px; color: rgba(255,255,255,.85); }
+  .steps3 b { display: inline-flex; width: 22px; height: 22px; border-radius: 50%; background: var(--pink); color: #fff; align-items: center; justify-content: center; font-size: 12px; margin-right: 6px; }
+  @media (max-width: 600px) { .steps3 { grid-template-columns: 1fr; } }
+  .logo-box { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+  .logo-prev { width: 220px; height: 90px; border: 2px dashed var(--line); border-radius: var(--r-sm); display: flex; align-items: center; justify-content: center; background: #fff; color: var(--muted); font-size: 13px; padding: 8px; }
+  .logo-prev img { max-width: 100%; max-height: 100%; object-fit: contain; }
+  .grid4 { display: grid; grid-template-columns: 2fr 1fr 90px 110px; gap: 12px; }
+  @media (max-width: 600px) { .grid4 { grid-template-columns: 1fr 1fr; } .grid4 .f-street { grid-column: 1 / -1; } }
+
   /* ---------- modal + toast ---------- */
   .modal-bg { position: fixed; inset: 0; background: rgba(20,20,40,.45); display: flex; align-items: flex-start; justify-content: center; padding: 40px 12px; z-index: 50; overflow-y: auto; }
   .modal { background: #fff; border-radius: var(--r); width: 100%; max-width: 520px; padding: 20px; }
@@ -180,7 +198,7 @@
 
 <div class="top hidden" id="top">
   <div class="brand" id="go-home"><b>Dr Drapes</b><span id="top-partner"></span></div>
-  <div class="who"><span class="nm" id="top-name"></span><button id="btn-signout">Sign out</button></div>
+  <div class="who"><span class="nm" id="top-name"></span><button id="btn-profile">Business details</button><button id="btn-signout">Sign out</button></div>
 </div>
 
 <main id="app"><div class="loading">Loading…</div></main>
@@ -367,14 +385,27 @@
       await sb.auth.signOut();
       return showSignIn(e.message);
     }
+    ME.logoDims = await imageDims(ME.account.logo);
     $('#top').classList.remove('hidden');
     $('#top-partner').textContent = ME.account.name;
-    $('#top-name').textContent = ME.user.name;
+    $('#top-name').textContent = ME.user.name !== ME.account.name ? ME.user.name : '';
+    if (!ME.account.onboarded) return profileScreen(true);
     route();
   }
 
+  function imageDims(src) {
+    return new Promise((resolve) => {
+      if (!src) return resolve(null);
+      const img = new Image();
+      img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
+      img.onerror = () => resolve(null);
+      img.src = src;
+    });
+  }
+
   window.addEventListener('hashchange', () => { if (ME) route(); });
-  $('#go-home').addEventListener('click', () => { location.hash = '#/'; });
+  $('#go-home').addEventListener('click', () => { if (ME?.account.onboarded) location.hash = '#/'; });
+  $('#btn-profile').addEventListener('click', () => { location.hash = '#/profile'; });
   $('#btn-signout').addEventListener('click', async () => { await sb.auth.signOut(); ME = null; location.hash = ''; showSignIn('Signed out.'); });
 
   function route() {
@@ -383,6 +414,8 @@
     const legacy = h.match(/^#job=([0-9a-f-]{36})/i);   // links in our emails
     if (legacy) { location.replace('#/job/' + legacy[1]); return; }
     let m;
+    if (!ME.account.onboarded) return profileScreen(true);
+    if (h === '#/profile') return profileScreen(false);
     if (h === '#/new') return quoteEditor(null);
     if ((m = h.match(/^#\/job\/([0-9a-f-]{36})\/edit$/i))) return loadAndEdit(m[1]);
     if ((m = h.match(/^#\/job\/([0-9a-f-]{36})$/i))) return jobView(m[1]);
@@ -449,6 +482,142 @@
     draw();
   }
 
+  // ================================================================ onboarding + business details
+
+  function profileScreen(first) {
+    window.scrollTo(0, 0);
+    $('#totals-mount').innerHTML = '';
+    const a = ME.account, u = ME.user;
+    let logo = a.logo || null;
+    const STATES = ['VIC', 'NSW', 'QLD', 'SA', 'WA', 'TAS', 'ACT', 'NT'];
+    const userName = u.name && u.name !== a.name ? u.name : '';
+
+    app.innerHTML = `
+      <div class="wrap">
+        ${first ? `
+        <div class="welcome">
+          <h1>Welcome to the Dr Drapes partner program</h1>
+          <p>Quote curtain and blind cleaning for your customers on our price list. We do the cleaning, you keep the customer, and you earn commission on every job.</p>
+          <div class="rates">
+            <div class="rate"><b>${a.commission_referral_pct}%</b><span>commission when Dr Drapes takes down and rehangs</span></div>
+            <div class="rate"><b>${a.commission_install_pct}%</b><span>commission when you take down and rehang</span></div>
+          </div>
+          <div class="steps3">
+            <div><b>1</b>Add your business details and logo (below)</div>
+            <div><b>2</b>Create a quote from measurements</div>
+            <div><b>3</b>Send it to your customer and track the job</div>
+          </div>
+        </div>` : `<div style="margin-bottom:10px"><a href="#/">← All jobs</a></div><h1 style="margin-bottom:12px">Business details</h1>`}
+        <div id="pf-err"></div>
+        <div class="card">
+          <h2>You</h2>
+          <div class="grid2">
+            <div class="field"><label>Your name *</label><input type="text" id="pf-uname" value="${esc(userName)}" autocomplete="name" /></div>
+            <div class="field"><label>Your mobile</label><input type="tel" id="pf-uphone" value="${esc(u.phone || '')}" /></div>
+          </div>
+          <div class="sub">You sign in as ${esc(u.email)}.</div>
+        </div>
+        <div class="card">
+          <h2>Your business</h2>
+          <p class="sub" style="margin:-4px 0 12px">Your business name, phone and email print on the quotes your customers receive, next to ours.</p>
+          <div class="grid2">
+            <div class="field"><label>Business name *</label><input type="text" id="pf-name" value="${esc(a.name)}" /></div>
+            <div class="field"><label>ABN</label><input type="text" id="pf-abn" value="${esc(a.abn)}" inputmode="numeric" placeholder="11 digits" /></div>
+            <div class="field"><label>Phone for customers *</label><input type="tel" id="pf-phone" value="${esc(a.phone || '')}" /></div>
+            <div class="field"><label>Email for customers *</label><input type="email" id="pf-email" value="${esc(a.email || '')}" /></div>
+            <div class="field"><label>Website</label><input type="text" id="pf-web" value="${esc(a.website)}" placeholder="www.yourbusiness.com.au" /></div>
+            <div class="field"><label>Registered for GST?</label>
+              <div class="choice" id="pf-gst">
+                <label class="${a.gst_registered === true ? 'on' : ''}"><input type="radio" name="gst" value="yes" ${a.gst_registered === true ? 'checked' : ''}/> Yes</label>
+                <label class="${a.gst_registered === false ? 'on' : ''}"><input type="radio" name="gst" value="no" ${a.gst_registered === false ? 'checked' : ''}/> No</label>
+              </div></div>
+          </div>
+          <div class="grid4">
+            <div class="field f-street"><label>Street address</label><input type="text" id="pf-street" value="${esc(a.address_line)}" /></div>
+            <div class="field"><label>Suburb</label><input type="text" id="pf-suburb" value="${esc(a.suburb)}" /></div>
+            <div class="field"><label>State</label><select id="pf-state">${STATES.map((x) => `<option ${x === (a.state || 'VIC') ? 'selected' : ''}>${x}</option>`).join('')}</select></div>
+            <div class="field"><label>Postcode</label><input type="text" id="pf-pc" value="${esc(a.postcode)}" inputmode="numeric" /></div>
+          </div>
+        </div>
+        <div class="card">
+          <h2>Your logo</h2>
+          <p class="sub" style="margin:-4px 0 12px">It goes on your quotes beside the Dr Drapes logo. A PNG with a transparent background looks best, but a JPG is fine.</p>
+          <div class="logo-box">
+            <div class="logo-prev" id="pf-logo-prev">${logo ? `<img src="${logo}" alt="Your logo" />` : 'No logo yet'}</div>
+            <div class="row">
+              <button class="btn btn-ghost btn-sm" id="pf-logo-pick" type="button">${logo ? 'Change logo' : 'Upload logo'}</button>
+              <button class="btn-link ${logo ? '' : 'hidden'}" id="pf-logo-rm" type="button">Remove</button>
+            </div>
+            <input type="file" id="pf-logo-file" accept="image/png,image/jpeg" class="hidden" />
+          </div>
+        </div>
+        <button class="btn btn-primary full" id="pf-save" style="margin-bottom:30px">${first ? 'Finish setup and start quoting' : 'Save details'}</button>
+      </div>`;
+
+    $$('#pf-gst input').forEach((r) => r.addEventListener('change', () => $$('#pf-gst label').forEach((l) => l.classList.toggle('on', $('input', l).checked))));
+    const showLogo = () => {
+      $('#pf-logo-prev').innerHTML = logo ? `<img src="${logo}" alt="Your logo" />` : 'No logo yet';
+      $('#pf-logo-pick').textContent = logo ? 'Change logo' : 'Upload logo';
+      $('#pf-logo-rm').classList.toggle('hidden', !logo);
+    };
+    $('#pf-logo-pick').addEventListener('click', () => $('#pf-logo-file').click());
+    $('#pf-logo-rm').addEventListener('click', () => { logo = null; showLogo(); });
+    $('#pf-logo-file').addEventListener('change', async (e) => {
+      const f = e.target.files?.[0]; e.target.value = '';
+      if (!f) return;
+      try { logo = await logoDataUrl(f); showLogo(); } catch (_) { toast('Couldn\'t read that image. Try a PNG or JPG.'); }
+    });
+
+    $('#pf-save').addEventListener('click', async () => {
+      const gst = $('#pf-gst input:checked')?.value;
+      const payload = {
+        user_name: $('#pf-uname').value.trim(), user_phone: $('#pf-uphone').value.trim(),
+        business_name: $('#pf-name').value.trim(), abn: $('#pf-abn').value.trim(),
+        phone: $('#pf-phone').value.trim(), email: $('#pf-email').value.trim(), website: $('#pf-web').value.trim(),
+        gst_registered: gst === 'yes' ? true : gst === 'no' ? false : null,
+        address_line: $('#pf-street').value.trim(), suburb: $('#pf-suburb').value.trim(), state: $('#pf-state').value, postcode: $('#pf-pc').value.trim(),
+        logo: logo === (a.logo || null) ? undefined : logo,
+      };
+      const btn = $('#pf-save'); btn.disabled = true; btn.textContent = 'Saving…';
+      try {
+        await call('save_profile', payload);
+        ME = await call('me');
+        ME.logoDims = await imageDims(ME.account.logo);
+        $('#top-partner').textContent = ME.account.name;
+        $('#top-name').textContent = ME.user.name !== ME.account.name ? ME.user.name : '';
+        toast(first ? 'You\'re all set. Let\'s create your first quote.' : 'Details saved');
+        const to = first ? '#/new' : '#/';
+        if (location.hash === to) route(); else location.hash = to;
+      } catch (e) {
+        $('#pf-err').innerHTML = `<div class="msg err">${esc(e.message)}</div>`; window.scrollTo(0, 0);
+        btn.disabled = false; btn.textContent = first ? 'Finish setup and start quoting' : 'Save details';
+      }
+    });
+  }
+
+  // Logos arrive any size. Fit inside 600×240 and keep transparency; fall back
+  // to JPEG on white if a busy logo is still too heavy as PNG.
+  function logoDataUrl(file) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const k = Math.min(1, 600 / img.width, 240 / img.height);
+        const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(img.width * k)); c.height = Math.max(1, Math.round(img.height * k));
+        const g = c.getContext('2d'); g.drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(img.src);
+        let out = c.toDataURL('image/png');
+        if (out.length > 350000) {
+          const j = document.createElement('canvas'); j.width = c.width; j.height = c.height;
+          const jg = j.getContext('2d'); jg.fillStyle = '#fff'; jg.fillRect(0, 0, j.width, j.height); jg.drawImage(c, 0, 0);
+          out = j.toDataURL('image/jpeg', 0.85);
+        }
+        resolve(out);
+      };
+      img.onerror = reject;
+      img.src = URL.createObjectURL(file);
+    });
+  }
+
   // ================================================================ quote editor
 
   async function loadAndEdit(id) {
@@ -469,7 +638,7 @@
       customer: { name: job?.customer_name || '', phone: job?.customer_phone || '', email: job?.customer_email || '', address: job?.site_address || '' },
       reference: job?.reference || '',
       install_by: job?.partner.install_by || 'drdrapes',
-      invoice_to: job?.partner.invoice_to || a.invoice_default || 'drdrapes',
+      invoice_to: job?.partner.invoice_to || a.invoice_default || 'partner',
       quote: {
         rooms: job ? job.quote.rooms.map((r) => ({
           name: r.name,
@@ -544,8 +713,8 @@
           </div>
           <h2 style="margin-top:16px">Who bills the customer?</h2>
           <div class="choice" id="ch-invoice">
-            <label class="${st.invoice_to === 'drdrapes' ? 'on' : ''}"><input type="radio" name="invoice" value="drdrapes" ${st.invoice_to === 'drdrapes' ? 'checked' : ''}/><span>Dr Drapes<small>We invoice the customer and pay your commission monthly.</small></span></label>
-            <label class="${st.invoice_to === 'partner' ? 'on' : ''}"><input type="radio" name="invoice" value="partner" ${st.invoice_to === 'partner' ? 'checked' : ''}/><span>${esc(a.name)}<small>We invoice you, less your commission. You bill your customer.</small></span></label>
+            <label class="${st.invoice_to === 'partner' ? 'on' : ''}"><input type="radio" name="invoice" value="partner" ${st.invoice_to === 'partner' ? 'checked' : ''}/><span>${esc(a.name)}<small>You bill your customer, alongside any of your own work. We invoice you our price less your commission.</small></span></label>
+            <label class="${st.invoice_to === 'drdrapes' ? 'on' : ''}"><input type="radio" name="invoice" value="drdrapes" ${st.invoice_to === 'drdrapes' ? 'checked' : ''}/><span>Dr Drapes<small>We invoice the customer directly and pay your commission monthly.</small></span></label>
           </div>
         </div>
 
@@ -980,9 +1149,23 @@
     doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(...BLUE);
     doc.text('1300 652 866   ·   drdrapes@hudsongroup.com.au', M, cy);
     cy += 5;
-    doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); doc.setTextColor(...PINK);
-    const pc = [a.phone, a.email].filter(Boolean).join('   ·   ');
-    doc.text(`In partnership with ${a.name}${pc ? '   ·   ' + pc : ''}`, M, cy);
+    const pc = [a.phone, a.email, a.website].filter(Boolean).join('   ·   ');
+    const dims = ME.logoDims;
+    if (a.logo && dims) {
+      // "In partnership with" + their logo + their name and contact.
+      const h = 11, w = Math.min(42, h * dims.w / dims.h);
+      const hh = w < h * dims.w / dims.h ? w * dims.h / dims.w : h;
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(...PINK);
+      doc.text('In partnership with', M, cy + 2.5);
+      try { doc.addImage(a.logo, a.logo.startsWith('data:image/jpeg') ? 'JPEG' : 'PNG', M + 30, cy - 2, w, hh, 'partnerlogo', 'FAST'); } catch (_) {}
+      const tx = M + 30 + w + 4;
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(9.5); doc.setTextColor(...ink); doc.text(a.name, tx, cy + 1.5);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(...grey); if (pc) doc.text(pc, tx, cy + 6);
+      cy += Math.max(hh, 8) + 1;
+    } else {
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); doc.setTextColor(...PINK);
+      doc.text(`In partnership with ${a.name}${pc ? '   ·   ' + pc : ''}`, M, cy);
+    }
     y = cy + 5; line(M, y, PW - M, y, PINK, 0.8); y += 9;
 
     doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(...BLUE); doc.text('QUOTE FOR', M, y);

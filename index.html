@@ -3802,8 +3802,8 @@
               <div class="row2">
                 <div class="field"><label>Who usually bills the customer</label>
                   <select id="ac-pinv">
-                    <option value="drdrapes"${a.partner_invoice_default !== 'partner' ? ' selected' : ''}>Dr Drapes (we pay commission monthly)</option>
-                    <option value="partner"${a.partner_invoice_default === 'partner' ? ' selected' : ''}>The partner (we bill them, less commission)</option>
+                    <option value="partner"${a.partner_invoice_default !== 'drdrapes' ? ' selected' : ''}>The partner (we bill them, less commission)</option>
+                    <option value="drdrapes"${a.partner_invoice_default === 'drdrapes' ? ' selected' : ''}>Dr Drapes (we pay commission monthly)</option>
                   </select></div>
                 <div class="field"><label>Send job updates to</label><input id="ac-pnotify" value="${escapeAttr(v(a.partner_notify_email))}" placeholder="Blank = every login below" /></div>
               </div>
@@ -3921,7 +3921,11 @@
           const open = mine.filter((j) => j.status === 'quoted').length;
           const won = mine.filter((j) => STATUSES.indexOf(j.status) >= STATUSES.indexOf('confirmed'));
           const owed = round2(unpaid.filter((j) => j.partner_account_id === a.id).reduce((s, j) => s + comm(j), 0));
-          return `<tr><td><strong>${escapeHtml(a.name)}</strong>${a.active ? '' : ' <span class="acct-tag">inactive</span>'}</td>
+          const setup = a.partner_onboarded_at
+            ? `<span style="color:#15803d">Set up ${fmt(a.partner_onboarded_at)}</span>`
+            : '<span style="color:#b45309">Waiting for them to set up</span>';
+          return `<tr><td>${a.partner_logo ? `<img src="${a.partner_logo}" alt="" style="height:22px;max-width:70px;object-fit:contain;vertical-align:middle;margin-right:6px" />` : ''}<strong>${escapeHtml(a.name)}</strong>${a.active ? '' : ' <span class="acct-tag">inactive</span>'}
+              <div class="section-hint" style="margin:2px 0 0">${setup}${a.abn ? ' · ABN ' + escapeHtml(a.abn) : ''}${a.gst_registered === false ? ' · not GST registered' : ''}</div></td>
             <td>${a.commission_referral_pct}% / ${a.commission_install_pct}%</td><td>${open}</td><td>${won.length}</td>
             <td>${money(won.reduce((s, j) => s + Number(j.data?.quote?.total || 0), 0))}</td><td><strong>${money(owed)}</strong></td></tr>`;
         };
@@ -3929,7 +3933,24 @@
         body.innerHTML = `
           <div class="admin-section">
             <h3>Partners</h3>
-            <p class="section-hint">Businesses with a partner portal login. Switch an account to a partner, set its commission and send logins from <strong>Accounts → Edit</strong>. The portal is at <strong>${escapeHtml(partnerPortalUrl())}</strong>.</p>
+            <p class="section-hint">Businesses with a partner portal login. The portal is at <strong>${escapeHtml(partnerPortalUrl())}</strong>.</p>
+            <div style="background:#f7f8fc;border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:0 0 16px">
+              <div class="qb-block-title" style="margin-top:0">Add a partner</div>
+              <p class="section-hint" style="margin:0 0 10px">Enter the business name and the email of the person who'll use it. They get a welcome email, set a password, then add their own details and logo. If the business is already one of our accounts, it's switched on as a partner rather than duplicated.</p>
+              <div class="row2">
+                <div class="field"><label>Business name</label><input id="np-name" placeholder="Haven Window Furnishings" /></div>
+                <div class="field"><label>Email</label><input id="np-email" type="email" placeholder="sam@havenwindowfurnishings.com.au" /></div>
+              </div>
+              <div class="row2">
+                <div class="field"><label>Contact name (optional)</label><input id="np-contact" placeholder="They can fill this in themselves" /></div>
+                <div class="row2" style="gap:10px">
+                  <div class="field"><label>Commission, we rehang (%)</label><input id="np-ref" type="number" min="0" max="100" step="0.5" value="30" /></div>
+                  <div class="field"><label>Commission, they rehang (%)</label><input id="np-inst" type="number" min="0" max="100" step="0.5" value="50" /></div>
+                </div>
+              </div>
+              <button class="btn btn-confirm" id="np-go">Send welcome email</button>
+              <span class="section-hint" style="margin-left:8px">Rehang and transport charges, extra logins and billing defaults are under Accounts → Edit.</span>
+            </div>
             ${partners.length ? `<table class="rep-table" style="width:100%">
               <thead><tr><th style="text-align:left">Partner</th><th style="text-align:left">Commission (we rehang / they rehang)</th><th style="text-align:left">Open quotes</th><th style="text-align:left">Won</th><th style="text-align:left">Won value inc GST</th><th style="text-align:left">Commission owed</th></tr></thead>
               <tbody>${partners.map(sumRow).join('')}</tbody></table>` : '<p class="section-hint">No partners yet.</p>'}
@@ -3955,6 +3976,24 @@
             ${paid.length ? `<table class="rep-table" style="width:100%"><tbody>${paid.map((j) => `<tr><td>${escapeHtml(name(j.partner_account_id))}</td><td>${escapeHtml(j.quote_number)}</td><td>${escapeHtml(j.customer_name || '')}</td><td>${fmt(j.commission_paid_at)}</td><td>${escapeHtml(j.commission_paid_ref || '')}</td><td style="text-align:right">${money(comm(j))}</td></tr>`).join('')}</tbody></table>` : '<p class="section-hint">None yet.</p>'}
           </div>`;
 
+        $('#np-go').addEventListener('click', async () => {
+          const btn = $('#np-go');
+          const business_name = $('#np-name').value.trim(), email = $('#np-email').value.trim();
+          if (!business_name || !email) { ui.toast('Enter the business name and email'); return; }
+          btn.disabled = true; btn.textContent = 'Sending…';
+          try {
+            const out = await partnerFn('create_partner', {
+              business_name, email, contact_name: $('#np-contact').value.trim(),
+              referral_pct: $('#np-ref').value, install_pct: $('#np-inst').value,
+            });
+            await db.refreshAccounts();
+            ui.toast(`Welcome email sent to ${email}${out.reused_account ? ' (existing account switched on as a partner)' : ''}`);
+            adminPartners.render(body);
+          } catch (e) {
+            ui.toast(e.message || 'Could not add the partner');
+            btn.disabled = false; btn.textContent = 'Send welcome email';
+          }
+        });
         body.querySelectorAll('[data-cjob]').forEach((a) => a.addEventListener('click', (e) => { e.preventDefault(); router.go('job', { jobId: a.dataset.cjob }); }));
         const sum = () => {
           const ids = [...body.querySelectorAll('[data-cpay]:checked')].map((c) => c.dataset.cpay);
