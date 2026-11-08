@@ -3728,8 +3728,8 @@
           <div class="row2">
             <div class="field"><label>Takedown & rehang</label>
               <select id="pp-install">
-                <option value="drdrapes"${installBy === 'drdrapes' ? ' selected' : ''}>Dr Drapes does it — ${acct.commission_referral_pct}%</option>
-                <option value="partner"${installBy === 'partner' ? ' selected' : ''}>${escapeHtml(acct.name)} does it — ${acct.commission_install_pct}%</option>
+                <option value="drdrapes"${installBy === 'drdrapes' ? ' selected' : ''}>Dr Drapes does it — ${Number(acct.commission_referral_pct) > 0 ? acct.commission_referral_pct + '%' : 'rate not agreed'}</option>
+                <option value="partner"${installBy === 'partner' ? ' selected' : ''}>${escapeHtml(acct.name)} does it — ${Number(acct.commission_install_pct) > 0 ? acct.commission_install_pct + '%' : 'rate not agreed'}</option>
               </select></div>
             <div class="field"><label>Who bills the customer</label>
               <select id="pp-invoice">
@@ -3799,8 +3799,8 @@
             <label class="acc-terms"><input type="checkbox" id="ac-partner" ${on ? 'checked' : ''} /> This business is a partner — they can log in, quote on our price list and earn commission</label>
             <div id="ac-pfields" class="${on ? '' : 'hidden'}">
               <div class="row2">
-                <div class="field"><label>Commission — we do takedown & rehang (%)</label><input id="ac-cref" type="number" step="0.5" min="0" max="100" value="${escapeAttr(v(a.commission_referral_pct ?? 30))}" /></div>
-                <div class="field"><label>Commission — they do takedown & rehang (%)</label><input id="ac-cinst" type="number" step="0.5" min="0" max="100" value="${escapeAttr(v(a.commission_install_pct ?? 50))}" /></div>
+                <div class="field"><label>Commission — we do takedown & rehang (%)</label><input id="ac-cref" type="number" step="0.5" min="0" max="100" value="${escapeAttr(Number(a.commission_referral_pct) > 0 ? a.commission_referral_pct : '')}" placeholder="Not agreed yet" /></div>
+                <div class="field"><label>Commission — they do takedown & rehang (%)</label><input id="ac-cinst" type="number" step="0.5" min="0" max="100" value="${escapeAttr(Number(a.commission_install_pct) > 0 ? a.commission_install_pct : '')}" placeholder="Not agreed yet" /></div>
               </div>
               <div class="row2">
                 <div class="field"><label>Rehang charge added when we do it ($ ex GST)</label><input id="ac-prehang" type="number" step="0.01" min="0" value="${escapeAttr(v(a.partner_rehang_fee))}" placeholder="Blank = none" /></div>
@@ -3835,8 +3835,9 @@
         const num = (id) => { const x = $(id).value.trim(); return x === '' ? null : Number(x); };
         return {
           is_partner: cb.checked,
-          commission_referral_pct: num('#ac-cref') ?? 30,
-          commission_install_pct: num('#ac-cinst') ?? 50,
+          // Blank = not agreed yet, stored as 0 and shown as "to be agreed".
+          commission_referral_pct: num('#ac-cref') ?? 0,
+          commission_install_pct: num('#ac-cinst') ?? 0,
           partner_rehang_fee: num('#ac-prehang'),
           partner_transport_fee: num('#ac-ptrans'),
           partner_invoice_default: $('#ac-pinv').value,
@@ -3952,7 +3953,7 @@
             : '<span style="color:#b45309">Waiting for them to set up</span>';
           return `<tr><td>${a.partner_logo ? `<img src="${a.partner_logo}" alt="" style="height:22px;max-width:70px;object-fit:contain;vertical-align:middle;margin-right:6px" />` : ''}<strong>${escapeHtml(a.name)}</strong>${a.active ? '' : ' <span class="acct-tag">inactive</span>'}
               <div class="section-hint" style="margin:2px 0 0">${setup}${a.abn ? ' · ABN ' + escapeHtml(a.abn) : ''}${a.gst_registered === false ? ' · not GST registered' : ''}</div></td>
-            <td>${a.commission_referral_pct}% / ${a.commission_install_pct}%</td><td>${open}</td><td>${won.length}</td>
+            <td>${Number(a.commission_referral_pct) > 0 || Number(a.commission_install_pct) > 0 ? `${a.commission_referral_pct}% / ${a.commission_install_pct}%` : '<span style="color:#b45309">Not agreed yet</span>'}</td><td>${open}</td><td>${won.length}</td>
             <td>${money(won.reduce((s, j) => s + Number(j.data?.quote?.total || 0), 0))}</td><td><strong>${money(owed)}</strong></td>
             <td><button class="btn btn-secondary" data-pedit="${a.id}">Edit</button></td></tr>`;
         };
@@ -3971,8 +3972,8 @@
               <div class="row2">
                 <div class="field"><label>Contact name (optional)</label><input id="np-contact" placeholder="They can fill this in themselves" /></div>
                 <div class="row2" style="gap:10px">
-                  <div class="field"><label>Commission, we rehang (%)</label><input id="np-ref" type="number" min="0" max="100" step="0.5" value="30" /></div>
-                  <div class="field"><label>Commission, they rehang (%)</label><input id="np-inst" type="number" min="0" max="100" step="0.5" value="50" /></div>
+                  <div class="field"><label>Commission, we rehang (%)</label><input id="np-ref" type="number" min="0" max="100" step="0.5" placeholder="Agree later" /></div>
+                  <div class="field"><label>Commission, they rehang (%)</label><input id="np-inst" type="number" min="0" max="100" step="0.5" placeholder="Agree later" /></div>
                 </div>
               </div>
               <button class="btn btn-confirm" id="np-go">Send welcome email</button>
