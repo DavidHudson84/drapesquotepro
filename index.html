@@ -3592,7 +3592,7 @@
         draw();
       },
 
-      edit(acct, body) {
+      edit(acct, body, afterSave) {
         const a = acct || { name: '', group_name: '', kind: 'agent', phone: '', email: '',
           address_line: '', suburb: '', state: 'VIC', postcode: '',
           reference_label: 'Their reference', reference_required: false,
@@ -3645,6 +3645,8 @@
           if (!name) { err.textContent = 'The account needs a name.'; err.classList.remove('hidden'); return; }
           const addr = readAddressFields('ac');
           const fid = $('#ac-fergus').value.trim();
+          const partnerBlock = adminPartners.readAccountBlock();
+          const applyOpen = !!$('#ac-capply')?.checked;
           try {
             await db.saveAccount(acct ? acct.id : null, {
               name,
@@ -3661,11 +3663,16 @@
               fergus_customer_id: fid ? Number(fid) : null,
               notes: $('#ac-notes').value.trim() || null,
               active: $('#ac-active').checked,
-              ...adminPartners.readAccountBlock(),
+              ...partnerBlock,
             });
+            let moved = 0;
+            if (acct && applyOpen && partnerBlock.is_partner) {
+              try { moved = await adminPartners.applyRatesToOpenQuotes(acct.id, partnerBlock); }
+              catch (e3) { ui.toast('Saved, but open quotes not updated: ' + (e3.message || 'error')); }
+            }
             close();
-            ui.toast('Account saved');
-            adminAccounts.render(body);
+            ui.toast(moved ? `Account saved · new rate applied to ${moved} open quote${moved === 1 ? '' : 's'}` : 'Account saved');
+            if (afterSave) afterSave(); else adminAccounts.render(body);
           } catch (e2) {
             err.textContent = /duplicate|unique/i.test(e2.message || '')
               ? 'There is already an account with that name.'
@@ -3807,7 +3814,8 @@
                   </select></div>
                 <div class="field"><label>Send job updates to</label><input id="ac-pnotify" value="${escapeAttr(v(a.partner_notify_email))}" placeholder="Blank = every login below" /></div>
               </div>
-              <p class="section-hint" style="margin:0 0 8px">Commission is paid on cleaning and repairs only, ex GST. Partners see these rates; they can't change prices.</p>
+              <p class="section-hint" style="margin:0 0 8px">Commission is paid on cleaning and repairs only, ex GST. Partners see these rates; they can't change prices. A new rate applies to quotes raised from now on. Accepted jobs keep the rate they were quoted at, and you can still change any single job on its Partner & Commission panel.</p>
+              ${a.id ? `<label class="acc-terms"><input type="checkbox" id="ac-capply" /> Also apply the new rates to this partner's open quotes (not yet accepted, and not set by hand on the job)</label>` : ''}
               <div class="qb-block-title" style="margin-top:6px">Logins</div>
               ${a.id ? `<div id="ac-plogins"><p class="section-hint">Loading…</p></div>
               <div class="row2" style="margin-top:8px">
@@ -3893,6 +3901,24 @@
         });
       },
 
+      // Open quotes (not accepted) pick up the new rate unless someone set the
+      // job's rate by hand. Accepted work keeps what it was quoted at.
+      async applyRatesToOpenQuotes(accountId, rates) {
+        const { data, error } = await sb.from('jobs').select('id, commission_pct, data')
+          .eq('partner_account_id', accountId).eq('status', 'quoted').eq('archived', false);
+        if (error) throw error;
+        let n = 0;
+        for (const j of data || []) {
+          if (j.data?.partner?.commission_overridden || j.data?.acceptance?.confirmed_at) continue;
+          const pct = Number(j.data?.partner?.install_by === 'partner' ? rates.commission_install_pct : rates.commission_referral_pct);
+          if (Number(j.commission_pct) === pct) continue;
+          const { error: e } = await sb.from('jobs').update({ commission_pct: pct }).eq('id', j.id).eq('status', 'quoted');
+          if (e) throw e;
+          n++;
+        }
+        return n;
+      },
+
       // ---------- Admin → Partners tab ----------
       async render(body) {
         body.innerHTML = '<p class="section-hint">Loading…</p>';
@@ -3927,7 +3953,8 @@
           return `<tr><td>${a.partner_logo ? `<img src="${a.partner_logo}" alt="" style="height:22px;max-width:70px;object-fit:contain;vertical-align:middle;margin-right:6px" />` : ''}<strong>${escapeHtml(a.name)}</strong>${a.active ? '' : ' <span class="acct-tag">inactive</span>'}
               <div class="section-hint" style="margin:2px 0 0">${setup}${a.abn ? ' · ABN ' + escapeHtml(a.abn) : ''}${a.gst_registered === false ? ' · not GST registered' : ''}</div></td>
             <td>${a.commission_referral_pct}% / ${a.commission_install_pct}%</td><td>${open}</td><td>${won.length}</td>
-            <td>${money(won.reduce((s, j) => s + Number(j.data?.quote?.total || 0), 0))}</td><td><strong>${money(owed)}</strong></td></tr>`;
+            <td>${money(won.reduce((s, j) => s + Number(j.data?.quote?.total || 0), 0))}</td><td><strong>${money(owed)}</strong></td>
+            <td><button class="btn btn-secondary" data-pedit="${a.id}">Edit</button></td></tr>`;
         };
 
         body.innerHTML = `
@@ -3952,7 +3979,7 @@
               <span class="section-hint" style="margin-left:8px">Rehang and transport charges, extra logins and billing defaults are under Accounts → Edit.</span>
             </div>
             ${partners.length ? `<table class="rep-table" style="width:100%">
-              <thead><tr><th style="text-align:left">Partner</th><th style="text-align:left">Commission (we rehang / they rehang)</th><th style="text-align:left">Open quotes</th><th style="text-align:left">Won</th><th style="text-align:left">Won value inc GST</th><th style="text-align:left">Commission owed</th></tr></thead>
+              <thead><tr><th style="text-align:left">Partner</th><th style="text-align:left">Commission (we rehang / they rehang)</th><th style="text-align:left">Open quotes</th><th style="text-align:left">Won</th><th style="text-align:left">Won value inc GST</th><th style="text-align:left">Commission owed</th><th></th></tr></thead>
               <tbody>${partners.map(sumRow).join('')}</tbody></table>` : '<p class="section-hint">No partners yet.</p>'}
           </div>
           <div class="admin-section">
@@ -3994,6 +4021,8 @@
             btn.disabled = false; btn.textContent = 'Send welcome email';
           }
         });
+        body.querySelectorAll('[data-pedit]').forEach((b) => b.addEventListener('click', () =>
+          adminAccounts.edit(accts.find((x) => x.id === b.dataset.pedit), body, () => adminPartners.render(body))));
         body.querySelectorAll('[data-cjob]').forEach((a) => a.addEventListener('click', (e) => { e.preventDefault(); router.go('job', { jobId: a.dataset.cjob }); }));
         const sum = () => {
           const ids = [...body.querySelectorAll('[data-cpay]:checked')].map((c) => c.dataset.cpay);
