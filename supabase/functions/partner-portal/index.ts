@@ -635,7 +635,7 @@ async function saveQuote(admin: any, ctx: Ctx, body: any) {
       <div style="font-size:13px;color:#777;margin:0 0 18px">${escapeHtml(name)}${address ? ' — ' + escapeHtml(address) : ''}</div>
       ${table([
         ['Quote', ref], ['Raised by', ctx.user.name], ['Total (inc GST)', money(t.total)],
-        ['Commission', `${pct}% — ${money(commissionOf(t.commissionBase, pct))} ex GST`],
+        ['Commission', pct > 0 ? `${pct}% — ${money(commissionOf(t.commissionBase, pct))} ex GST` : 'rate not agreed yet. Set it in Admin → Partners → Edit'],
         ['Takedown & rehang', installBy === 'partner' ? `${ctx.account.name} does it` : 'Dr Drapes'],
         ['Customer billed by', invoiceTo === 'partner' ? ctx.account.name : 'Dr Drapes'],
         [ctx.account.reference_label || 'Their reference', reference || ''],
@@ -913,7 +913,9 @@ async function sendSetPasswordEmail(admin: any, pu: any, account: any, settings:
           <li>You get an email at every step: accepted, collected, cleaned and ready, invoiced, done.</li>
         </ul>
         ${table([
-          ['Your commission', `${Number(account.commission_referral_pct)}% when we take down and rehang · ${Number(account.commission_install_pct)}% when you do`],
+          ['Your commission', Number(account.commission_referral_pct) > 0 || Number(account.commission_install_pct) > 0
+            ? `${Number(account.commission_referral_pct)}% when we take down and rehang · ${Number(account.commission_install_pct)}% when you do`
+            : 'Agreed with Dr Drapes. It shows in the portal once set.'],
           ['Paid on', 'Cleaning and repairs, ex GST'],
           ['Your login', pu.email],
         ])}
@@ -1009,8 +1011,9 @@ async function createPartner(admin: any, staff: any, body: any) {
   let account = same;
   const partnerCols = {
     is_partner: true, active: true,
-    commission_referral_pct: pct(body?.referral_pct, Number(same?.commission_referral_pct ?? 30)),
-    commission_install_pct: pct(body?.install_pct, Number(same?.commission_install_pct ?? 50)),
+    // Blank = agreed later, case by case (0 = not set; shown as "to be agreed").
+    commission_referral_pct: pct(body?.referral_pct, Number(same?.commission_referral_pct ?? 0)),
+    commission_install_pct: pct(body?.install_pct, Number(same?.commission_install_pct ?? 0)),
     partner_invoice_default: 'partner',
   };
   if (account) {
@@ -1193,7 +1196,9 @@ async function notifyStatus(admin: any, body: any) {
         ? `The curtains and blinds for ${cust} are cleaned and ready. Let us know when you'd like to collect them for rehanging.`
         : `The curtains and blinds for ${cust} are cleaned and ready. We'll book in the rehang with the customer.`],
     invoiced: [`${ref} invoiced — ${cust}`,
-      invoiceTo === 'partner'
+      !(Number(job.commission_pct) > 0)
+        ? `We've invoiced ${invoiceTo === 'partner' ? account.name : cust} for ${ref}.`
+        : invoiceTo === 'partner'
         ? `We've invoiced ${account.name} for ${ref}. Your ${Number(job.commission_pct || 0)}% commission (${money(commission)} ex GST) is already taken off that invoice.`
         : `We've invoiced ${cust} for ${ref}. Your ${Number(job.commission_pct || 0)}% commission of ${money(commission)} ex GST will be on next month's statement.`],
     rehung: [`${ref} complete — ${cust}`,
@@ -1212,7 +1217,7 @@ async function notifyStatus(admin: any, body: any) {
       html: shell(`
         <div style="font-size:18px;font-weight:700;color:#1E7A4B;margin:0 0 12px">Partner job accepted</div>
         ${table([['Quote', ref], ['Partner', account.name], ['Customer', cust], ['Total (inc GST)', money(total)],
-          ['Commission', `${Number(job.commission_pct || 0)}% — ${money(commission)} ex GST`],
+          ['Commission', Number(job.commission_pct) > 0 ? `${Number(job.commission_pct)}% — ${money(commission)} ex GST` : 'rate not agreed yet'],
           ['Billed to', invoiceTo === 'partner' ? account.name : 'the customer']])}
         <p style="color:#777;font-size:12px;margin:18px 0 0">The office has it for booking.</p>`, 'Partner portal'),
     });

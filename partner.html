@@ -231,6 +231,9 @@
   const fmtDate = (d) => new Date(d).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
   const fmtWhen = (d) => new Date(d).toLocaleString('en-AU', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
   const clip = (s, n) => { s = String(s || ''); return s.length > n ? s.slice(0, n - 1) + '…' : s; };
+  // A rate of 0 means "not agreed yet": say so rather than show 0%.
+  const pctTxt = (p) => Number(p) > 0 ? `${Number(p)}%` : 'to be agreed';
+  const ratesSet = () => Number(ME?.account.commission_referral_pct) > 0 || Number(ME?.account.commission_install_pct) > 0;
 
   const STATUS = {
     quoted: 'Quote sent / awaiting customer', confirmed: 'Accepted — booking in', in_progress: 'In our workshop',
@@ -450,7 +453,7 @@
             <div class="d">${esc(j.quote_number)}${j.reference ? ' · ' + esc(j.reference) : ''} · ${fmtDate(j.created_at)}${j.site_address ? ' · ' + esc(clip(j.site_address, 48)) : ''}</div>
             ${j.status === 'quoted' && !j.sent_at ? '<div class="d" style="color:var(--warn)">Not emailed from here yet</div>' : ''}
           </div>
-          <div><div class="amt">${money(j.total)}</div><div class="com">${money(j.commission)} comm.</div></div>
+          <div><div class="amt">${money(j.total)}</div>${j.commission > 0 ? `<div class="com">${money(j.commission)} comm.</div>` : ''}</div>
         </div>`).join('') : `<div class="empty">${homeFilter === 'open' ? 'No open quotes. Press <b>New quote</b> to start one.' : 'Nothing here yet.'}</div>`;
       $$('#joblist .jobrow').forEach((r) => r.addEventListener('click', () => { location.hash = '#/job/' + r.dataset.id; }));
       $$('.tabs button').forEach((b) => b.classList.toggle('on', b.dataset.f === homeFilter));
@@ -459,13 +462,13 @@
     app.innerHTML = `
       <div class="wrap">
         <div class="spread" style="margin-bottom:14px">
-          <div><h1>${esc(a.name)}</h1><div class="sub">Commission: ${a.commission_referral_pct}% when we do the takedown & rehang · ${a.commission_install_pct}% when you do</div></div>
+          <div><h1>${esc(a.name)}</h1><div class="sub">${ratesSet() ? `Commission: ${pctTxt(a.commission_referral_pct)} when we do the takedown & rehang · ${pctTxt(a.commission_install_pct)} when you do` : 'Your commission rate is being agreed with Dr Drapes and will show here once it\'s set.'}</div></div>
           <a class="btn btn-primary" href="#/new">+ New quote</a>
         </div>
         <div class="stats">
           <div class="stat"><div class="k">Open quotes</div><div class="v">${open.length}</div></div>
-          <div class="stat"><div class="k">Commission in progress</div><div class="v">${money(pipeline)}</div></div>
-          <div class="stat"><div class="k">Earned this FY</div><div class="v">${money(earned)}</div></div>
+          <div class="stat"><div class="k">Commission in progress</div><div class="v">${ratesSet() ? money(pipeline) : '—'}</div></div>
+          <div class="stat"><div class="k">Earned this FY</div><div class="v">${ratesSet() ? money(earned) : '—'}</div></div>
         </div>
         <div class="card">
           <div class="tabs">
@@ -499,8 +502,10 @@
           <h1>Welcome to the Dr Drapes partner program</h1>
           <p>Quote curtain and blind cleaning for your customers on our price list. We do the cleaning, you keep the customer, and you earn commission on every job.</p>
           <div class="rates">
-            <div class="rate"><b>${a.commission_referral_pct}%</b><span>commission when Dr Drapes takes down and rehangs</span></div>
-            <div class="rate"><b>${a.commission_install_pct}%</b><span>commission when you take down and rehang</span></div>
+            ${ratesSet() ? `
+            <div class="rate"><b>${pctTxt(a.commission_referral_pct)}</b><span>commission when Dr Drapes takes down and rehangs</span></div>
+            <div class="rate"><b>${pctTxt(a.commission_install_pct)}</b><span>commission when you take down and rehang</span></div>`
+            : `<div class="rate"><b>Commission</b><span>Your rate is agreed with Dr Drapes and will show in the portal once it's set.</span></div>`}
           </div>
           <div class="steps3">
             <div><b>1</b>Add your business details and logo (below)</div>
@@ -708,8 +713,8 @@
         <div class="card">
           <h2>Who does the takedown and rehang?</h2>
           <div class="choice" id="ch-install">
-            <label class="${st.install_by === 'drdrapes' ? 'on' : ''}"><input type="radio" name="install" value="drdrapes" ${st.install_by === 'drdrapes' ? 'checked' : ''}/><span>Dr Drapes<small>We take down, clean and rehang. Your commission: ${a.commission_referral_pct}%${a.rehang_fee ? ` · rehang charge ${money(a.rehang_fee)} added` : ''}</small></span></label>
-            <label class="${st.install_by === 'partner' ? 'on' : ''}"><input type="radio" name="install" value="partner" ${st.install_by === 'partner' ? 'checked' : ''}/><span>${esc(a.name)}<small>You take down and rehang, we clean. Your commission: ${a.commission_install_pct}%</small></span></label>
+            <label class="${st.install_by === 'drdrapes' ? 'on' : ''}"><input type="radio" name="install" value="drdrapes" ${st.install_by === 'drdrapes' ? 'checked' : ''}/><span>Dr Drapes<small>We take down, clean and rehang.${ratesSet() ? ` Your commission: ${pctTxt(a.commission_referral_pct)}` : ''}${a.rehang_fee ? ` · rehang charge ${money(a.rehang_fee)} added` : ''}</small></span></label>
+            <label class="${st.install_by === 'partner' ? 'on' : ''}"><input type="radio" name="install" value="partner" ${st.install_by === 'partner' ? 'checked' : ''}/><span>${esc(a.name)}<small>You take down and rehang, we clean.${ratesSet() ? ` Your commission: ${pctTxt(a.commission_install_pct)}` : ''}</small></span></label>
           </div>
           <h2 style="margin-top:16px">Who bills the customer?</h2>
           <div class="choice" id="ch-invoice">
@@ -758,7 +763,7 @@
           st.priced = r;
           $('#t-sub').textContent = money(r.totals.subtotal);
           $('#t-total').textContent = money(r.totals.total);
-          $('#t-com').textContent = `${money(r.commission)} (${r.commission_pct}%)`;
+          $('#t-com').textContent = r.commission_pct > 0 ? `${money(r.commission)} (${r.commission_pct}%)` : 'to be agreed';
           // map priced lines back onto the inputs; the server drops lines with
           // no type, so walk both lists in step
           r.quote.rooms.forEach((room, ri) => {
@@ -899,7 +904,7 @@
               <div class="r"><span>Subtotal (ex GST)</span><span>${money(t.subtotal)}</span></div>
               <div class="r"><span>GST</span><span>${money(t.gst)}</span></div>
               <div class="r g"><span>Total</span><span>${money(t.total)}</span></div>
-              <div class="r c" style="margin-top:8px"><span>Your commission (${job.commission_pct}%, ex GST)</span><span>${money(job.commission)}</span></div>
+              <div class="r c" style="margin-top:8px">${job.commission_pct > 0 ? `<span>Your commission (${job.commission_pct}%, ex GST)</span><span>${money(job.commission)}</span>` : '<span>Your commission</span><span>to be agreed</span>'}</div>
               ${job.commission_paid_at ? `<div class="r" style="color:var(--ok)"><span>Paid</span><span>${fmtDate(job.commission_paid_at)}</span></div>` : ''}
             </div>
             ${q.notes ? `<div class="msg info" style="margin-top:12px;white-space:pre-wrap">${esc(q.notes)}</div>` : ''}
