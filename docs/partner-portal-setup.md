@@ -56,6 +56,15 @@ won work and commission owed.
 
 You create the partner. Partners can't sign themselves up.
 
+## Who gets which email
+
+Partner admin goes to David (david@hudsongroup.com.au): new partner quotes,
+partners finishing setup, partner jobs being accepted, the monthly commission
+summary, and replies to welcome emails and statements. The office
+(drdrapes@hudsongroup.com.au) gets the job work: accepted partner jobs to book,
+and partners' replies to job-progress updates. To hand partner admin to someone
+else, add a setting `partner-manager-email` with their address.
+
 ## What happens on a partner job
 
 | When | What happens |

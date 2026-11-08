@@ -35,6 +35,12 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const FROM = 'Dr Drapes Curtain Clinic <send@quotes.drdrapes.com.au>';
 const OFFICE = 'drdrapes@hudsongroup.com.au';
+// Partner admin (new quotes, set-ups, commission, partner questions) goes to
+// whoever runs the partner program; the office gets the job work. Override
+// with the 'partner-manager-email' setting.
+const MANAGER_DEFAULT = 'david@hudsongroup.com.au';
+const managerOf = (settings: Record<string, string>) =>
+  String(settings?.['partner-manager-email'] || '').trim() || MANAGER_DEFAULT;
 const PORTAL_BASE_DEFAULT = 'https://davidhudson84.github.io/drapesquotepro/';
 const INVITE_DAYS = 7;
 const RESET_HOURS = 24;
@@ -622,7 +628,7 @@ async function saveQuote(admin: any, ctx: Ctx, body: any) {
   if (error || !created) { console.error('job insert failed', error); fail(500, 'Couldn\'t save the quote'); }
 
   await sendEmail({
-    to: officeRecipients(ctx),
+    to: [managerOf(ctx.settings)],
     subject: `New partner quote ${ref} — ${ctx.account.name} — ${money(t.total)}`,
     html: shell(`
       <div style="font-size:18px;font-weight:700;color:#323264;margin:0 0 4px">New quote from ${escapeHtml(ctx.account.name)}</div>
@@ -634,7 +640,7 @@ async function saveQuote(admin: any, ctx: Ctx, body: any) {
         ['Customer billed by', invoiceTo === 'partner' ? ctx.account.name : 'Dr Drapes'],
         [ctx.account.reference_label || 'Their reference', reference || ''],
       ])}
-      <p style="color:#777;font-size:12px;margin:18px 0 0">It's in Drapr under ${escapeHtml(ref)}. Nothing to do unless you want to check it — the partner sends it to their customer.</p>`, 'Partner portal'),
+      <p style="color:#777;font-size:12px;margin:18px 0 0">It's in Drapr under ${escapeHtml(ref)}. The partner sends it to their customer; the office is told when it's accepted.</p>`, 'Partner portal'),
   });
 
   return { ok: true, job_id: created.id, quote_number: created.quote_number, totals: t, created: true };
@@ -762,7 +768,7 @@ async function emailQuote(admin: any, ctx: Ctx, body: any) {
   const fname = `${ref.replace(/[^A-Za-z0-9._-]/g, '_')}.pdf`;
   const ok = await sendEmail({
     to: [to], cc: [ctx.user.email],
-    replyTo: [ctx.user.email, OFFICE],
+    replyTo: [ctx.user.email, managerOf(ctx.settings)],
     subject: `Your curtain cleaning quote ${ref} — ${ctx.account.name} & Dr Drapes`,
     html, attachments: [{ filename: fname, content: pdf }],
   });
@@ -840,7 +846,7 @@ async function customerAccepted(admin: any, ctx: Ctx, body: any) {
 
   const total = Number(job.data?.quote?.total || 0);
   await sendEmail({
-    to: officeRecipients(ctx),
+    to: [...new Set([managerOf(ctx.settings), ...officeRecipients(ctx)])],
     subject: `✅ ${job.quote_number} accepted — via ${ctx.account.name} — ${money(total)}`,
     html: shell(`
       <div style="font-size:18px;font-weight:700;color:#1E7A4B;margin:0 0 4px">Partner job accepted</div>
@@ -893,7 +899,7 @@ async function sendSetPasswordEmail(admin: any, pu: any, account: any, settings:
 
   if (welcome) {
     return sendEmail({
-      to: [pu.email],
+      to: [pu.email], replyTo: managerOf(settings),
       subject: `Welcome to the Dr Drapes partner program — ${account.name}`,
       html: shell(`
         <p style="color:#333;font-size:15px;margin:0 0 14px">${hi}</p>
@@ -921,7 +927,7 @@ async function sendSetPasswordEmail(admin: any, pu: any, account: any, settings:
     ? `You've been set up with a login to the Dr Drapes partner portal for <strong>${escapeHtml(account.name)}</strong>. Use it to quote curtain and blind cleaning on our price list, do pre-inspections, send quotes to your customers and follow each job through to rehang.`
     : 'Someone asked to reset the password for your Dr Drapes partner portal login. Use the button below to set a new one. If it wasn\'t you, ignore this email.';
   return sendEmail({
-    to: [pu.email],
+    to: [pu.email], replyTo: managerOf(settings),
     subject: kind === 'invite' ? `Your Dr Drapes partner login — ${account.name}` : 'Reset your Dr Drapes partner portal password',
     html: shell(`
       <p style="color:#333;font-size:15px;margin:0 0 14px">${hi}</p>
@@ -1085,7 +1091,7 @@ async function saveProfile(admin: any, ctx: Ctx, body: any) {
 
   if (!ctx.account.partner_onboarded_at) {
     await sendEmail({
-      to: officeRecipients(ctx),
+      to: [managerOf(ctx.settings)],
       subject: `Partner set up: ${business}`,
       html: shell(`
         <div style="font-size:18px;font-weight:700;color:#323264;margin:0 0 12px">${escapeHtml(business)} has finished setting up</div>
@@ -1199,6 +1205,18 @@ async function notifyStatus(admin: any, body: any) {
   if (!m) return { ok: true, skipped: 'no message for ' + status };
 
   const portal = `${portalBase(settings)}partner.html#job=${job.id}`;
+  if (status === 'confirmed') {
+    await sendEmail({
+      to: [managerOf(settings)],
+      subject: `✅ ${ref} accepted — via ${account.name} — ${money(total)}`,
+      html: shell(`
+        <div style="font-size:18px;font-weight:700;color:#1E7A4B;margin:0 0 12px">Partner job accepted</div>
+        ${table([['Quote', ref], ['Partner', account.name], ['Customer', cust], ['Total (inc GST)', money(total)],
+          ['Commission', `${Number(job.commission_pct || 0)}% — ${money(commission)} ex GST`],
+          ['Billed to', invoiceTo === 'partner' ? account.name : 'the customer']])}
+        <p style="color:#777;font-size:12px;margin:18px 0 0">The office has it for booking.</p>`, 'Partner portal'),
+    });
+  }
   await sendEmail({
     to, replyTo: OFFICE, subject: m[0],
     html: shell(`
@@ -1231,7 +1249,7 @@ async function statements(admin: any, body: any) {
   const { data: accounts } = await admin.from('accounts').select('*').eq('is_partner', true);
   const summary: any[] = [];
   const COMPANY_ID = (accounts || [])[0]?.company_id;
-  const liveSettings = COMPANY_ID ? await loadSettings(admin, COMPANY_ID) : {};
+  const liveSettings: Record<string, string> = COMPANY_ID ? await loadSettings(admin, COMPANY_ID) : {};
   const liveRates: Rates = Object.fromEntries(RATE_KEYS.map((k) => [k, Number(liveSettings[k] || 0)]));
   for (const account of accounts || []) {
     const { data: jobs } = await admin.from('jobs').select('*').eq('partner_account_id', account.id).eq('archived', false);
@@ -1272,13 +1290,12 @@ async function statements(admin: any, body: any) {
       <p style="color:#555;font-size:13px;margin:16px 0 0">Commission is on cleaning and repairs only, ex GST, and is shown here before GST. If you're registered for GST we add it when we pay. Payment goes out this month. Questions — reply to this email.</p>`, 'Partner commission');
     if (!dry) {
       const to = await partnerRecipients(admin, account);
-      if (to.length && owed + deducted > 0) await sendEmail({ to, replyTo: OFFICE, subject: `Dr Drapes commission statement — ${label}`, html });
+      if (to.length && owed + deducted > 0) await sendEmail({ to, replyTo: managerOf(liveSettings), subject: `Dr Drapes commission statement — ${label}`, html });
     }
   }
 
   if (summary.length) {
-    const { data: company } = COMPANY_ID ? await admin.from('companies').select('contact_email').eq('id', COMPANY_ID).single() : { data: null };
-    const to = dry ? [OFFICE] : [...new Set([OFFICE, 'david@hudsongroup.com.au', company?.contact_email].filter(Boolean))] as string[];
+    const to = [managerOf(liveSettings)];
     await sendEmail({
       to, subject: `${dry ? '[TEST] ' : ''}Partner commission to pay — ${label}`,
       html: shell(`
