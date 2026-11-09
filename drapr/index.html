@@ -1,0 +1,1207 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Drapr — job software for curtain and blind cleaners</title>
+<meta name="description" content="Drapr runs a curtain and blind cleaning business from enquiry to rehang: quotes off your price list, online acceptance, takedown booking, item tracking through the plant, inspection reports and the follow-ups nobody gets to.">
+<meta name="theme-color" content="#0F6E63">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Drapr">
+<meta property="og:title" content="Drapr — every curtain, from the quote to the rehang">
+<meta property="og:description" content="Job software for Australian curtain and blind cleaners. Built and run every day at Dr Drapes Curtain Clinic.">
+<meta property="og:locale" content="en_AU">
+
+<link rel="icon" type="image/svg+xml" href="../brand/drapr-favicon.svg">
+<link rel="apple-touch-icon" href="../brand/drapr-app-icon.svg">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Drapr",
+  "applicationCategory": "BusinessApplication",
+  "operatingSystem": "Web browser, iOS, Android",
+  "description": "Job software for curtain and blind cleaning businesses — quoting, online acceptance, takedown booking, item tracking, inspection reports and follow-ups.",
+  "audience": { "@type": "Audience", "audienceType": "Australian curtain and blind cleaning businesses" },
+  "areaServed": { "@type": "Country", "name": "Australia" },
+  "creator": { "@type": "Organization", "name": "Dr Drapes Curtain Clinic", "url": "https://www.drdrapes.com.au" }
+}
+</script>
+
+<style>
+  /* Tokens follow brand/tokens.css and the app's own chrome (index.html), so the
+     page and the product read as one thing. Change the palette there first. */
+  :root {
+    --teal: #0F6E63;
+    --teal-deep: #0A4A43;
+    --teal-tint: #DCEDEA;
+    --teal-soft: #EEF6F4;
+    --ink: #12211F;
+    --ink-2: #33423F;
+    --muted: #5A6866;
+    --line: #C7D0CE;
+    --line-soft: #E2E8E6;
+    --bg: #F1F4F3;
+    --paper: #FFFFFF;
+    --success: #1E7A4B;
+    --warning: #B4740E;
+    --danger: #B3261E;
+    --display: 'Poppins', system-ui, -apple-system, sans-serif;
+    --ui: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    --mono: ui-monospace, 'SF Mono', Menlo, monospace;
+    --gutter: 16px;
+    --maxw: 1120px;
+    --shadow: 0 1px 3px rgba(10,74,67,.08), 0 18px 44px rgba(10,74,67,.10);
+    color-scheme: light;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    * { animation: none !important; transition: none !important; }
+  }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: var(--ui); font-size: 16px; line-height: 1.6;
+    -webkit-font-smoothing: antialiased; overflow-x: hidden;
+  }
+  h1, h2, h3, h4 { font-family: var(--display); font-weight: 600; letter-spacing: -0.02em; margin: 0; line-height: 1.15; color: var(--teal-deep); }
+  p { margin: 0; }
+  a { color: inherit; }
+  img { max-width: 100%; display: block; }
+  ::selection { background: var(--teal-tint); color: var(--teal-deep); }
+  :focus-visible { outline: 2px solid var(--teal); outline-offset: 3px; border-radius: 4px; }
+
+  .wrap { width: 100%; max-width: var(--maxw); margin: 0 auto; padding: 0 var(--gutter); }
+  .eyebrow {
+    font-family: var(--display); font-size: 12px; font-weight: 600; letter-spacing: .14em;
+    text-transform: uppercase; color: var(--teal); margin-bottom: 12px;
+  }
+  .lede { color: var(--ink-2); font-size: 17px; }
+  .skip {
+    position: absolute; left: -9999px; top: 0; background: var(--teal); color: #fff;
+    padding: 10px 16px; border-radius: 0 0 8px 0; font-weight: 600; z-index: 200;
+  }
+  .skip:focus { left: 0; }
+
+  /* ---------- Nav ---------- */
+  .nav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(255,255,255,.9); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .nav-in { display: flex; align-items: center; gap: 20px; height: 66px; }
+  .brand { display: flex; align-items: center; flex: none; }
+  .brand img { height: 34px; width: auto; }
+  .nav-links { display: none; gap: 26px; margin-left: 18px; flex: 1; }
+  .nav-links a { color: var(--ink-2); text-decoration: none; font-size: 14.5px; }
+  .nav-links a:hover { color: var(--teal); }
+  .nav-cta { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+  @media (min-width: 940px) { .nav-links { display: flex; } .nav-cta { margin-left: 0; } }
+  @media (max-width: 430px) {
+    .nav-in { gap: 10px; }
+    .brand img { height: 28px; }
+    .nav .btn { padding: 9px 13px; font-size: 13.5px; }
+  }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 11px 19px; border-radius: 9px; font-size: 14.5px; font-weight: 600;
+    text-decoration: none; border: 1px solid transparent; cursor: pointer;
+    font-family: inherit; white-space: nowrap; transition: background .14s, border-color .14s, color .14s;
+  }
+  .btn-primary { background: var(--teal); color: #fff; }
+  .btn-primary:hover { background: var(--teal-deep); }
+  .btn-ghost { border-color: var(--line); color: var(--teal-deep); background: var(--paper); }
+  .btn-ghost:hover { border-color: var(--teal); background: var(--teal-soft); }
+  .btn-lg { padding: 14px 26px; font-size: 16px; }
+
+  /* ---------- Hero ---------- */
+  .hero { position: relative; padding: 68px 0 72px; overflow: hidden; background: var(--bg); }
+  .hero::before {
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background:
+      radial-gradient(720px 420px at 82% 6%, rgba(15,110,99,.13), transparent 62%),
+      radial-gradient(600px 400px at 0% 100%, rgba(220,237,234,.9), transparent 62%);
+  }
+  .hero .wrap { position: relative; }
+  .hero-grid { display: grid; gap: 44px; align-items: center; }
+  @media (min-width: 980px) { .hero-grid { grid-template-columns: 1.02fr .98fr; gap: 56px; } }
+  .hero h1 { font-size: clamp(36px, 7vw, 58px); max-width: 15ch; }
+  .hero h1 .dot { color: var(--teal); }
+  .hero .lede { font-size: clamp(16.5px, 2.2vw, 19px); max-width: 52ch; margin-top: 22px; }
+  .hero-cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 34px; }
+  .hero-note { margin-top: 26px; font-size: 14px; color: var(--muted); display: flex; align-items: center; gap: 9px; }
+  .hero-note svg { flex: none; color: var(--teal); }
+  .hero-panel { display: none; }
+  @media (min-width: 980px) { .hero-panel { display: block; } }
+
+  /* ---------- Section scaffolding ---------- */
+  section { padding: 68px 0; }
+  section.tint { background: var(--bg); }
+  .sec-head { max-width: 64ch; margin-bottom: 40px; }
+  .sec-head h2 { font-size: clamp(27px, 4.6vw, 40px); }
+  .sec-head .lede { margin-top: 16px; }
+
+  /* ---------- Cards ---------- */
+  .grid { display: grid; gap: 16px; }
+  @media (min-width: 720px) { .grid-2 { grid-template-columns: repeat(2, 1fr); } }
+  @media (min-width: 720px) { .grid-3 { grid-template-columns: repeat(2, 1fr); } }
+  @media (min-width: 1000px) { .grid-3 { grid-template-columns: repeat(3, 1fr); } }
+  @media (min-width: 640px) { .grid-4 { grid-template-columns: repeat(2, 1fr); } }
+  @media (min-width: 1000px) { .grid-4 { grid-template-columns: repeat(4, 1fr); } }
+
+  .card { background: var(--paper); border: 1px solid var(--line-soft); border-radius: 14px; padding: 26px 24px; height: 100%; }
+  section.tint .card { border-color: var(--line-soft); }
+  .card h3 { font-size: 19px; margin-bottom: 10px; }
+  .card p { color: var(--ink-2); font-size: 15px; }
+  .card p + p { margin-top: 10px; }
+  .card .num { font-family: var(--mono); font-size: 11px; letter-spacing: .14em; color: var(--teal); display: block; margin-bottom: 12px; }
+  .card ul { margin: 14px 0 0; padding-left: 18px; color: var(--ink-2); font-size: 14.5px; }
+  .card ul li { margin-bottom: 6px; }
+  .card ul li::marker { color: var(--teal); }
+  .card .tag {
+    display: inline-block; font-size: 11.5px; font-weight: 600; color: var(--teal-deep);
+    background: var(--teal-tint); border-radius: 999px; padding: 3px 10px; margin-bottom: 14px;
+  }
+
+  /* ---------- How it works: the flow ---------- */
+  .flow { list-style: none; margin: 0; padding: 0; counter-reset: flow; }
+  @media (min-width: 900px) { .flow { columns: 2; column-gap: 48px; } }
+  .flow li { break-inside: avoid; position: relative; padding: 0 0 26px 52px; counter-increment: flow; }
+  .flow li::before {
+    content: counter(flow, decimal-leading-zero); position: absolute; left: 0; top: 0;
+    width: 36px; height: 36px; border-radius: 50%; background: var(--teal); color: #fff;
+    font-family: var(--display); font-size: 13px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .flow li::after {
+    content: ''; position: absolute; left: 17.5px; top: 40px; bottom: 4px; width: 1px; background: var(--line);
+  }
+  .flow li:last-child::after { display: none; }
+  @media (min-width: 900px) { .flow li:nth-child(5)::after { display: none; } }
+  .flow h3 { font-size: 17.5px; margin: 6px 0 6px; }
+  .flow p { color: var(--ink-2); font-size: 15px; }
+
+  /* ---------- Feature rows ---------- */
+  .feature { padding: 40px 0; }
+  .feature + .feature { border-top: 1px solid var(--line-soft); }
+  .feature-in { display: grid; gap: 26px; align-items: center; }
+  @media (min-width: 900px) {
+    .feature-in { grid-template-columns: 1fr 1fr; gap: 54px; }
+    .feature.flip .feature-copy { order: 2; }
+  }
+  .feature h3 { font-size: clamp(23px, 3.4vw, 30px); margin-bottom: 14px; }
+  .feature p { color: var(--ink-2); }
+  .feature p + p { margin-top: 14px; }
+  .feature .kicker { font-family: var(--mono); font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--teal); margin-bottom: 12px; }
+  .feature ul { margin: 18px 0 0; padding-left: 18px; color: var(--ink-2); font-size: 15px; }
+  .feature ul li { margin-bottom: 8px; }
+  .feature ul li::marker { color: var(--teal); }
+
+  /* ---------- Product mocks, built in CSS — no screenshots to go stale ---------- */
+  .panel { background: var(--paper); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; box-shadow: var(--shadow); }
+  .panel-bar { display: flex; align-items: center; gap: 7px; padding: 11px 14px; background: var(--teal-deep); }
+  .panel-bar i { width: 9px; height: 9px; border-radius: 50%; background: rgba(255,255,255,.28); flex: none; }
+  .panel-bar span { font-family: var(--mono); font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: rgba(255,255,255,.82); margin-left: 8px; }
+  .panel-body { padding: 18px 16px; display: flex; flex-direction: column; gap: 12px; font-size: 14px; }
+  .room { font-family: var(--display); font-weight: 600; font-size: 13px; color: var(--teal-deep); margin-top: 2px; }
+  .line-item { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; padding: 10px 12px; border: 1px solid var(--line-soft); border-radius: 9px; background: var(--paper); }
+  .line-item .what { font-weight: 600; color: var(--ink); grid-column: 1; }
+  .line-item .dims { font-family: var(--mono); font-size: 12px; color: var(--muted); grid-column: 1; }
+  .line-item .amt { font-variant-numeric: tabular-nums; font-weight: 600; text-align: right; grid-column: 2; grid-row: 1 / span 2; align-self: center; }
+  .pill { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--teal-tint); color: var(--teal-deep); margin-left: 6px; vertical-align: 1px; }
+  .pill.warn { background: #FBEFD9; color: #7A4D07; }
+  .pill.ok { background: #DDF0E5; color: #145A36; }
+  .pill.grey { background: var(--bg); color: var(--muted); }
+  .totals { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 13px 14px; border-radius: 10px; background: var(--teal); color: #fff; margin-top: 4px; }
+  .totals small { display: block; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; opacity: .8; }
+  .totals strong { font-family: var(--display); font-size: 22px; font-weight: 600; }
+  .totals .ex { text-align: right; font-size: 13px; opacity: .9; }
+
+  .tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .tbl th { text-align: left; font-family: var(--mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 400; padding: 0 10px 9px; border-bottom: 1px solid var(--line-soft); }
+  .tbl td { padding: 10px; border-bottom: 1px solid var(--line-soft); color: var(--ink-2); vertical-align: top; }
+  .tbl tr:last-child td { border-bottom: 0; }
+  .tbl .ok { color: var(--success); font-weight: 600; }
+  .tbl .wait { color: var(--warning); font-weight: 600; }
+  .tbl .lost { color: var(--danger); font-weight: 600; }
+
+  .stop { border: 1px solid var(--line-soft); border-radius: 10px; padding: 12px 14px; }
+  .stop .t { font-family: var(--mono); font-size: 11px; color: var(--teal); letter-spacing: .08em; }
+  .stop .c { font-family: var(--display); font-weight: 600; color: var(--teal-deep); margin: 2px 0; }
+  .stop .a { color: var(--ink-2); font-size: 13.5px; text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; }
+  .stop .n { font-size: 12.5px; color: var(--muted); margin-top: 6px; }
+  .stop-btns { display: flex; gap: 8px; margin-top: 10px; }
+  .stop-btns span { flex: 1; text-align: center; border: 1px solid var(--line); border-radius: 8px; padding: 8px; font-size: 13px; font-weight: 600; color: var(--teal-deep); }
+  .stop-btns span.go { background: var(--teal); color: #fff; border-color: var(--teal); }
+
+  .slot { display: flex; justify-content: space-between; align-items: center; gap: 10px; border: 1px solid var(--line-soft); border-radius: 10px; padding: 11px 13px; }
+  .slot b { color: var(--teal-deep); font-family: var(--display); font-weight: 600; }
+  .slot span { font-size: 13px; color: var(--ink-2); }
+  .slot.best { border-color: var(--teal); background: var(--teal-soft); }
+
+  .kpis { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .kpi { border: 1px solid var(--line-soft); border-radius: 10px; padding: 12px; }
+  .kpi small { display: block; font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+  .kpi strong { font-family: var(--display); font-size: 21px; color: var(--teal-deep); font-weight: 600; }
+  .bar { height: 6px; background: var(--bg); border-radius: 99px; margin-top: 8px; overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--teal); border-radius: 99px; }
+
+  /* Roles */
+  .role { background: var(--paper); border: 1px solid var(--line-soft); border-radius: 14px; padding: 22px; height: 100%; }
+  .role .rname { font-family: var(--display); font-size: 18px; font-weight: 600; color: var(--teal-deep); }
+  .role .rwho { font-family: var(--mono); font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--teal); margin: 6px 0 12px; }
+  .role p { font-size: 14.5px; color: var(--ink-2); }
+
+  /* Chips */
+  .chips { display: flex; flex-wrap: wrap; gap: 9px; }
+  .chip { font-size: 13.5px; color: var(--ink-2); border: 1px solid var(--line); border-radius: 999px; padding: 7px 14px; background: var(--paper); }
+  .chip b { color: var(--teal-deep); font-weight: 600; }
+
+  /* Who made it */
+  .maker { display: grid; gap: 34px; align-items: start; }
+  @media (min-width: 900px) { .maker { grid-template-columns: 1.15fr .85fr; gap: 56px; } }
+  .maker p { color: var(--ink-2); }
+  .maker p + p { margin-top: 14px; }
+  .facts { background: var(--teal-deep); color: #fff; border-radius: 16px; padding: 28px 26px; }
+  .facts h3 { color: #fff; font-size: 19px; margin-bottom: 16px; }
+  .facts dl { margin: 0; display: grid; gap: 14px; }
+  .facts dt { font-family: var(--mono); font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: rgba(255,255,255,.66); }
+  .facts dd { margin: 3px 0 0; font-size: 15px; }
+
+  /* Honest block */
+  .honest { background: var(--paper); border: 1px solid var(--line); border-left: 3px solid var(--teal); border-radius: 12px; padding: 28px 26px; }
+  .honest h3 { font-size: 22px; margin-bottom: 14px; }
+  .honest p { color: var(--ink-2); margin-bottom: 12px; }
+  .honest p:last-child { margin-bottom: 0; }
+
+  /* FAQ */
+  details { border-bottom: 1px solid var(--line-soft); padding: 18px 0; }
+  details summary {
+    cursor: pointer; list-style: none; font-family: var(--display); font-size: 17px; font-weight: 600;
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; color: var(--teal-deep);
+  }
+  details summary::-webkit-details-marker { display: none; }
+  details summary::after { content: '+'; color: var(--teal); font-family: var(--ui); font-size: 22px; line-height: 1; flex: none; }
+  details[open] summary::after { content: '\2212'; }
+  details p { color: var(--ink-2); font-size: 15px; margin-top: 12px; max-width: 70ch; }
+
+  /* ---------- Interest form ---------- */
+  .steps { display: grid; gap: 14px; margin-bottom: 26px; }
+  @media (min-width: 720px) { .steps { grid-template-columns: repeat(3, 1fr); gap: 16px; } }
+  .step { background: var(--paper); border: 1px solid var(--line-soft); border-radius: 13px; padding: 20px 20px 22px; }
+  .step .n { font-family: var(--mono); font-size: 11px; letter-spacing: .14em; color: var(--teal); display: block; margin-bottom: 10px; }
+  .step h3 { font-size: 16.5px; margin-bottom: 7px; }
+  .step p { font-size: 14px; color: var(--ink-2); }
+
+  .trial { background: var(--paper); border: 1px solid var(--line); border-radius: 16px; padding: 30px 24px; box-shadow: var(--shadow); }
+  @media (min-width: 720px) { .trial { padding: 40px 38px; } }
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-size: 13px; font-weight: 600; color: var(--teal-deep); margin-bottom: 6px; }
+  .field input, .field select, .field textarea {
+    width: 100%; padding: 12px 14px; border-radius: 9px; background: var(--paper);
+    border: 1px solid var(--line); color: var(--ink); font-family: inherit; font-size: 15px; line-height: 1.5;
+  }
+  .field textarea { min-height: 96px; resize: vertical; }
+  .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--teal); box-shadow: 0 0 0 3px var(--teal-tint); }
+  .field-row { display: grid; gap: 0 16px; }
+  @media (min-width: 640px) { .field-row { grid-template-columns: 1fr 1fr; } }
+  .form-msg { margin-top: 16px; font-size: 14.5px; min-height: 22px; }
+  .form-msg.err { color: var(--danger); }
+  .form-msg.ok { color: var(--success); }
+  .form-fine { margin-top: 12px; font-size: 13px; color: var(--muted); }
+
+  /* ---------- Footer ---------- */
+  footer { background: var(--teal-deep); color: rgba(255,255,255,.78); padding: 48px 0 calc(40px + env(safe-area-inset-bottom)); }
+  .foot-in { display: grid; gap: 28px; }
+  @media (min-width: 800px) { .foot-in { grid-template-columns: 1.4fr 1fr 1fr; gap: 40px; } }
+  footer .brand img { height: 32px; }
+  .foot-in p { font-size: 14px; max-width: 42ch; margin-top: 16px; }
+  .foot-col h4 { font-family: var(--mono); font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: rgba(255,255,255,.6); font-weight: 400; margin-bottom: 14px; }
+  .foot-col a { display: block; color: #fff; text-decoration: none; font-size: 14.5px; margin-bottom: 9px; }
+  .foot-col a:hover { text-decoration: underline; }
+  .foot-legal { margin-top: 38px; padding-top: 22px; border-top: 1px solid rgba(255,255,255,.14); font-size: 13px; display: flex; flex-wrap: wrap; gap: 8px 20px; }
+</style>
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<nav class="nav">
+  <div class="wrap nav-in">
+    <a class="brand" href="./" aria-label="Drapr home">
+      <img src="../brand/drapr-lockup-horizontal-teal.svg" alt="Drapr" width="126" height="34">
+    </a>
+    <div class="nav-links">
+      <a href="#how">How it works</a>
+      <a href="#what">What it does</a>
+      <a href="#who">Who uses it</a>
+      <a href="#uses">Use cases</a>
+      <a href="#made">Who made it</a>
+      <a href="#faq">FAQ</a>
+    </div>
+    <div class="nav-cta">
+      <a class="btn btn-ghost" href="../">Log in</a>
+      <a class="btn btn-primary" href="#interest">Get in touch</a>
+    </div>
+  </div>
+</nav>
+
+<main id="main">
+
+<!-- ============ HERO ============ -->
+<div class="hero">
+  <div class="wrap">
+    <div class="hero-grid">
+      <div>
+        <div class="eyebrow">For curtain and blind cleaners</div>
+        <h1>Every curtain, from the quote to the rehang<span class="dot">.</span></h1>
+        <p class="lede">
+          Drapr runs a curtain and blind cleaning business end to end. Measure and quote
+          on a phone, let the customer accept online, book the takedown where the van is
+          already going, and track every item through the plant and back onto the track,
+          with the paperwork done along the way.
+        </p>
+        <div class="hero-cta">
+          <a class="btn btn-primary btn-lg" href="#interest">Get in touch</a>
+          <a class="btn btn-ghost btn-lg" href="#how">See how it works</a>
+        </div>
+        <p class="hero-note">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Built by curtain cleaners. Runs every job at Dr Drapes Curtain Clinic, Melbourne.
+        </p>
+      </div>
+
+      <div class="hero-panel">
+        <div class="panel" aria-hidden="true">
+          <div class="panel-bar"><i></i><i></i><i></i><span>Quote DRQ-2418 · Lounge &amp; main bedroom</span></div>
+          <div class="panel-body">
+            <div class="room">Lounge</div>
+            <div class="line-item">
+              <span class="what">Curtain — pinch pleat, lined <span class="pill">Mould</span></span>
+              <span class="dims">3.60 m wide × 2.70 m drop</span>
+              <span class="amt">$318.60</span>
+            </div>
+            <div class="line-item">
+              <span class="what">Sheer</span>
+              <span class="dims">3.60 m wide × 2.70 m drop</span>
+              <span class="amt">$162.00</span>
+            </div>
+            <div class="room">Main bedroom</div>
+            <div class="line-item">
+              <span class="what">Roller blind × 2</span>
+              <span class="dims">1.20 m × 1.80 m each · 4.32 m²</span>
+              <span class="amt">$151.20</span>
+            </div>
+            <div class="line-item">
+              <span class="what">Takedown &amp; rehang</span>
+              <span class="dims">Per the price list</span>
+              <span class="amt">$145.00</span>
+            </div>
+            <div class="totals">
+              <div><small>Total inc GST</small><strong>$854.48</strong></div>
+              <div class="ex">$776.80 ex GST<br>Accept online ✓</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ THE PROBLEM ============ -->
+<section id="problem">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">Where the money goes</div>
+      <h2>The cleaning is the easy bit.</h2>
+      <p class="lede">
+        A curtain job leaks margin everywhere except the wash. The quote that never got
+        chased, the takedown booked across town from where the van already was, the panel
+        that came back from the plant with nobody sure which window it belonged to.
+      </p>
+    </div>
+    <div class="grid grid-3">
+      <div class="card">
+        <span class="num">01</span>
+        <h3>Quotes that go quiet</h3>
+        <p>
+          Most quotes aren't lost on price. They're lost because nobody followed them up,
+          and by the time someone does, the customer has booked whoever rang back first.
+        </p>
+      </div>
+      <div class="card">
+        <span class="num">02</span>
+        <h3>Items that go missing</h3>
+        <p>
+          Twelve panels come down off four windows, go into bags, through two processes and
+          onto a rack. Without a record against every item, the rehang is guesswork and the
+          one missing hook becomes a phone call.
+        </p>
+      </div>
+      <div class="card">
+        <span class="num">03</span>
+        <h3>Claims you can't defend</h3>
+        <p>
+          Faded linings, sun rot and old water marks were there before you touched them.
+          If nobody photographed them before takedown, it's your word against the
+          customer's, and the insurer goes with theirs.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ HOW IT WORKS ============ -->
+<section id="how" class="tint">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">How it works</div>
+      <h2>One job, one record, start to finish.</h2>
+      <p class="lede">
+        Every stage reads and writes the same job, so what the office quoted is what the
+        van takes down, what the plant cleans and what goes back up.
+      </p>
+    </div>
+    <ol class="flow">
+      <li>
+        <h3>The enquiry comes in</h3>
+        <p>Your website quote form lands in Drapr with the customer's measurements and photos, and the Enquiries tab shows how many are still untouched.</p>
+      </li>
+      <li>
+        <h3>Quote it in a couple of minutes</h3>
+        <p>Room by room, width and drop, on a phone or at the desk. Drapr picks the right price tier off your own list, adds mould treatment and repairs, and shows ex and inc GST as you type.</p>
+      </li>
+      <li>
+        <h3>Send it, and let them accept online</h3>
+        <p>A branded quote PDF goes out by email with an Accept online button. When the customer accepts, the job confirms itself and the office is told.</p>
+      </li>
+      <li>
+        <h3>Chase the ones that don't</h3>
+        <p>A three-step follow-up ladder (nudge, check-in, last chance) tells you who's due today, and a chase list lands in your inbox three mornings a week.</p>
+      </li>
+      <li>
+        <h3>Book the takedown where the van already is</h3>
+        <p>Drapr reads the next fortnight of the calendar and suggests three windows worth offering, near jobs you've already got booked. It suggests; the customer still picks.</p>
+      </li>
+      <li>
+        <h3>Inspect before anything comes down</h3>
+        <p>A pre-inspection checklist, a 1–10 condition score and up to eight photos, turned into a branded report the customer gets a copy of.</p>
+      </li>
+      <li>
+        <h3>Track every item through the plant</h3>
+        <p>The quote becomes a list of items. Takedown ticks them off, production records method, bag number and storage location, and anything found on site gets added and priced.</p>
+      </li>
+      <li>
+        <h3>Rehang from a sheet that knows where it all is</h3>
+        <p>The printed rehang sheet carries the bag and rack location the plant entered, with no prices on it, so it can go on site and into the plant.</p>
+      </li>
+      <li>
+        <h3>Invoice through your job system</h3>
+        <p>Accepted jobs are raised in Fergus automatically, matched to the right customer and site, and flow through to Xero from there. Nothing is typed twice.</p>
+      </li>
+      <li>
+        <h3>Ask for the review</h3>
+        <p>When the job is marked rehung, the customer gets a thank-you email with a Google review button. The happy customers are the ones who never think to leave one.</p>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<!-- ============ WHAT IT DOES ============ -->
+<section id="what">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">What it does</div>
+      <h2>Built around how curtain work actually runs.</h2>
+      <p class="lede">
+        Not a generic field-service app with a curtain template on it. Drapr knows the
+        difference between a sheer and a velvet, prices a pelmet by width and a blind by
+        the square metre, and expects the job to be done from a phone in a driveway.
+      </p>
+    </div>
+
+    <!-- 1 -->
+    <div class="feature">
+      <div class="feature-in">
+        <div class="feature-copy">
+          <div class="kicker">01 — Quoting</div>
+          <h3>Your price list, applied the same way every time.</h3>
+          <p>
+            Rates live in one place and every new quote uses them. Enter width and drop in
+            metres or millimetres and Drapr selects the tier, so two staff measuring the
+            same window quote the same price. Change a rate and it's logged in the price
+            change history.
+          </p>
+          <ul>
+            <li>Curtains by track width, tiered by drop; sheers and velvets on their own tiers</li>
+            <li>Blinds by the square metre; pelmets, swags and valances by width</li>
+            <li>Mould treatment, repairs and hardware as add-ons with quantities</li>
+            <li>Insurer and claim number on the quote for insurance work</li>
+            <li>Your terms of trade printed on every quote</li>
+          </ul>
+        </div>
+        <div class="panel" aria-hidden="true">
+          <div class="panel-bar"><i></i><i></i><i></i><span>Price list</span></div>
+          <div class="panel-body" style="padding:16px 8px">
+            <table class="tbl">
+              <thead><tr><th>Item</th><th>Priced by</th><th>Tiers</th></tr></thead>
+              <tbody>
+                <tr><td>Curtain</td><td>Metre of width</td><td>By drop</td></tr>
+                <tr><td>Sheer</td><td>Metre of width</td><td>2 by drop</td></tr>
+                <tr><td>Velvet</td><td>Metre of width</td><td>3 by drop</td></tr>
+                <tr><td>Blind</td><td>Square metre</td><td>—</td></tr>
+                <tr><td>Pelmet / swag</td><td>Metre of width</td><td>—</td></tr>
+                <tr><td>Repair / hardware</td><td>Quantity</td><td>—</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2 -->
+    <div class="feature flip">
+      <div class="feature-in">
+        <div class="feature-copy">
+          <div class="kicker">02 — Winning the work</div>
+          <h3>The follow-up nobody gets around to, done.</h3>
+          <p>
+            Every open quote sits on a ladder. At ten days it's a nudge, at three weeks a
+            check-in offering to stage the job, at five weeks a last chance. Drapr drafts
+            each one in your wording, you press send, and a week after the last one it
+            offers the quote up as lost so your pipeline stays honest.
+          </p>
+          <p>
+            Three mornings a week a chase list arrives by email with the quotes due and a
+            call list for the ones worth a phone call instead.
+          </p>
+        </div>
+        <div class="panel" aria-hidden="true">
+          <div class="panel-bar"><i></i><i></i><i></i><span>Open quotes · follow-up</span></div>
+          <div class="panel-body" style="padding:16px 8px">
+            <table class="tbl">
+              <thead><tr><th>Quote</th><th>Value</th><th>Sent</th><th>Next</th></tr></thead>
+              <tbody>
+                <tr><td>DRQ-2391<br><span style="color:var(--muted)">Elsternwick</span></td><td>$2,140</td><td>11 days</td><td class="wait">Nudge due</td></tr>
+                <tr><td>DRQ-2377<br><span style="color:var(--muted)">Aged care, Malvern</span></td><td>$9,860</td><td>22 days</td><td class="wait">Check-in due</td></tr>
+                <tr><td>DRQ-2402<br><span style="color:var(--muted)">Hotel, CBD</span></td><td>$1,275</td><td>4 days</td><td class="ok">Accepted online</td></tr>
+                <tr><td>DRQ-2340<br><span style="color:var(--muted)">Werribee</span></td><td>$480</td><td>43 days</td><td class="lost">Mark as lost?</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3 -->
+    <div class="feature">
+      <div class="feature-in">
+        <div class="feature-copy">
+          <div class="kicker">03 — Booking and the van</div>
+          <h3>Where's the van this fortnight?</h3>
+          <p>
+            Nobody can hold two weeks of a calendar in their head. When a quote is accepted,
+            Drapr reads the bookings already in Fergus, ranks the days by where the van is
+            already going, and says it in plain words: three windows worth offering the
+            customer on the phone.
+          </p>
+          <p>
+            On the day, the driver gets a run sheet built for one hand at a front door.
+            Tap the address to navigate, tap the number to call, and the booking notes
+            (gate codes, "call when five minutes away") are shown word for word.
+          </p>
+        </div>
+        <div class="panel" aria-hidden="true">
+          <div class="panel-bar"><i></i><i></i><i></i><span>Book the takedown</span></div>
+          <div class="panel-body">
+            <div class="slot best"><div><b>Tue 17th, morning</b><br><span>Van is in Brighton at 10:30, 9 minutes away</span></div><span class="pill ok">Best</span></div>
+            <div class="slot"><div><b>Thu 19th, after 1pm</b><br><span>Two jobs in Caulfield that afternoon</span></div></div>
+            <div class="slot"><div><b>Mon 23rd, any time</b><br><span>Light day, van starts south-east</span></div></div>
+            <div class="stop" style="margin-top:4px">
+              <div class="t">TODAY · 10:30 · TAKEDOWN</div>
+              <div class="c">S. Nguyen · DRQ-2402</div>
+              <div class="a">14 Example St, Brighton VIC</div>
+              <div class="n">"Call when 5 min away. Side gate, dog is friendly."</div>
+              <div class="stop-btns"><span>Call</span><span class="go">Navigate</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4 -->
+    <div class="feature flip">
+      <div class="feature-in">
+        <div class="feature-copy">
+          <div class="kicker">04 — Items and production</div>
+          <h3>Every panel accounted for.</h3>
+          <p>
+            Once accepted, the quote becomes a list of items, and every stage after that
+            works off the same list. Takedown records what came down and its condition.
+            Production records the cleaning method, the bag number and the storage location,
+            and flags any issue. Rehang ticks it back up.
+          </p>
+          <ul>
+            <li>Takedown and rehang sheets printed with no prices on them</li>
+            <li>Item found on site? Add it there and then, priced off the list</li>
+            <li>Bag numbering, storage locations and item tags set up to suit your plant</li>
+            <li>Activity log of who did what, and when</li>
+          </ul>
+        </div>
+        <div class="panel" aria-hidden="true">
+          <div class="panel-bar"><i></i><i></i><i></i><span>Production · DRQ-2402</span></div>
+          <div class="panel-body" style="padding:16px 8px">
+            <table class="tbl">
+              <thead><tr><th>Item</th><th>Method</th><th>Bag · rack</th><th>Status</th></tr></thead>
+              <tbody>
+                <tr><td>Lounge curtain ×4</td><td>Wet clean</td><td>B-1182 · R3</td><td class="ok">Done</td></tr>
+                <tr><td>Lounge sheer ×2</td><td>Wet clean</td><td>B-1183 · R3</td><td class="ok">Done</td></tr>
+                <tr><td>Bed 1 roller ×2</td><td>Ultrasonic</td><td>— · Blind rack</td><td class="wait">In process</td></tr>
+                <tr><td>Hooks (found on site)</td><td>Repair only</td><td>B-1182</td><td class="ok">Added</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5 -->
+    <div class="feature">
+      <div class="feature-in">
+        <div class="feature-copy">
+          <div class="kicker">05 — Inspections and reports</div>
+          <h3>Proof of condition, before and after.</h3>
+          <p>
+            The pre-inspection records mould, fading, fraying, water marks and track damage
+            with notes, a condition score and photos, before anything is touched. The
+            post-inspection does the same on the way back. Each becomes a branded PDF
+            report, or one combined report, emailed straight to the customer or the insurer.
+          </p>
+          <p>
+            It's the document that settles the "it wasn't like that before" conversation,
+            and on insurance work it's what the assessor wants to see.
+          </p>
+        </div>
+        <div class="panel" aria-hidden="true">
+          <div class="panel-bar"><i></i><i></i><i></i><span>Pre-inspection</span></div>
+          <div class="panel-body">
+            <div class="line-item"><span class="what">Mould spotting <span class="pill warn">Noted</span></span><span class="dims">Lower hem, lounge left panel</span><span class="amt"></span></div>
+            <div class="line-item"><span class="what">Sun fading <span class="pill warn">Noted</span></span><span class="dims">Lining, all north-facing panels</span><span class="amt"></span></div>
+            <div class="line-item"><span class="what">Track damage <span class="pill grey">None</span></span><span class="dims">Checked</span><span class="amt"></span></div>
+            <div class="kpis">
+              <div class="kpi"><small>Condition</small><strong>6 / 10</strong></div>
+              <div class="kpi"><small>Photos</small><strong>8</strong></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 6 -->
+    <div class="feature flip">
+      <div class="feature-in">
+        <div class="feature-copy">
+          <div class="kicker">06 — The numbers</div>
+          <h3>Know where the month is at.</h3>
+          <p>
+            The dashboard shows this month against the targets you set: quoted, won,
+            conversion and work in the plant. Reports run over any period, export to PDF
+            or CSV, and a weekly activity report lands in the inbox without anyone running it.
+          </p>
+          <p>
+            Trade accounts and partners are reported on their own, so you can see which
+            relationships are actually worth the commission.
+          </p>
+        </div>
+        <div class="panel" aria-hidden="true">
+          <div class="panel-bar"><i></i><i></i><i></i><span>Dashboard · this month</span></div>
+          <div class="panel-body">
+            <div class="kpis">
+              <div class="kpi"><small>Quoted</small><strong>$48.2k</strong><div class="bar"><i style="width:80%"></i></div></div>
+              <div class="kpi"><small>Won</small><strong>$29.6k</strong><div class="bar"><i style="width:66%"></i></div></div>
+              <div class="kpi"><small>Conversion</small><strong>61%</strong><div class="bar"><i style="width:61%"></i></div></div>
+              <div class="kpi"><small>In the plant</small><strong>14 jobs</strong><div class="bar"><i style="width:45%"></i></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============ WHO USES IT ============ -->
+<section id="who" class="tint">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">Who uses it</div>
+      <h2>Everyone who touches the job, and two people outside it.</h2>
+      <p class="lede">
+        The office, the van and the plant all work off the same record. Trade partners
+        get their own portal, and customers get a page to accept the quote. None of them
+        need training to use it.
+      </p>
+    </div>
+    <div class="grid grid-3">
+      <div class="role">
+        <div class="rname">The office</div>
+        <div class="rwho">Quotes, bookings, follow-ups</div>
+        <p>Works the enquiries, builds and sends quotes, chases the open ones and books takedowns off the suggested windows.</p>
+      </div>
+      <div class="role">
+        <div class="rname">The estimator</div>
+        <div class="rwho">On site, on a phone</div>
+        <p>Measures and quotes room by room at the customer's house, does the pre-inspection and photos before leaving.</p>
+      </div>
+      <div class="role">
+        <div class="rname">The driver</div>
+        <div class="rwho">The van</div>
+        <p>Runs the day off the run sheet, ticks items off at takedown and back on at rehang, and adds anything found on site.</p>
+      </div>
+      <div class="role">
+        <div class="rname">The plant</div>
+        <div class="rwho">Production</div>
+        <p>Records method, bag and rack against each item and flags issues, so nothing leaves without the office knowing.</p>
+      </div>
+      <div class="role">
+        <div class="rname">Trade partners</div>
+        <div class="rwho">Their own portal</div>
+        <p>Blind and curtain retailers quote your cleaning on your price list under their own logo, do the pre-inspection, and follow the job through, earning commission you set per partner.</p>
+      </div>
+      <div class="role">
+        <div class="rname">The owner</div>
+        <div class="rwho">Everything</div>
+        <p>Sets the price list, terms, targets, email wording and partner rates, and sees the dashboard and reports.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ USE CASES ============ -->
+<section id="uses">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">Use cases</div>
+      <h2>The jobs a curtain cleaner actually gets.</h2>
+      <p class="lede">
+        Retail is the easy one. Drapr was built for the work that comes through someone
+        else: an insurer, a dry cleaner's counter, a property manager or a blind shop.
+      </p>
+    </div>
+    <div class="grid grid-2">
+      <div class="card">
+        <span class="tag">Retail</span>
+        <h3>The lounge-room job</h3>
+        <p>
+          A homeowner fills in the form on your website with rough measurements. The office
+          quotes it that afternoon, the customer accepts online that night, and the takedown
+          is offered on a day the van is already in their suburb. After the rehang they get
+          a thank-you and a Google review link.
+        </p>
+      </div>
+      <div class="card">
+        <span class="tag">Insurance</span>
+        <h3>The smoke or flood claim</h3>
+        <p>
+          The quote carries the insurer and claim number. The pre-inspection photographs
+          every panel before it comes down, the post-inspection shows the result, and the
+          combined report goes to the builder or assessor as one PDF. Mould treatment and
+          non-restorable items are itemised, not argued about later.
+        </p>
+      </div>
+      <div class="card">
+        <span class="tag">Trade accounts</span>
+        <h3>Work through someone else's counter</h3>
+        <p>
+          Dry cleaners take curtains over the counter, restoration companies send
+          packouts, fit-out firms send retail stores. Each is an account with its own
+          reference, whether that's a docket number, a job number or a WR number. It goes on the quote and
+          the invoice, so their accounts team can match it without ringing you.
+        </p>
+      </div>
+      <div class="card">
+        <span class="tag">Commercial</span>
+        <h3>One customer, many sites</h3>
+        <p>
+          Aged care, hotels, real estate offices and restaurants bill as one account while
+          the site changes per job. An aged care facility can be quoted room by room and
+          staged over several visits without losing track of which wing is done.
+        </p>
+      </div>
+      <div class="card">
+        <span class="tag">Partners</span>
+        <h3>Selling cleaning through a blind shop</h3>
+        <p>
+          A window furnishing retailer quotes your cleaning alongside their new blinds,
+          under their own logo, on your prices. They choose whether you or they do the
+          takedown and who bills the customer, and their commission is worked out for them
+          and statemented on the first of each month.
+        </p>
+      </div>
+      <div class="card">
+        <span class="tag">In the plant</span>
+        <h3>Forty panels, one hotel floor</h3>
+        <p>
+          Big jobs are where items go missing. Every panel is an item with a bag number
+          and a rack location, and the rehang sheet tells the installer exactly which
+          window each one goes back on.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ BUILT FOR AUSTRALIA ============ -->
+<section id="australia" class="tint">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">Built for Australia</div>
+      <h2>Made here, for how the trade works here.</h2>
+      <p class="lede">
+        GST on every line, Australian addresses, insurance builders and the job and
+        accounting software Australian trades already run on.
+      </p>
+    </div>
+    <div class="chips" style="margin-bottom:34px">
+      <span class="chip"><b>GST</b> ex and inc on every quote</span>
+      <span class="chip"><b>ABN</b> check-digit validated</span>
+      <span class="chip"><b>Fergus</b> jobs, customers and calendar</span>
+      <span class="chip"><b>Xero</b> through Fergus invoicing</span>
+      <span class="chip"><b>Insurance</b> insurer and claim number</span>
+      <span class="chip"><b>Google reviews</b> on completion</span>
+      <span class="chip"><b>Australian</b> spelling and time zones</span>
+    </div>
+    <div class="grid grid-2">
+      <div class="card">
+        <h3>It runs on the phone in the van</h3>
+        <p>
+          Drapr works in any browser and installs to the home screen of a phone or tablet.
+          The screens used on site have big tap targets, because they get used standing in
+          a driveway. Nothing to install on a computer, and it updates itself.
+        </p>
+      </div>
+      <div class="card">
+        <h3>Your brand on everything</h3>
+        <p>
+          Quotes, inspection reports, emails and the customer accept page carry your logo,
+          colours, business details and terms of trade. Your customers see your business,
+          not ours.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ WHO MADE IT ============ -->
+<section id="made">
+  <div class="wrap">
+    <div class="maker">
+      <div>
+        <div class="eyebrow">Who made it</div>
+        <h2 style="font-size:clamp(27px,4.6vw,40px); margin-bottom:20px">Made by a curtain cleaner, not a software company.</h2>
+        <p>
+          Drapr was built by David Hudson for Dr Drapes Curtain Clinic, the curtain and blind
+          cleaning business in the Hudson Group alongside Master Dry Cleaners and its
+          restoration division in Melbourne's west.
+        </p>
+        <p>
+          Nothing off the shelf fitted. Field-service apps didn't understand tiered curtain
+          pricing or trade accounts, and the job system didn't follow an item through the
+          plant. So Drapr was built around the real business, one problem at a time: the
+          quote that took too long, the follow-up that never happened, the takedown booked
+          on the wrong side of town, the panel nobody could find.
+        </p>
+        <p>
+          Every feature on this page is in daily use at Dr Drapes. It was shaped by the
+          office, the drivers and the plant, not by a product roadmap.
+        </p>
+      </div>
+      <div class="facts">
+        <h3>Drapr at a glance</h3>
+        <dl>
+          <div><dt>Built by</dt><dd>David Hudson, Hudson Group</dd></div>
+          <div><dt>Running at</dt><dd>Dr Drapes Curtain Clinic, Melbourne</dd></div>
+          <div><dt>Used by</dt><dd>Office, estimators, drivers, plant and trade partners</dd></div>
+          <div><dt>Works with</dt><dd>Fergus, Xero, your website and email</dd></div>
+          <div><dt>Runs on</dt><dd>Any phone, tablet or computer, in the browser</dd></div>
+        </dl>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ WHAT IT ISN'T ============ -->
+<section id="honest" class="tint">
+  <div class="wrap" style="max-width:860px">
+    <div class="honest">
+      <div class="eyebrow">Worth being straight about</div>
+      <h3>What Drapr isn't.</h3>
+      <p>
+        <b>It isn't your accounting system.</b> Invoicing goes through Fergus and into Xero.
+        Drapr raises the job and hands it over; it doesn't replace either.
+      </p>
+      <p>
+        <b>It's built around Fergus today.</b> The calendar, job push and invoicing assume
+        Fergus. If you run something else, talk to us. Quoting, items, inspections and
+        follow-ups work without it, but the joined-up part is where most of the value is.
+      </p>
+      <p>
+        <b>It's early outside our own business.</b> Drapr has run Dr Drapes every day for
+        months, and trade partners are using the partner portal now. Setting it up for
+        another curtain cleaner is something we'll do with a small number of operators
+        first, carefully, and those operators get a real say in what comes next.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FAQ ============ -->
+<section id="faq">
+  <div class="wrap" style="max-width:860px">
+    <div class="sec-head">
+      <div class="eyebrow">Questions</div>
+      <h2>The ones people actually ask.</h2>
+    </div>
+
+    <details>
+      <summary>Can I use my own prices?</summary>
+      <p>
+        Yes. The price list is yours, set up by category: curtains, sheers and velvets by
+        width with tiers by drop, blinds by the square metre, pelmets by width, and
+        repairs by quantity. Change a rate and new quotes use it straight away; quotes
+        already sent keep the price they went out at.
+      </p>
+    </details>
+    <details>
+      <summary>Do I have to use Fergus?</summary>
+      <p>
+        Today, the booking suggestions, run sheet and automatic job creation read and write
+        Fergus. If you use a different job system, get in touch and tell us which one.
+        That's exactly the conversation we want to have with early operators.
+      </p>
+    </details>
+    <details>
+      <summary>Will my customers see Drapr, or my business?</summary>
+      <p>
+        Your business. Quotes, reports, emails and the accept page carry your logo and
+        details. The Drapr name stays inside the app.
+      </p>
+    </details>
+    <details>
+      <summary>How does online acceptance work?</summary>
+      <p>
+        The quote email has an Accept online button that opens a page showing the quote
+        and your terms. The customer accepts there, with no login needed. The job moves to
+        confirmed, the office is notified, the customer gets a confirmation, and the job
+        is raised in Fergus.
+      </p>
+    </details>
+    <details>
+      <summary>Can trade partners quote my work?</summary>
+      <p>
+        Yes. Partners get their own login to a partner portal. They quote on your price
+        list (they can't change it), do the pre-inspection, send the quote to their customer
+        with their logo beside yours, and follow the job through. You set each partner's
+        commission, and statements go out on the first of each month.
+      </p>
+    </details>
+    <details>
+      <summary>Does it work for insurance work?</summary>
+      <p>
+        It was built alongside a restoration business, so yes. Insurer and claim number go
+        on the quote, pre- and post-inspection reports with photos go to the builder or
+        assessor, and restoration companies can be set up as trade accounts with their own
+        job number on every quote and invoice.
+      </p>
+    </details>
+    <details>
+      <summary>What does it cost?</summary>
+      <p>
+        That gets settled with the first operators who use it rather than decided at them.
+        Get in touch and we'll talk it through properly.
+      </p>
+    </details>
+  </div>
+</section>
+
+<!-- ============ GET IN TOUCH ============ -->
+<section id="interest" class="tint">
+  <div class="wrap" style="max-width:780px">
+    <div class="sec-head" style="text-align:center; margin-left:auto; margin-right:auto">
+      <div class="eyebrow">Get in touch</div>
+      <h2>Run a curtain cleaning business? Let's talk.</h2>
+      <p class="lede">
+        Tell us a bit about your business. You'll hear back from the person who built it,
+        not a sales team.
+      </p>
+    </div>
+
+    <div class="steps">
+      <div class="step">
+        <span class="n">STEP 01</span>
+        <h3>You send this form</h3>
+        <p>Takes a minute. It opens an email to David with your details filled in.</p>
+      </div>
+      <div class="step">
+        <span class="n">STEP 02</span>
+        <h3>We have a chat</h3>
+        <p>A call or a Zoom about how your business runs today and where the time goes.</p>
+      </div>
+      <div class="step">
+        <span class="n">STEP 03</span>
+        <h3>We show you Drapr</h3>
+        <p>A walk through it on real jobs, and an honest view on whether it suits you.</p>
+      </div>
+    </div>
+
+    <div class="trial">
+      <form id="interest-form" novalidate>
+        <div class="field-row">
+          <div class="field">
+            <label for="f-name">Your name</label>
+            <input id="f-name" name="name" type="text" autocomplete="name" required maxlength="120">
+          </div>
+          <div class="field">
+            <label for="f-business">Business name</label>
+            <input id="f-business" name="business" type="text" autocomplete="organization" required maxlength="160">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="f-email">Email</label>
+            <input id="f-email" name="email" type="email" autocomplete="email" required maxlength="200">
+          </div>
+          <div class="field">
+            <label for="f-phone">Phone</label>
+            <input id="f-phone" name="phone" type="tel" autocomplete="tel" maxlength="40">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="f-state">State</label>
+            <select id="f-state" name="state">
+              <option value="">Select…</option>
+              <option>VIC</option><option>NSW</option><option>QLD</option><option>SA</option>
+              <option>WA</option><option>TAS</option><option>ACT</option><option>NT</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="f-system">Job system you use now</label>
+            <select id="f-system" name="system">
+              <option value="">Select…</option>
+              <option>Fergus</option>
+              <option>ServiceM8</option>
+              <option>simPRO</option>
+              <option>Tradify</option>
+              <option>AroFlo</option>
+              <option>Spreadsheets / paper</option>
+              <option>Something else</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label for="f-message">Anything you'd like us to know (optional)</label>
+          <textarea id="f-message" name="message" maxlength="2000" placeholder="How many vans, retail or trade work, what takes the most time…"></textarea>
+        </div>
+
+        <button class="btn btn-primary btn-lg" type="submit" style="width:100%">Send to David</button>
+        <p class="form-msg" id="f-msg" role="status" aria-live="polite"></p>
+        <p class="form-fine">
+          Opens your email app with the details filled in. Prefer to write directly?
+          <a href="mailto:david@hudsongroup.com.au?subject=Drapr">david@hudsongroup.com.au</a>
+        </p>
+      </form>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-in">
+      <div>
+        <a class="brand" href="./" aria-label="Drapr home">
+          <img src="../brand/drapr-lockup-horizontal-white.svg" alt="Drapr" width="118" height="32">
+        </a>
+        <p>
+          Job software for curtain and blind cleaners: quotes, acceptance, booking, items,
+          inspections and follow-ups, from the enquiry to the rehang.
+        </p>
+      </div>
+      <div class="foot-col">
+        <h4>Product</h4>
+        <a href="#how">How it works</a>
+        <a href="#what">What it does</a>
+        <a href="#who">Who uses it</a>
+        <a href="#uses">Use cases</a>
+        <a href="#faq">FAQ</a>
+      </div>
+      <div class="foot-col">
+        <h4>Get started</h4>
+        <a href="../">Staff log in</a>
+        <a href="../partner.html">Partner log in</a>
+        <a href="#interest">Get in touch</a>
+        <a href="mailto:david@hudsongroup.com.au?subject=Drapr">david@hudsongroup.com.au</a>
+      </div>
+    </div>
+    <div class="foot-legal">
+      <span>&copy; <span id="yr">2026</span> Drapr · Hudson Group</span>
+      <span>Built at <a href="https://www.drdrapes.com.au" style="color:#fff">Dr Drapes Curtain Clinic</a>, Melbourne.</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function () {
+  'use strict';
+  document.getElementById('yr').textContent = new Date().getFullYear();
+
+  // No backend behind this form on purpose: it builds a filled-in email to David,
+  // so an enquiry can never be lost to a failed request.
+  var CONTACT = 'david@hudsongroup.com.au';
+  var form = document.getElementById('interest-form');
+  var msg = document.getElementById('f-msg');
+
+  function say(text, kind) { msg.textContent = text; msg.className = 'form-msg' + (kind ? ' ' + kind : ''); }
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var d = {
+      name: form.name.value.trim(),
+      business: form.business.value.trim(),
+      email: form.email.value.trim(),
+      phone: form.phone.value.trim(),
+      state: form.state.value,
+      system: form.system.value,
+      message: form.message.value.trim()
+    };
+    if (!d.name || !d.business || !d.email) { say('Please fill in your name, business name and email.', 'err'); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email)) { say('That email address does not look right.', 'err'); return; }
+
+    var body =
+      'Name: ' + d.name + '\n' +
+      'Business: ' + d.business + '\n' +
+      'Email: ' + d.email + '\n' +
+      'Phone: ' + (d.phone || '—') + '\n' +
+      'State: ' + (d.state || '—') + '\n' +
+      'Job system: ' + (d.system || '—') + '\n\n' +
+      (d.message || '');
+    window.location.href = 'mailto:' + CONTACT +
+      '?subject=' + encodeURIComponent('Drapr enquiry — ' + d.business) +
+      '&body=' + encodeURIComponent(body);
+    say('Your email app should have opened with everything filled in. Just press send.', 'ok');
+  });
+})();
+</script>
+
+</body>
+</html>
