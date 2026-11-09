@@ -143,6 +143,9 @@
       font-weight: 600; text-decoration: none; cursor: pointer;
     }
     .login-alt a:hover { text-decoration: underline; }
+    .login-about { text-align: center; margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
+    .login-about a { color: var(--muted); font-size: 13px; text-decoration: none; }
+    .login-about a:hover { color: var(--navy-mid); text-decoration: underline; }
 
     /* ============================================================
        APP CHROME (top bar + main)
@@ -1119,6 +1122,7 @@
         </div>
         <button id="login-btn" class="btn btn-primary">Sign in</button>
         <div class="login-alt"><a id="forgot-link">Forgot your password?</a></div>
+        <div class="login-about"><a href="drapr/">What is Drapr? See how it works &rarr;</a></div>
       </div>
 
       <!-- Shown instead of the login card when the page is opened from a
