@@ -1012,8 +1012,10 @@ async function createPartner(admin: any, staff: any, body: any) {
   const partnerCols = {
     is_partner: true, active: true,
     // Blank = agreed later, case by case (0 = not set; shown as "to be agreed").
-    commission_referral_pct: pct(body?.referral_pct, Number(same?.commission_referral_pct ?? 0)),
-    commission_install_pct: pct(body?.install_pct, Number(same?.commission_install_pct ?? 0)),
+    // An account that wasn't a partner yet only carries the column default
+    // (30/50), not an agreed rate, so it starts at "to be agreed" too.
+    commission_referral_pct: pct(body?.referral_pct, same?.is_partner ? Number(same.commission_referral_pct) : 0),
+    commission_install_pct: pct(body?.install_pct, same?.is_partner ? Number(same.commission_install_pct) : 0),
     partner_invoice_default: 'partner',
   };
   if (account) {
