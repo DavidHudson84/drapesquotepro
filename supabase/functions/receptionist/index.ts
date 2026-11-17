@@ -191,6 +191,17 @@ async function sendSms(to: string, body: string) {
   return { ok: true };
 }
 
+// Text the staff on alert (receptionist-alert-mobiles: comma-separated
+// mobiles). True if at least one went through.
+async function alertStaff(settings: Record<string, string>, text: string) {
+  const to = String(settings['receptionist-alert-mobiles'] || '')
+    .split(/[,;]/).map(normPhone).filter(isMobile);
+  if (!to.length) return false;
+  const results = await Promise.all(to.map((m) => sendSms(toE164(m), text)));
+  results.filter((r) => !r.ok).forEach((r) => console.error('staff alert failed', r.error));
+  return results.some((r) => r.ok);
+}
+
 // ----------------------------------------------------------- inbound webhook
 
 async function onInbound(sb: SupabaseClient, inbound: any) {
@@ -321,6 +332,13 @@ async function fnTakeMessage(sb: SupabaseClient, call: any, args: any, settings:
        <tr><td valign="top"><b>Message</b></td><td>${escapeHtml(message.reason)}</td></tr>
      </table>
      <p style="color:#666">The full summary and transcript follow once the call ends.</p>`);
+
+  // And a text to the people on alert, so a callback isn't sitting in an inbox
+  // all weekend.
+  const caller = message.callback_number || 'withheld';
+  await alertStaff(settings,
+    `${urgent ? 'URGENT ' : ''}Dr Drapes CALL BACK: ${message.name || 'caller'} ${caller}` +
+    `${message.best_time ? ' (' + message.best_time + ')' : ''} - ${message.reason}`);
   return { saved: true };
 }
 
@@ -349,12 +367,32 @@ async function onCallEvent(sb: SupabaseClient, event: string, call: any, setting
   if (event !== 'call_analyzed') return json({ ok: true });
 
   const row = await getCall(sb, callId);
-  if (!row || row.notified_at) return json({ ok: true });
+  if (!row) return json({ ok: true });
+  const caller = normPhone(row.from_number) || 'withheld number';
+
+  // Text alert for every call, to the mobiles in receptionist-alert-mobiles.
+  // Short on purpose: who, what, and whether they need a callback. The email
+  // carries the transcript.
+  const smsEvery = (settings['receptionist-sms-all-calls'] || 'yes').toLowerCase() !== 'no';
+  if (!row.sms_alerted_at && (smsEvery || row.callback_requested)) {
+    const what = (row.summary || 'No summary.').replace(/\s+/g, ' ');
+    // One SMS part (160 plain characters) per person per call keeps this to
+    // about 8 cents a text. Smart quotes would force the dearer unicode rate.
+    const head = `DrDrapes ${caller}${row.callback_requested ? ' CALL BACK' : ''}: `;
+    const plain = what.replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201D]/g, '"')
+      .replace(/[\u2013\u2014]/g, '-').replace(/[^\x20-\x7E]/g, '');
+    const room = 160 - head.length;
+    const text = head + (plain.length > room ? plain.slice(0, room - 3) + '...' : plain);
+    if (await alertStaff(settings, text)) {
+      await upsertCall(sb, callId, { sms_alerted_at: new Date().toISOString() });
+    }
+  }
+
+  if (row.notified_at) return json({ ok: true });
   const everyCall = (settings['receptionist-email-all-calls'] || 'yes').toLowerCase() !== 'no';
   if (!everyCall && !row.callback_requested) return json({ ok: true });
 
-  const caller = normPhone(row.from_number) || 'withheld number';
-  const mins = row.duration_s ? `${Math.max(1, Math.round(row.duration_s / 60))} min` : '';
+    const mins = row.duration_s ? `${Math.max(1, Math.round(row.duration_s / 60))} min` : '';
   const flag = row.callback_requested ? 'CALL BACK · ' : '';
   const html = `
     <p><b>${flag}AI receptionist call</b> from ${escapeHtml(caller)} ${mins ? '· ' + mins : ''}</p>

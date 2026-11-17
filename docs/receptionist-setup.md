@@ -118,8 +118,26 @@ optional:
 |---|---|
 | `receptionist-notify-email` | drdrapes@hudsongroup.com.au (comma-separate for several) |
 | `receptionist-email-all-calls` | `yes`. Set `no` to only email when a callback is asked for |
+| `receptionist-alert-mobiles` | none. Mobiles that get a text after every call, comma-separated, e.g. `0412345678,0498765432` |
+| `receptionist-sms-all-calls` | `yes`. Set `no` to only text when a callback is asked for |
 | `receptionist-form-url` | https://quote.drdrapes.com.au/request.html |
 | `receptionist-sms-body` | the standard text. Use `{hi}` and `{link}` placeholders |
+
+### Text alerts to David and Nicole
+
+After every call, each mobile in `receptionist-alert-mobiles` gets a short text
+with the caller's number, CALL BACK if they asked for one, and the call summary.
+When a message is taken, a CALL BACK text goes out straight away, without waiting
+for the call to end. Add the numbers in Supabase → SQL Editor:
+
+```sql
+insert into settings (key, value, company_id)
+values ('receptionist-alert-mobiles', '04XXXXXXXX,04YYYYYYYY', '00000000-0000-0000-0000-000000000001');
+```
+
+Each alert is kept to one SMS part, about 8 cents a text per person. At 250
+calls a month that's roughly A$40 a month for two people. Set
+`receptionist-sms-all-calls` to `no` to only get texts for callbacks.
 
 ## What callers can and can't find out
 

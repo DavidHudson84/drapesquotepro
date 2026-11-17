@@ -26,6 +26,7 @@ create table if not exists public.receptionist_calls (
   recording_url        text,
   disconnection_reason text,
   notified_at          timestamptz,                   -- office summary email sent
+  sms_alerted_at       timestamptz,                   -- staff text alert sent
   handled_at           timestamptz,                   -- staff have dealt with it
   handled_by           text,
   created_at           timestamptz not null default now(),
@@ -34,6 +35,8 @@ create table if not exists public.receptionist_calls (
 
 comment on table public.receptionist_calls is
   'Every call answered by the Retell AI receptionist, written by the receptionist Edge Function. Messages, summaries, transcripts and which Drapr jobs the caller was matched to.';
+
+alter table public.receptionist_calls add column if not exists sms_alerted_at timestamptz;
 
 create index if not exists receptionist_calls_company_started_idx
   on public.receptionist_calls (company_id, started_at desc);
