@@ -202,6 +202,14 @@ async function alertStaff(settings: Record<string, string>, text: string) {
   return results.some((r) => r.ok);
 }
 
+// Keep working after the response has gone back to Retell. Supabase's runtime
+// holds the worker open for anything handed to waitUntil.
+function inBackground(p: Promise<unknown>) {
+  // deno-lint-ignore no-explicit-any
+  const rt = (globalThis as any).EdgeRuntime;
+  if (rt?.waitUntil) rt.waitUntil(p);
+}
+
 // ----------------------------------------------------------- inbound webhook
 
 async function onInbound(sb: SupabaseClient, inbound: any) {
@@ -318,10 +326,14 @@ async function fnTakeMessage(sb: SupabaseClient, call: any, args: any, settings:
     message, callback_requested: true,
   });
 
-  // Straight to the office now — not held for the end-of-call summary.
+  // Straight to the office now — not held for the end-of-call summary. Sent in
+  // the background: the caller is on the line, and Sally shouldn't sit in
+  // silence while an email and two texts go out.
   const to = settings['receptionist-notify-email'] || DEFAULT_NOTIFY;
   const urgent = /urgent|high/i.test(message.urgency);
-  await sendEmail(to,
+  const caller = message.callback_number || 'withheld';
+  const notify = Promise.all([
+    sendEmail(to,
     `${urgent ? 'URGENT ' : ''}CALL BACK: ${message.name || message.callback_number || 'caller'} — ${message.reason.slice(0, 60)}`,
     `<p><b>Message taken by the AI receptionist</b> · ${escapeHtml(melbNow())}</p>
      <table cellpadding="4">
@@ -331,14 +343,14 @@ async function fnTakeMessage(sb: SupabaseClient, call: any, args: any, settings:
        <tr><td><b>Urgency</b></td><td>${escapeHtml(message.urgency)}</td></tr>
        <tr><td valign="top"><b>Message</b></td><td>${escapeHtml(message.reason)}</td></tr>
      </table>
-     <p style="color:#666">The full summary and transcript follow once the call ends.</p>`);
-
-  // And a text to the people on alert, so a callback isn't sitting in an inbox
-  // all weekend.
-  const caller = message.callback_number || 'withheld';
-  await alertStaff(settings,
-    `${urgent ? 'URGENT ' : ''}Dr Drapes CALL BACK: ${message.name || 'caller'} ${caller}` +
-    `${message.best_time ? ' (' + message.best_time + ')' : ''} - ${message.reason}`);
+     <p style="color:#666">The full summary and transcript follow once the call ends.</p>`),
+    // And a text to the people on alert, so a callback isn't sitting in an
+    // inbox all weekend.
+    alertStaff(settings,
+      `${urgent ? 'URGENT ' : ''}Dr Drapes CALL BACK: ${message.name || 'caller'} ${caller}` +
+      `${message.best_time ? ' (' + message.best_time + ')' : ''} - ${message.reason}`),
+  ]).catch((e) => console.error('callback notify failed', e));
+  inBackground(notify);
   return { saved: true };
 }
 
