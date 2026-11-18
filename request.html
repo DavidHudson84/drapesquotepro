@@ -580,6 +580,19 @@
     }
   });
 
+  // ---------- Pre-fill ----------
+  // The link the phone receptionist texts carries ?name=&phone= so the caller
+  // isn't asked again for what they just said. Only ever fills an empty box.
+  (function () {
+    const qs = new URLSearchParams(location.search);
+    [['name', '#f-name'], ['phone', '#f-phone'], ['email', '#f-email']].forEach(([k, sel]) => {
+      const v = (qs.get(k) || '').slice(0, 120);
+      const el = $(sel);
+      if (v && el && !el.value) el.value = v;
+    });
+    if (qs.get('src') === 'phone' && !$('#f-method').value) $('#f-method').value = 'Text / SMS';
+  })();
+
   // ---------- Embed mode ----------
   // request.html?embed=1 strips the page chrome and reports its height to the
   // hosting page, so a WordPress iframe can grow and shrink with the form.
