@@ -392,7 +392,7 @@ async function onCallEvent(sb: SupabaseClient, event: string, call: any, setting
   const everyCall = (settings['receptionist-email-all-calls'] || 'yes').toLowerCase() !== 'no';
   if (!everyCall && !row.callback_requested) return json({ ok: true });
 
-    const mins = row.duration_s ? `${Math.max(1, Math.round(row.duration_s / 60))} min` : '';
+  const mins = row.duration_s ? `${Math.max(1, Math.round(row.duration_s / 60))} min` : '';
   const flag = row.callback_requested ? 'CALL BACK · ' : '';
   const html = `
     <p><b>${flag}AI receptionist call</b> from ${escapeHtml(caller)} ${mins ? '· ' + mins : ''}</p>
