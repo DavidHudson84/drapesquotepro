@@ -1,9 +1,8 @@
 # Dr Drapes — receptionist knowledge base
 
-> Built from drdrapes.com.au, the Drapr price list and terms, and how Nicole
-> answers customers in the drdrapes@ inbox. **David: check the five items marked
-> CONFIRM at the bottom, then delete this note** and paste the rest into the
-> Retell Knowledge Base.
+> Built from drdrapes.com.au, the Drapr terms, and how Nicole answers customers in
+> the drdrapes@ inbox. **David: settle the turnaround item at the bottom, then
+> delete this note** and paste the rest into the Retell Knowledge Base.
 
 ---
 
@@ -49,38 +48,29 @@ charge.
 
 ## Turnaround
 Allow 2 to 3 weeks from take-down to rehang. Large jobs and busy periods can take a
-little longer. A faster turnaround can sometimes be arranged for an extra charge.
-Take a message, and the team will confirm what's possible.
+little longer. A faster turnaround can sometimes be arranged. It's priced per job, so take a
+message and Nicole will confirm what's possible and the cost.
 
-**Temporary curtains:** we can provide temporary drapes while yours are being
-cleaned. Ask whether they'd like them, and note it in the message.
+**Temporary curtains:** we provide temporary drapes free of charge while yours are
+being cleaned. Ask whether they'd like them, and note it in the message.
 
-## Prices (a guide only — never a quote)
-Curtains are priced per metre of width, with take-down, cleaning and rehang
-included:
+## Pricing — general answers only
+Sally never gives prices, price ranges or estimates. Nicole does all quoting.
 
-- Standard curtains and drapes: from $80 per metre (drops up to 2.4m)
-- Sheers: from $80 per metre (drops up to 3m)
-- Velvet, silk, linen and satin: from $115 per metre (drops up to 2.4m)
-- Longer drops, extra-heavy or triple-thickness fabric cost more.
+What Sally can say:
+- Every job is quoted individually, based on the size of each curtain or blind,
+  the fabric, and its condition.
+- Take-down, cleaning and rehang are all included in the quote, with no separate
+  labour charge.
+- Mould treatment and repairs are optional extras, shown separately on the quote.
+- A standard fuel fee applies to every call-out. It's shown on the quote.
+- Dropping the curtains off and picking them up from our Melton clinic gets a
+  discount. Nicole includes it on the quote.
+- The final price is confirmed after we re-measure on the day.
 
-Blinds are priced per square metre (width times drop):
-
-- Roller blinds: from $35/m² (sunscreen) or $40/m² (blockout)
-- Roman and Austrian blinds: from $45/m²
-
-Extras:
-
-- Mould treatment: $10 per metre on curtains, $10/m² on blinds
-- Pelmets: from $50
-- A fuel fee applies to call-outs (typically $30)
-- Repairs are optional and quoted separately
-
-**Drop-off discount:** customers who drop their curtains off and pick them up from
-the Melton clinic get 20% off. Leave the hooks in the curtains.
-
-The final price is confirmed after we re-measure on the day. To get a price, the
-customer fills in the quote form (Sally texts the link).
+For a price, offer to text the quote form link. They add rough sizes and photos,
+and Nicole comes back with a written quote. If they'd rather talk it through, take
+a message for Nicole to call them.
 
 ## How to measure
 Rough sizes are fine. We re-measure everything on site, so customers don't need to
@@ -93,14 +83,14 @@ be exact.
 - A photo of each window helps, plus close-ups of any stains, mould or damage.
 
 ## Venetian blinds and blind repairs
-For venetian blinds, and for parts or mechanism repairs on blinds, we usually refer
-customers to a specialist partner. Take a message with their details and suburb,
-and the team will pass them on.
+We usually refer venetian blind cleaning, and parts or mechanism repairs on blinds,
+to a specialist partner. Don't promise either way. Take a message with their details,
+suburb and what they have, and Nicole will either quote it or pass them on.
 
 ## Repairs and hardware
 We can do most curtain repairs while the items are with us: hooks, rings, weights,
 cords, hems, linings, headings and seams, as well as track repairs and track
-replacement. Repairs are always optional, and quoted or agreed before the work is
+replacement. Repairs are always optional, and agreed with the customer before the work is
 done.
 
 ## Payment
@@ -152,14 +142,7 @@ the message urgent if it is.
 ---
 
 ## CONFIRM before going live
-1. **Turnaround.** Nicole is currently quoting "at least 2.5 to 3 weeks", while the
-   quote email footer says 10 to 15 business days and the website says 5 to 10
-   working days. I've used 2 to 3 weeks. It's worth making the website and the
-   quote footer match.
-2. **Venetian blinds.** The website lists them at $45/m², but Nicole has been
-   referring venetian jobs to Expert Blinds. I've told Sally to refer them. Is that
-   right?
-3. **Fuel fee.** Is $30 standard for everyone, or does it vary by area?
-4. **Temporary drapes.** Are they free or charged?
-5. **Express turnaround.** Is it still $120 + GST (the figure quoted to a club in
-   July)? I've told Sally to take a message rather than quote it.
+**Turnaround.** Nicole is currently quoting "at least 2.5 to 3 weeks", while the
+quote email footer says 10 to 15 business days and the website says 5 to 10 working
+days. Sally is set to 2 to 3 weeks. It's worth making the website and the quote
+footer match.
