@@ -325,6 +325,16 @@
     .e-pill.called { background: #fef3c7; color: #92590a; }
     .e-pill.converted { background: #d1fae5; color: #065f46; }
     .e-pill.email { background: #e0f2f1; color: #0f5e56; text-transform: none; letter-spacing: 0; }
+    /* Calls (Sally, the AI receptionist) */
+    .enq-card.s-callback { border-left-color: var(--red); }
+    .enq-card.s-handled { border-left-color: var(--green); }
+    .e-pill.callback { background: #fee2e2; color: #991b1b; }
+    .e-pill.urgent { background: #b91c1c; color: #fff; }
+    .e-pill.handled { background: #d1fae5; color: #065f46; }
+    .e-pill.info { background: #e0f2f1; color: #0f5e56; text-transform: none; letter-spacing: 0; }
+    .call-msg { margin-top: 10px; padding: 10px 12px; background: #fff7ed; border-radius: var(--r-sm); font-size: 13.5px; }
+    .call-transcript pre { white-space: pre-wrap; font-family: inherit; font-size: 13px; color: var(--ink); background: #f8f9fc; padding: 10px 12px; border-radius: var(--r-sm); max-height: 360px; overflow: auto; }
+    .call-transcript summary { cursor: pointer; font-size: 13px; color: var(--navy-mid); font-weight: 600; margin-top: 10px; }
     .e-checks { margin-top: 10px; padding: 10px 12px; background: #fdf6f5; border-radius: var(--r-sm); font-size: 13px; color: var(--ink); }
     .e-checks strong { color: #9a3412; }
     .e-checks ul { margin: 4px 0 0 18px; padding: 0; }
@@ -1160,6 +1170,7 @@
         <a data-route="jobs">Jobs</a>
         <a data-route="reports">Reports</a>
         <a data-route="enquiries">Enquiries<span class="nav-badge hidden" id="nav-enq-badge">0</span></a>
+        <a data-route="calls">Calls<span class="nav-badge hidden" id="nav-call-badge">0</span></a>
         <a data-route="run">Run Sheet</a>
         <a data-route="admin" id="nav-admin" style="display:none">Admin</a>
       </nav>
@@ -1651,6 +1662,47 @@
       async setEnquiryStatus(enquiryId, status) {
         const { error } = await sb.from('enquiries').update({ status }).eq('id', enquiryId);
         if (error) throw error;
+      },
+
+      // ---------- CALLS (Sally, the AI receptionist) ----------
+      async listCalls() {
+        const since = new Date(Date.now() - 90 * 86400000).toISOString();
+        const { data, error } = await sb
+          .from('receptionist_calls')
+          .select('id, call_id, from_number, started_at, created_at, duration_s, summary, sentiment, message, callback_requested, handled_at, handled_by, sms_sent, matched_job_ids, recording_url, transcript')
+          .neq('call_id', 'test_call')
+          .gte('created_at', since)
+          .order('created_at', { ascending: false })
+          .limit(300);
+        if (error) throw error;
+        return data || [];
+      },
+
+      async countOpenCallbacks() {
+        const { count, error } = await sb
+          .from('receptionist_calls')
+          .select('id', { count: 'exact', head: true })
+          .eq('callback_requested', true)
+          .is('handled_at', null);
+        if (error) throw error;
+        return count || 0;
+      },
+
+      async setCallHandled(callId, handled) {
+        const patch = handled
+          ? { handled_at: new Date().toISOString(), handled_by: session.profile?.name || session.profile?.email || 'Staff' }
+          : { handled_at: null, handled_by: null };
+        const { error } = await sb.from('receptionist_calls').update(patch).eq('id', callId);
+        if (error) throw error;
+      },
+
+      async jobRefs(ids) {
+        if (!ids.length) return {};
+        const { data, error } = await sb.from('jobs').select('id, quote_number, drd_number').in('id', ids);
+        if (error) return {};
+        const m = {};
+        (data || []).forEach((j) => { m[j.id] = j.quote_number || j.drd_number || 'Job'; });
+        return m;
       },
 
       // ---------- SETTINGS (Admin panel) ----------
@@ -2487,6 +2539,7 @@
           if (route.name === 'job') return await router.jobPage(main);
           if (route.name === 'reports') return await router.reports(main);
           if (route.name === 'enquiries') return await router.enquiries(main);
+          if (route.name === 'calls') return await router.calls(main);
           if (route.name === 'admin') {
             if (!isAdmin()) { route.name = 'dashboard'; return await router.dashboard(main); }
             return await router.admin(main);
@@ -2998,6 +3051,92 @@
       },
 
       /* ---------- ENQUIRIES (stub for now) ---------- */
+      /* ---------- CALLS (Sally, the AI receptionist) ---------- */
+      async calls(main) {
+        main.innerHTML = `<div class="empty-card"><div class="spin" style="margin:0 auto;border-top-color:var(--navy-mid);border-color:#ddd"></div></div>`;
+        let list;
+        try { list = await db.listCalls(); }
+        catch (err) { main.innerHTML = `<div class="page-head"><h1>Calls</h1></div><div class="empty-card"><p>Could not load calls: ${escapeHtml(err.message || 'error')}</p></div>`; return; }
+
+        const isOpen = (c) => c.callback_requested && !c.handled_at;
+        const f = route.callFilter || (list.some(isOpen) ? 'callback' : 'all');
+        const filtered = list.filter((c) => f === 'all' ? true : f === 'callback' ? isOpen(c) : !!c.handled_at);
+        const counts = { callback: list.filter(isOpen).length, handled: list.filter((c) => c.handled_at).length };
+        const chips = [['callback', 'Needs callback'], ['handled', 'Handled'], ['all', 'All calls']].map(([k, l]) =>
+          `<span class="chip ${f === k ? 'active' : ''}" data-callf="${k}">${l}${k !== 'all' && counts[k] ? ' (' + counts[k] + ')' : ''}</span>`).join('');
+
+        const refs = await db.jobRefs([...new Set(list.flatMap((c) => c.matched_job_ids || []))]);
+        const fmtPhone = (p) => {
+          const d = String(p || '').replace(/\D/g, '');
+          const n = /^61[2-478]\d{8}$/.test(d) ? '0' + d.slice(2) : d;
+          if (/^04\d{8}$/.test(n)) return `${n.slice(0, 4)} ${n.slice(4, 7)} ${n.slice(7)}`;
+          if (/^0\d{9}$/.test(n)) return `${n.slice(0, 2)} ${n.slice(2, 6)} ${n.slice(6)}`;
+          return n;
+        };
+
+        const cards = filtered.length ? filtered.map((c) => {
+          const m = c.message || null;
+          const st = isOpen(c) ? 'callback' : (c.handled_at ? 'handled' : 'info');
+          const ts = c.started_at || c.created_at;
+          const when = ts ? new Date(ts).toLocaleString('en-AU', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : '';
+          const num = fmtPhone((m && m.callback_number) || c.from_number);
+          const mins = c.duration_s ? ` · ${Math.max(1, Math.round(c.duration_s / 60))} min` : '';
+          const pills = [];
+          if (st === 'callback') pills.push('<span class="e-pill callback">Call back</span>');
+          if (m && /urgent/i.test(m.urgency || '')) pills.push('<span class="e-pill urgent">Urgent</span>');
+          if (c.handled_at) pills.push('<span class="e-pill handled">Handled</span>');
+          if (c.sms_sent) pills.push('<span class="e-pill info">Quote link texted</span>');
+          const jobs = (c.matched_job_ids || []).filter((id) => refs[id]).map((id) =>
+            `<a href="#" data-openjob="${id}" style="font-weight:600">${escapeHtml(refs[id])}</a>`).join(', ');
+          return `
+            <div class="enq-card s-${st}">
+              <div class="e-top">
+                <div>
+                  <div class="e-name">${escapeHtml((m && m.name) || 'Caller')} ${pills.join(' ')}</div>
+                  <div class="e-meta">${num ? `<a href="tel:${escapeAttr(num.replace(/\s/g, ''))}">${escapeHtml(num)}</a>` : 'Number withheld'}${escapeHtml(mins)}</div>
+                  ${jobs ? `<div class="e-meta">Matched to ${jobs}</div>` : ''}
+                </div>
+                <div class="e-when">${escapeHtml(when)}</div>
+              </div>
+              <div class="e-desc">${escapeHtml(c.summary || (c.started_at ? 'Summary not ready yet.' : 'No summary.'))}</div>
+              ${m && m.reason ? `<div class="call-msg"><strong>Message:</strong> ${escapeHtml(m.reason)}${m.best_time ? `<br/><strong>Best time:</strong> ${escapeHtml(m.best_time)}` : ''}</div>` : ''}
+              ${c.handled_at ? `<div class="e-meta" style="margin-top:8px">Handled ${escapeHtml(new Date(c.handled_at).toLocaleString('en-AU', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }))}${c.handled_by ? ' by ' + escapeHtml(c.handled_by) : ''}</div>` : ''}
+              ${c.recording_url ? `<div style="margin-top:10px"><audio controls preload="none" src="${escapeAttr(c.recording_url)}" style="width:100%;max-width:420px"></audio></div>` : ''}
+              ${c.transcript ? `<details class="call-transcript"><summary>Transcript</summary><pre>${escapeHtml(c.transcript)}</pre></details>` : ''}
+              <div class="e-actions">
+                ${c.callback_requested && !c.handled_at ? `<button class="btn btn-convert" data-callhandled="${c.id}">Mark handled</button>` : ''}
+                ${c.handled_at ? `<button class="btn btn-secondary" data-callreopen="${c.id}">Reopen</button>` : ''}
+              </div>
+            </div>`;
+        }).join('') : `<div class="empty-card"><h3>${f === 'callback' ? 'No callbacks waiting' : 'No calls yet'}</h3><p>Calls answered by Sally, the AI receptionist, appear here with a summary, recording and transcript.</p></div>`;
+
+        callBadge.set(counts.callback);
+
+        main.innerHTML = `
+          <div class="page-head"><h1>Calls</h1><p>Answered by Sally, the AI receptionist · last 90 days</p></div>
+          <div class="filter-chips" style="margin-bottom:16px">${chips}</div>
+          ${cards}`;
+
+        document.querySelectorAll('.chip[data-callf]').forEach((ch) =>
+          ch.addEventListener('click', () => { route.callFilter = ch.dataset.callf; router.calls(main); }));
+        document.querySelectorAll('[data-callhandled]').forEach((b) =>
+          b.addEventListener('click', async () => {
+            b.disabled = true;
+            try { await db.setCallHandled(b.dataset.callhandled, true); ui.toast('Marked as handled'); }
+            catch (err) { ui.toast(err.message || 'Could not update'); }
+            callBadge.refresh(); router.calls(main);
+          }));
+        document.querySelectorAll('[data-callreopen]').forEach((b) =>
+          b.addEventListener('click', async () => {
+            b.disabled = true;
+            try { await db.setCallHandled(b.dataset.callreopen, false); ui.toast('Reopened'); }
+            catch (err) { ui.toast(err.message || 'Could not update'); }
+            callBadge.refresh(); router.calls(main);
+          }));
+        document.querySelectorAll('[data-openjob]').forEach((a) =>
+          a.addEventListener('click', (ev) => { ev.preventDefault(); router.go('job', { jobId: a.dataset.openjob }); }));
+      },
+
       async enquiries(main) {
         main.innerHTML = `<div class="empty-card"><div class="spin" style="margin:0 auto;border-top-color:var(--navy-mid);border-color:#ddd"></div></div>`;
         let list;
@@ -8843,7 +8982,7 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
         $('#password').value = '';
         ui.showApp();
         router.go(isDriver() ? 'run' : 'dashboard');
-        enqBadge.start();
+        enqBadge.start(); callBadge.start();
       } catch (err) {
         const msg = /invalid login credentials/i.test(err.message || '')
           ? 'Incorrect email or password.'
@@ -10110,6 +10249,30 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
       },
     };
 
+    // Callbacks Sally has taken that nobody has marked handled yet.
+    const callBadge = {
+      timer: null,
+      set(n) {
+        const el = document.getElementById('nav-call-badge');
+        if (!el) return;
+        el.textContent = n > 99 ? '99+' : n;
+        el.classList.toggle('hidden', !n);
+      },
+      async refresh() {
+        if (!session.profile) return;
+        let n;
+        try { n = await db.countOpenCallbacks(); }
+        catch (_) { return; }
+        this.set(n);
+      },
+      start() {
+        this.refresh();
+        if (this.timer) clearInterval(this.timer);
+        this.timer = setInterval(() => this.refresh(), 60 * 1000);
+        document.addEventListener('visibilitychange', () => { if (!document.hidden) this.refresh(); });
+      },
+    };
+
     const enqBadge = {
       timer: null,
       set(n) {
@@ -10194,7 +10357,7 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
         if (ok) {
           ui.showApp();
           router.go(isDriver() ? 'run' : 'dashboard');
-          enqBadge.start();
+          enqBadge.start(); callBadge.start();
         }
         else { ui.showLogin(); }
         versionWatch.start();
