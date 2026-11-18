@@ -1,8 +1,8 @@
 # Dr Drapes — receptionist knowledge base
 
 > Built from drdrapes.com.au, the Drapr terms, and how Nicole answers customers in
-> the drdrapes@ inbox. **David: settle the turnaround item at the bottom, then
-> delete this note** and paste the rest into the Retell Knowledge Base.
+> the drdrapes@ inbox. Delete this note and paste the rest into the Retell
+> Knowledge Base.
 
 ---
 
@@ -47,9 +47,16 @@ Take-down and rehang are included in the price, and there's no separate labour
 charge.
 
 ## Turnaround
-Allow 2 to 3 weeks from take-down to rehang. Large jobs and busy periods can take a
-little longer. A faster turnaround can sometimes be arranged. It's priced per job, so take a
-message and Nicole will confirm what's possible and the cost.
+Usually 1 to 3 weeks from take-down to rehang. It can be as quick as 7 days, and
+it's rarely more than 21. It depends on how much is in the factory at the time,
+and how soon the customer needs them back.
+
+- Always say "usually 1 to 3 weeks". Never promise a date or a number of days.
+- If they need them back by a certain date (guests, an event, an inspection,
+  moving out), ask what the date is and note it in the message. Nicole will do
+  her best to fit it in.
+- A faster turnaround can sometimes be arranged. It's priced per job, so take a
+  message and Nicole will confirm what's possible and the cost.
 
 **Temporary curtains:** we provide temporary drapes free of charge while yours are
 being cleaned. Ask whether they'd like them, and note it in the message.
@@ -140,9 +147,3 @@ property suburb, what's affected, and whether the damage is still happening. Mar
 the message urgent if it is.
 
 ---
-
-## CONFIRM before going live
-**Turnaround.** Nicole is currently quoting "at least 2.5 to 3 weeks", while the
-quote email footer says 10 to 15 business days and the website says 5 to 10 working
-days. Sally is set to 2 to 3 weeks. It's worth making the website and the quote
-footer match.
