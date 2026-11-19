@@ -143,11 +143,29 @@ function describeJob(j: any) {
   };
 }
 
+// Kept for a minute between requests on a warm worker: a call makes several
+// requests in quick succession, and each database round trip is time the
+// caller spends waiting.
+const CACHE_MS = 60_000;
+let settingsCache: { at: number; value: Record<string, string> } | null = null;
+let secretCache: { at: number; value: string } | null = null;
+
 async function settingsMap(sb: SupabaseClient) {
+  if (settingsCache && Date.now() - settingsCache.at < CACHE_MS) return settingsCache.value;
   const { data } = await sb.from('settings').select('key, value').like('key', 'receptionist-%');
   const m: Record<string, string> = {};
   (data || []).forEach((r: any) => { m[r.key] = r.value; });
+  settingsCache = { at: Date.now(), value: m };
   return m;
+}
+
+async function receptionistSecret(sb: SupabaseClient) {
+  if (secretCache && Date.now() - secretCache.at < CACHE_MS) return secretCache.value;
+  const { data } = await sb.from('integration_secrets')
+    .select('value').eq('key', 'receptionist-secret').maybeSingle();
+  const v = data?.value || '';
+  if (v) secretCache = { at: Date.now(), value: v };
+  return v;
 }
 
 async function upsertCall(sb: SupabaseClient, callId: string, patch: Record<string, unknown>) {
@@ -360,12 +378,17 @@ async function fnSendQuoteLink(sb: SupabaseClient, call: any, args: any, setting
     "{hi}thanks for calling Dr Drapes. Here's the link for your quote request - add your curtain or blind sizes and a few photos and we'll come back to you with a price: {link}")
     .replace('{hi}', hi).replace('{link}', url.toString());
 
-  const res = await sendSms(toE164(to), body);
-  if (!res.ok) {
-    console.error('sms failed', res.error);
-    return { sent: false, reason: 'The text did not go through. Apologise, and let them know they can also find the quote form on the Dr Drapes website.' };
-  }
+  // Answer Retell straight away and send in the background: the Twilio round
+  // trip is the slowest thing on the call, and the caller is waiting in
+  // silence while it runs. Twilio almost never refuses a valid AU mobile; if
+  // it does, staff get a text so someone can send the link by hand.
   await upsertCall(sb, call.call_id, { sms_sent: sent + 1 });
+  inBackground(sendSms(toE164(to), body).then(async (res) => {
+    if (res.ok) return;
+    console.error('sms failed', res.error);
+    await upsertCall(sb, call.call_id, { sms_sent: sent });
+    await alertStaff(settings, `DrDrapes: quote form text FAILED to ${to}${name ? ' (' + name + ')' : ''}. Please send the link by hand.`);
+  }));
   return { sent: true, to_last_three: to.slice(-3) };
 }
 
@@ -509,9 +532,8 @@ Deno.serve(async (req) => {
   const sb = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 
   const key = new URL(req.url).searchParams.get('key') || req.headers.get('x-receptionist-key') || '';
-  const { data: secret } = await sb.from('integration_secrets')
-    .select('value').eq('key', 'receptionist-secret').maybeSingle();
-  if (!secret?.value || !safeEqual(key, secret.value)) return json({ error: 'unauthorised' }, 401);
+  const secret = await receptionistSecret(sb);
+  if (!secret || !safeEqual(key, secret)) return json({ error: 'unauthorised' }, 401);
 
   let body: any;
   try { body = await req.json(); } catch { return json({ error: 'bad json' }, 400); }
