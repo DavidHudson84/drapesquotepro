@@ -334,6 +334,10 @@
     .e-pill.info { background: #e0f2f1; color: #0f5e56; text-transform: none; letter-spacing: 0; }
     .call-msg { margin-top: 10px; padding: 10px 12px; background: #fff7ed; border-radius: var(--r-sm); font-size: 13.5px; }
     .call-transcript pre { white-space: pre-wrap; font-family: inherit; font-size: 13px; color: var(--ink); background: #f8f9fc; padding: 10px 12px; border-radius: var(--r-sm); max-height: 360px; overflow: auto; }
+    .call-turns { background: #f8f9fc; padding: 10px 12px; border-radius: var(--r-sm); max-height: 420px; overflow: auto; margin-top: 6px; }
+    .call-turns p { margin: 0 0 8px; font-size: 13.5px; line-height: 1.45; color: var(--ink); }
+    .call-turns strong { color: #333; }
+    .call-turns strong.sally { color: var(--teal, #0F6E63); }
     .call-transcript summary { cursor: pointer; font-size: 13px; color: var(--navy-mid); font-weight: 600; margin-top: 10px; }
     .e-checks { margin-top: 10px; padding: 10px 12px; background: #fdf6f5; border-radius: var(--r-sm); font-size: 13px; color: var(--ink); }
     .e-checks strong { color: #9a3412; }
@@ -1669,7 +1673,7 @@
         const since = new Date(Date.now() - 90 * 86400000).toISOString();
         const { data, error } = await sb
           .from('receptionist_calls')
-          .select('id, call_id, from_number, started_at, created_at, duration_s, summary, sentiment, message, callback_requested, handled_at, handled_by, sms_sent, matched_job_ids, recording_url, transcript')
+          .select('id, call_id, analysis, from_number, started_at, created_at, duration_s, summary, sentiment, message, callback_requested, handled_at, handled_by, sms_sent, matched_job_ids, recording_url, transcript')
           .neq('call_id', 'test_call')
           .gte('created_at', since)
           .order('created_at', { ascending: false })
@@ -3074,8 +3078,41 @@
           return n;
         };
 
+        // Retell sends 'N/A', 'none' and the like for fields that didn't come up.
+        const clean = (v) => {
+          const t = String(v ?? '').trim();
+          return /^(n\/?a|none|null|unknown|not (provided|given|mentioned|applicable)|-)?\.?$/i.test(t) ? '' : t;
+        };
+        // Retell's transcript comes in fragments. Name the speakers, drop
+        // Sally's cut-off restarts, and join a speaker's consecutive lines.
+        const tidy = (t) => {
+          const out = [];
+          String(t || '').split('\n').forEach((raw) => {
+            const mm = raw.match(/^\s*(Agent|User)\s*:\s*(.*)$/i);
+            if (!mm) { const l = out[out.length - 1]; if (l && raw.trim()) l.text += ' ' + raw.trim(); return; }
+            if (mm[2].trim()) out.push({ who: /agent/i.test(mm[1]) ? 'Sally' : 'Caller', text: mm[2].trim() });
+          });
+          const done = (x) => /[.?!\u2026]["')]?$/.test(x);
+          for (let i = 0; i < out.length; i++) {
+            const cur = out[i];
+            if (!cur || done(cur.text)) continue;
+            if (cur.who === 'Sally' && cur.text.split(/\s+/).length <= 8) { out[i] = null; continue; }
+            const j = out.findIndex((x, k) => k > i && k <= i + 2 && x && x.who === cur.who);
+            if (j > i) { out[j].text = cur.text + ' ' + out[j].text; out[i] = null; }
+          }
+          const merged = [];
+          out.forEach((x) => {
+            if (!x) return;
+            const last = merged[merged.length - 1];
+            if (last && last.who === x.who) last.text = (last.text + ' ' + x.text).replace(/\s+/g, ' ');
+            else merged.push({ ...x });
+          });
+          return merged;
+        };
+
         const cards = filtered.length ? filtered.map((c) => {
           const m = c.message || null;
+          const a = c.analysis || {};
           const st = isOpen(c) ? 'callback' : (c.handled_at ? 'handled' : 'info');
           const ts = c.started_at || c.created_at;
           const when = ts ? new Date(ts).toLocaleString('en-AU', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : '';
@@ -3083,7 +3120,8 @@
           const mins = c.duration_s ? ` · ${Math.max(1, Math.round(c.duration_s / 60))} min` : '';
           const pills = [];
           if (st === 'callback') pills.push('<span class="e-pill callback">Call back</span>');
-          if (m && /urgent/i.test(m.urgency || '')) pills.push('<span class="e-pill urgent">Urgent</span>');
+          if (/urgent/i.test(String(a.urgency || (m && m.urgency) || ''))) pills.push('<span class="e-pill urgent">Urgent</span>');
+          if (clean(a.caller_type)) pills.push(`<span class="e-pill info">${escapeHtml(a.caller_type)}</span>`);
           if (c.handled_at) pills.push('<span class="e-pill handled">Handled</span>');
           if (c.sms_sent) pills.push('<span class="e-pill info">Quote link texted</span>');
           const jobs = (c.matched_job_ids || []).filter((id) => refs[id]).map((id) =>
@@ -3092,17 +3130,22 @@
             <div class="enq-card s-${st}">
               <div class="e-top">
                 <div>
-                  <div class="e-name">${escapeHtml((m && m.name) || 'Caller')} ${pills.join(' ')}</div>
-                  <div class="e-meta">${num ? `<a href="tel:${escapeAttr(num.replace(/\s/g, ''))}">${escapeHtml(num)}</a>` : 'Number withheld'}${escapeHtml(mins)}</div>
-                  ${jobs ? `<div class="e-meta">Matched to ${jobs}</div>` : ''}
+                  <div class="e-name">${escapeHtml(clean(a.caller_name) || (m && m.name) || 'Caller')} ${pills.join(' ')}</div>
+                  <div class="e-meta">${num ? `<a href="tel:${escapeAttr(num.replace(/\s/g, ''))}">${escapeHtml(num)}</a>` : 'Number withheld'}${escapeHtml(mins)}${clean(a.suburb) ? ' · ' + escapeHtml(a.suburb) : ''}</div>
+                  ${jobs ? `<div class="e-meta">Matched to ${jobs}</div>` : (clean(a.job_number) ? `<div class="e-meta">Job mentioned: ${escapeHtml(a.job_number)}</div>` : '')}
                 </div>
                 <div class="e-when">${escapeHtml(when)}</div>
               </div>
+              ${clean(a.reason) ? `<div class="e-fields" style="display:block;margin-top:10px;font-size:14px;color:var(--ink)">
+                <div><strong style="color:var(--navy-mid)">Why they called:</strong> ${escapeHtml(a.reason)}</div>
+                ${clean(a.outcome) ? `<div style="margin-top:4px"><strong style="color:var(--navy-mid)">What Sally did:</strong> ${escapeHtml(a.outcome)}</div>` : ''}
+                ${clean(a.action_needed) ? `<div style="margin-top:4px;color:#b45309"><strong>Action needed:</strong> ${escapeHtml(a.action_needed)}</div>` : ''}
+              </div>` : ''}
               <div class="e-desc">${escapeHtml(c.summary || (c.started_at ? 'Summary not ready yet.' : 'No summary.'))}</div>
               ${m && m.reason ? `<div class="call-msg"><strong>Message:</strong> ${escapeHtml(m.reason)}${m.best_time ? `<br/><strong>Best time:</strong> ${escapeHtml(m.best_time)}` : ''}</div>` : ''}
               ${c.handled_at ? `<div class="e-meta" style="margin-top:8px">Handled ${escapeHtml(new Date(c.handled_at).toLocaleString('en-AU', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }))}${c.handled_by ? ' by ' + escapeHtml(c.handled_by) : ''}</div>` : ''}
               ${c.recording_url ? `<div style="margin-top:10px"><audio controls preload="none" src="${escapeAttr(c.recording_url)}" style="width:100%;max-width:420px"></audio></div>` : ''}
-              ${c.transcript ? `<details class="call-transcript"><summary>Transcript</summary><pre>${escapeHtml(c.transcript)}</pre></details>` : ''}
+              ${c.transcript ? `<details class="call-transcript"><summary>Transcript</summary><div class="call-turns">${tidy(c.transcript).map((x) => `<p><strong class="${x.who === 'Sally' ? 'sally' : ''}">${x.who}:</strong> ${escapeHtml(x.text)}</p>`).join('')}</div></details>` : ''}
               <div class="e-actions">
                 ${c.callback_requested && !c.handled_at ? `<button class="btn btn-convert" data-callhandled="${c.id}">Mark handled</button>` : ''}
                 ${c.handled_at ? `<button class="btn btn-secondary" data-callreopen="${c.id}">Reopen</button>` : ''}

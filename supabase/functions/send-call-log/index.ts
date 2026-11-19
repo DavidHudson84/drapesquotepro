@@ -42,24 +42,35 @@ function phone(p: unknown) {
   return n || 'Withheld';
 }
 
+// Retell sends 'N/A', 'none' and the like for fields that didn't come up.
+function clean(v: unknown) {
+  const t = String(v ?? '').trim();
+  return /^(n\/?a|none|null|unknown|not (provided|given|mentioned|applicable)|-)?\.?$/i.test(t) ? '' : t;
+}
+
 function row(c: any, jobRefs: Record<string, string>) {
   const m = c.message || null;
+  const a = c.analysis || {};
   const refs = (c.matched_job_ids || []).map((id: string) => jobRefs[id]).filter(Boolean);
   const tags: string[] = [];
   if (c.callback_requested && !c.handled_at) tags.push('<b style="color:#b91c1c">CALL BACK</b>');
   if (c.callback_requested && c.handled_at) tags.push('<span style="color:#047857">Handled</span>');
-  if (m && /urgent/i.test(m.urgency || '')) tags.push('<b style="color:#b91c1c">URGENT</b>');
+  if (/urgent/i.test(String(a.urgency || m?.urgency || ''))) tags.push('<b style="color:#b91c1c">URGENT</b>');
+  if (clean(a.caller_type)) tags.push(esc(a.caller_type));
   if (c.sms_sent) tags.push('Quote link texted');
   if (refs.length) tags.push('Job ' + esc(refs.join(', ')));
+  else if (clean(a.job_number)) tags.push('Job ' + esc(a.job_number));
   return `
     <tr>
       <td style="padding:10px 8px;border-bottom:1px solid #e5e7eb;vertical-align:top;white-space:nowrap;color:#555">${esc(when(c.started_at || c.created_at))}</td>
       <td style="padding:10px 8px;border-bottom:1px solid #e5e7eb;vertical-align:top;white-space:nowrap">
-        ${m?.name ? `<b>${esc(m.name)}</b><br/>` : ''}${esc(phone(m?.callback_number || c.from_number))}
+        ${clean(a.caller_name) || m?.name ? `<b>${esc(clean(a.caller_name) || m.name)}</b><br/>` : ''}${esc(phone(m?.callback_number || c.from_number))}${clean(a.suburb) ? `<br/><span style="color:#666">${esc(a.suburb)}</span>` : ''}
       </td>
       <td style="padding:10px 8px;border-bottom:1px solid #e5e7eb;vertical-align:top">
         ${tags.length ? `<div style="font-size:12px;margin-bottom:4px">${tags.join(' · ')}</div>` : ''}
-        ${esc(c.summary || 'No summary.')}
+        ${clean(a.reason)
+          ? `<b>${esc(a.reason)}</b>${clean(a.outcome) ? `<br/>${esc(a.outcome)}` : ''}${clean(a.action_needed) ? `<br/><span style="color:#b45309"><b>Action:</b> ${esc(a.action_needed)}</span>` : ''}`
+          : esc(c.summary || 'No summary.')}
         ${m?.reason ? `<div style="margin-top:4px"><b>Message:</b> ${esc(m.reason)}${m.best_time ? ` <i>(best time: ${esc(m.best_time)})</i>` : ''}</div>` : ''}
         ${c.recording_url ? `<div style="margin-top:4px;font-size:12px"><a href="${esc(c.recording_url)}">Recording</a></div>` : ''}
       </td>
@@ -92,7 +103,7 @@ Deno.serve(async (req) => {
     const hours = Number(body.hours) > 0 ? Number(body.hours) : (dow === 'Mon' ? 72 : 24);
     const since = new Date(now.getTime() - hours * 3600 * 1000).toISOString();
 
-    const cols = 'id, call_id, from_number, started_at, created_at, duration_s, summary, message, callback_requested, handled_at, sms_sent, matched_job_ids, recording_url';
+    const cols = 'id, call_id, analysis, from_number, started_at, created_at, duration_s, summary, message, callback_requested, handled_at, sms_sent, matched_job_ids, recording_url';
     const [{ data: recent, error: e1 }, { data: open, error: e2 }] = await Promise.all([
       sb.from('receptionist_calls').select(cols).eq('company_id', COMPANY_ID)
         .gte('created_at', since).neq('call_id', 'test_call').order('created_at'),

@@ -202,6 +202,63 @@ async function alertStaff(settings: Record<string, string>, text: string) {
   return results.some((r) => r.ok);
 }
 
+// Retell sends 'N/A', 'none', 'unknown' and the like for fields that didn't
+// come up on the call. Treat them all as blank.
+function clean(v: unknown) {
+  const t = String(v ?? '').trim();
+  return /^(n\/?a|none|null|unknown|not (provided|given|mentioned|applicable)|-)?\.?$/i.test(t) ? '' : t;
+}
+
+function phoneFmt(p: unknown) {
+  const n = normPhone(p);
+  if (/^04\d{8}$/.test(n)) return `${n.slice(0, 4)} ${n.slice(4, 7)} ${n.slice(7)}`;
+  if (/^0\d{9}$/.test(n)) return `${n.slice(0, 2)} ${n.slice(2, 6)} ${n.slice(6)}`;
+  return n || 'Withheld';
+}
+
+function melbTime(ts: string | null) {
+  if (!ts) return '';
+  return new Intl.DateTimeFormat('en-AU', {
+    timeZone: TZ, weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit',
+  }).format(new Date(ts));
+}
+
+// Retell's transcript comes in fragments: several lines from the same speaker
+// in a row, and half-sentences cut off when the other person talks over them.
+// Name the speakers, drop Sally's cut-off restarts, carry the caller's
+// fragments into their next line, and join consecutive lines.
+function tidyTranscript(t: unknown): { who: string; text: string }[] {
+  const out: ({ who: string; text: string } | null)[] = [];
+  for (const raw of String(t ?? '').split('\n')) {
+    const m = raw.match(/^\s*(Agent|User)\s*:\s*(.*)$/i);
+    if (!m) { const l = out[out.length - 1]; if (l && raw.trim()) l.text += ' ' + raw.trim(); continue; }
+    const text = m[2].trim();
+    if (text) out.push({ who: /agent/i.test(m[1]) ? 'Sally' : 'Caller', text });
+  }
+  const done = (x: string) => /[.?!\u2026]["')]?$/.test(x);
+  for (let i = 0; i < out.length; i++) {
+    const cur = out[i];
+    if (!cur || done(cur.text)) continue;
+    if (cur.who === 'Sally' && cur.text.split(/\s+/).length <= 8) { out[i] = null; continue; }
+    const j = out.findIndex((x, k) => k > i && k <= i + 2 && x && x.who === cur.who);
+    if (j > i) { out[j]!.text = cur.text + ' ' + out[j]!.text; out[i] = null; }
+  }
+  const merged: { who: string; text: string }[] = [];
+  for (const x of out) {
+    if (!x) continue;
+    const last = merged[merged.length - 1];
+    if (last && last.who === x.who) last.text = (last.text + ' ' + x.text).replace(/\s+/g, ' ');
+    else merged.push({ ...x });
+  }
+  return merged;
+}
+
+function transcriptHtml(t: unknown) {
+  const turns = tidyTranscript(t);
+  if (!turns.length) return '<p style="color:#666">No transcript.</p>';
+  return turns.map((x) => `<p style="margin:0 0 8px;font-size:14px;line-height:1.45"><b style="color:${x.who === 'Sally' ? '#0F6E63' : '#333'}">${x.who}:</b> ${escapeHtml(x.text)}</p>`).join('');
+}
+
 // Keep working after the response has gone back to Retell. Supabase's runtime
 // holds the worker open for anything handed to waitUntil.
 function inBackground(p: Promise<unknown>) {
@@ -374,6 +431,8 @@ async function onCallEvent(sb: SupabaseClient, event: string, call: any, setting
   if (call.disconnection_reason) patch.disconnection_reason = call.disconnection_reason;
   if (call.call_analysis?.call_summary) patch.summary = call.call_analysis.call_summary;
   if (call.call_analysis?.user_sentiment) patch.sentiment = call.call_analysis.user_sentiment;
+  const custom = call.call_analysis?.custom_analysis_data;
+  if (custom && typeof custom === 'object' && Object.keys(custom).length) patch.analysis = custom;
   await upsertCall(sb, callId, patch);
 
   if (event !== 'call_analyzed') return json({ ok: true });
@@ -387,7 +446,10 @@ async function onCallEvent(sb: SupabaseClient, event: string, call: any, setting
   // carries the transcript.
   const smsEvery = (settings['receptionist-sms-all-calls'] || 'yes').toLowerCase() !== 'no';
   if (!row.sms_alerted_at && (smsEvery || row.callback_requested)) {
-    const what = (row.summary || 'No summary.').replace(/\s+/g, ' ');
+    const a = row.analysis || {};
+    const what = (clean(a.reason)
+      ? `${clean(a.caller_name) ? clean(a.caller_name) + ' - ' : ''}${clean(a.reason)}${clean(a.action_needed) ? '. Action: ' + clean(a.action_needed) : ''}`
+      : (row.summary || 'No summary.')).replace(/\s+/g, ' ');
     // One SMS part (160 plain characters) per person per call keeps this to
     // about 8 cents a text. Smart quotes would force the dearer unicode rate.
     const head = `DrDrapes ${caller}${row.callback_requested ? ' CALL BACK' : ''}: `;
@@ -406,15 +468,35 @@ async function onCallEvent(sb: SupabaseClient, event: string, call: any, setting
 
   const mins = row.duration_s ? `${Math.max(1, Math.round(row.duration_s / 60))} min` : '';
   const flag = row.callback_requested ? 'CALL BACK · ' : '';
+  const a = row.analysis || {};
+  const m = row.message || {};
+  const who = clean(a.caller_name) || clean(m.name) || 'Caller';
+  const urgent = /urgent/i.test(String(a.urgency || m.urgency || ''));
+  const line = (label: string, val: unknown) => clean(val)
+    ? `<tr><td style="padding:4px 12px 4px 0;color:#666;vertical-align:top;white-space:nowrap">${label}</td><td style="padding:4px 0">${escapeHtml(val)}</td></tr>` : '';
   const html = `
-    <p><b>${flag}AI receptionist call</b> from ${escapeHtml(caller)} ${mins ? '· ' + mins : ''}</p>
-    <p>${escapeHtml(row.summary || 'No summary.')}</p>
-    ${row.message ? `<p><b>Message:</b> ${escapeHtml(row.message.reason)}<br/><b>Call back on:</b> ${escapeHtml(row.message.callback_number)} ${row.message.best_time ? '(' + escapeHtml(row.message.best_time) + ')' : ''}</p>` : ''}
-    ${row.sms_sent ? '<p>Quote form link was texted to the caller.</p>' : ''}
-    ${row.recording_url ? `<p><a href="${escapeHtml(row.recording_url)}">Listen to the recording</a></p>` : ''}
-    <hr/><pre style="white-space:pre-wrap;font-family:inherit;color:#444">${escapeHtml(row.transcript || '')}</pre>`;
+    <div style="font-family:Arial,Helvetica,sans-serif;color:#222;max-width:680px">
+      <p style="font-size:16px;margin:0 0 4px"><b>${urgent ? '<span style="color:#b91c1c">URGENT · </span>' : ''}${row.callback_requested ? '<span style="color:#b91c1c">CALL BACK · </span>' : ''}${escapeHtml(who)}</b></p>
+      <p style="margin:0 0 14px;color:#666">${escapeHtml(phoneFmt(m.callback_number || row.from_number))} · ${escapeHtml(melbTime(row.started_at))}${mins ? ' · ' + mins : ''}</p>
+      <table style="border-collapse:collapse;font-size:14px;margin-bottom:12px">
+        ${line('Caller', a.caller_type)}
+        ${line('Why they called', a.reason)}
+        ${line('What Sally did', a.outcome)}
+        ${line('Action needed', a.action_needed)}
+        ${line('Job', a.job_number)}
+        ${line('Suburb', a.suburb)}
+        ${m.reason ? line('Message', m.reason) : ''}
+        ${m.reason ? line('Call back on', `${phoneFmt(m.callback_number)}${m.best_time ? ' (' + m.best_time + ')' : ''}`) : ''}
+        ${row.sms_sent ? line('Quote link', 'Texted to the caller') : ''}
+      </table>
+      <p style="margin:0 0 12px;padding:10px 12px;background:#f5f7f7;border-radius:6px;font-size:14px">${escapeHtml(row.summary || 'No summary.')}</p>
+      ${row.recording_url ? `<p style="margin:0 0 16px"><a href="${escapeHtml(row.recording_url)}">Listen to the recording</a></p>` : ''}
+      <p style="margin:18px 0 6px;color:#666;font-size:12px;text-transform:uppercase;letter-spacing:.05em">Transcript</p>
+      ${transcriptHtml(row.transcript)}
+    </div>`;
+  const subjectWhat = clean(a.reason) || (row.summary || '').slice(0, 70);
   const ok = await sendEmail(settings['receptionist-notify-email'] || DEFAULT_NOTIFY,
-    `${flag}Call from ${caller}${row.summary ? ' — ' + row.summary.slice(0, 70) : ''}`, html);
+    `${urgent ? 'URGENT ' : ''}${flag}${who === 'Caller' ? caller : who}${subjectWhat ? ' — ' + subjectWhat : ''}`, html);
   if (ok) await upsertCall(sb, callId, { notified_at: new Date().toISOString() });
   return json({ ok: true });
 }
