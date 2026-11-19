@@ -120,6 +120,7 @@ optional:
 | `receptionist-email-all-calls` | `yes`. Set `no` to only email when a callback is asked for |
 | `receptionist-alert-mobiles` | none. Mobiles that get a text after every call, comma-separated, e.g. `0412345678,0498765432` |
 | `receptionist-sms-all-calls` | `yes`. Set `no` to only text when a callback is asked for |
+| `receptionist-call-log-emails` | drdrapes@ and production1@. Who gets the 8:30am morning call log (comma-separated) |
 | `receptionist-form-url` | https://quote.drdrapes.com.au/request.html |
 | `receptionist-sms-body` | the standard text. Use `{hi}` and `{link}` placeholders |
 
