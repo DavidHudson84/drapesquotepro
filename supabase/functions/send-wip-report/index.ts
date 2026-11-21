@@ -1,7 +1,7 @@
 // send-wip-report
 //
-// Weekly work-in-progress report for Dr Drapes, emailed Wednesday 10am
-// Melbourne time for the Wednesday 10am WIP call. Every accepted job that isn't
+// Weekly work-in-progress report for Dr Drapes, emailed Wednesday 8:30am
+// Melbourne time ahead of the Wednesday 10am WIP call. Every accepted job that isn't
 // Rehung yet, worked through in the order the call should go:
 //
 //   1. Drapr out of date: Fergus says something happened that Drapr doesn't
