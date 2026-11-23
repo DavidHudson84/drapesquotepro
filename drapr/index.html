@@ -142,6 +142,10 @@
   .hero-panel { display: none; }
   @media (min-width: 980px) { .hero-panel { display: block; } }
 
+  /* ---------- Walkthrough video ---------- */
+  .video-frame { border-radius: 16px; overflow: hidden; border: 1px solid var(--line); box-shadow: var(--shadow); background: var(--teal-deep); aspect-ratio: 16 / 9; }
+  .video-frame video { display: block; width: 100%; height: 100%; }
+
   /* ---------- Section scaffolding ---------- */
   section { padding: 68px 0; }
   section.tint { background: var(--bg); }
@@ -340,6 +344,7 @@
       <img src="../brand/drapr-lockup-horizontal-teal.svg" alt="Drapr" width="126" height="34">
     </a>
     <div class="nav-links">
+      <a href="#watch">Watch it</a>
       <a href="#how">How it works</a>
       <a href="#what">What it does</a>
       <a href="#who">Who uses it</a>
@@ -371,7 +376,7 @@
         </p>
         <div class="hero-cta">
           <a class="btn btn-primary btn-lg" href="#interest">Get in touch</a>
-          <a class="btn btn-ghost btn-lg" href="#how">See how it works</a>
+          <a class="btn btn-ghost btn-lg" href="#watch">Watch the walkthrough</a>
         </div>
         <p class="hero-note">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
@@ -415,6 +420,27 @@
     </div>
   </div>
 </div>
+
+<!-- ============ WATCH IT ============ -->
+<section id="watch">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">Watch it run</div>
+      <h2>One job, start to finish, in four minutes.</h2>
+      <p class="lede">
+        A website enquiry becomes a quote, the customer accepts it on their phone, the van
+        books it in, and the job goes through inspection, the plant and the rehang to a
+        Google review. Recorded in Drapr itself, on sample data.
+      </p>
+    </div>
+    <div class="video-frame">
+      <video controls preload="none" playsinline poster="media/drapr-walkthrough-poster.jpg">
+        <source src="media/drapr-walkthrough.mp4" type="video/mp4">
+        Your browser can't play this video. <a href="media/drapr-walkthrough.mp4">Download it</a> instead.
+      </video>
+    </div>
+  </div>
+</section>
 
 <!-- ============ THE PROBLEM ============ -->
 <section id="problem">
@@ -937,11 +963,11 @@
         </p>
       </div>
       <div class="card">
-        <h3>Your brand on everything</h3>
+        <h3>Your brand on what customers see</h3>
         <p>
-          Quotes, inspection reports, emails and the customer accept page carry your logo,
-          colours, business details and terms of trade. Your customers see your business,
-          not ours.
+          When we set Drapr up for your business, the quotes, inspection reports, emails and
+          the customer accept page go out with your logo, business details and terms of
+          trade. Your customers see your business, not ours.
         </p>
       </div>
     </div>
@@ -1039,8 +1065,8 @@
     <details>
       <summary>Will my customers see Drapr, or my business?</summary>
       <p>
-        Your business. Quotes, reports, emails and the accept page carry your logo and
-        details. The Drapr name stays inside the app.
+        Your business. Setting Drapr up for you includes putting your logo and details on
+        the quotes, reports, emails and accept page. The Drapr name stays inside the app.
       </p>
     </details>
     <details>
