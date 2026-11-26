@@ -2948,6 +2948,7 @@
               <span class="status-pill s-${job.status}" style="align-self:center">${STATUS_LABEL[job.status]}</span>
             </div>
             <div class="status-bar" id="status-bar">${steps}</div>
+            ${fergusClose.html(job)}
           </div>
 
           ${job.partner_account_id ? section('partner', 'Partner & Commission', true, partnerPanel.html(job)) : ''}
@@ -2966,6 +2967,19 @@
 
         // wire
         $('#back-jobs').addEventListener('click', () => router.go('jobs'));
+
+        // Retry the Fergus close-off, or close a phase whose follow-up is done.
+        const fcBtn = $('#fergus-close');
+        if (fcBtn) fcBtn.addEventListener('click', async () => {
+          fcBtn.disabled = true; fcBtn.textContent = 'Closing…';
+          try {
+            const out = await fergusClose.run(job.id);
+            ui.toast(fergusClose.summary(out));
+          } catch (err) {
+            ui.toast('Fergus: ' + (err.message || 'close-off failed'));
+          }
+          router.jobPage(main);
+        });
 
         // Manual retry for a job accepted while Fergus was unreachable.
         const fpBtn = $('#fergus-push');
@@ -3018,6 +3032,15 @@
             }
             await db.advanceStatus(job.id, target);
             ui.toast(`Status → ${STATUS_LABEL[target]}`);
+            // Finished → close the open Fergus phases. Never blocks the change.
+            if (target === 'rehung' && job.fergus_job_id) {
+              try {
+                const out = await fergusClose.run(job.id);
+                if (!out.skipped) ui.toast(fergusClose.summary(out));
+              } catch (err) {
+                ui.toast('Fergus: ' + (err.message || 'close-off failed') + ' · use Close in Fergus on the job');
+              }
+            }
             // Job finished on site → offer the thank-you / Google review email.
             if (target === 'rehung') {
               const fresh = await db.getJob(job.id);
@@ -7695,6 +7718,70 @@
        customer is ambiguous, the quote stays accepted and a Push to Fergus
        button appears in the job header to try again.
        ============================================================ */
+    /* ============================================================
+       FERGUS CLOSE-OFF
+       Marking a job Rehung / Completed moves every open phase on its Fergus
+       job to To Invoice (close-fergus-job). Fergus completes the job itself
+       once Nicole invoices it. A phase with a visit booked after today is a
+       real follow-up and is left open and shown on the job page.
+
+       Like the push, it never blocks or reverses the status change. On a
+       failure the job page shows a Close in Fergus button to try again.
+       ============================================================ */
+    const fergusClose = {
+      async run(jobId) {
+        const { data: { session: s } } = await sb.auth.getSession();
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/close-fergus-job`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            apikey: SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${s?.access_token || ''}`,
+          },
+          body: JSON.stringify({ job_id: jobId }),
+          signal: AbortSignal.timeout(45000),
+        });
+        const out = await res.json().catch(() => ({}));
+        if (out.skipped) return out;
+        if (!res.ok && !out.closed) throw new Error(out.error || 'Could not reach Fergus.');
+        return out;
+      },
+      summary(out) {
+        const n = (out.closed || []).length, h = (out.held || []).length, f = (out.failed || []).length;
+        const bits = [];
+        bits.push(n ? `${n} Fergus phase${n === 1 ? '' : 's'} sent to To Invoice` : 'Nothing left open in Fergus');
+        if (h) bits.push(`${h} left open (visit still booked)`);
+        if (f) bits.push(`${f} failed`);
+        return bits.join(' · ');
+      },
+      // One line under the status bar on a finished, Fergus-linked job.
+      html(job) {
+        if (job.status !== 'rehung' || !job.fergus_job_id) return '';
+        const c = job.data?.fergus_closeout;
+        const btn = `<button id="fergus-close" style="font:600 12px 'Poppins',sans-serif;color:var(--navy-mid);background:none;border:1px solid var(--navy-mid);border-radius:4px;padding:2px 8px;cursor:pointer;margin-left:6px">Close in Fergus</button>`;
+        const wrap = (inner) => `<div class="meta" style="margin-top:8px">${inner}</div>`;
+        if (!c) {
+          // Jobs finished before this went live (26 Nov 2026) are left alone
+          // until their Fergus billing has been checked, so no button for them.
+          const lastRehung = (job.data?.status_history || []).filter((h) => h.status === 'rehung').pop();
+          if (!lastRehung || lastRehung.changed_at < '2026-11-26') return '';
+          return wrap(`Fergus phases not closed yet.${btn}`);
+        }
+        if (c.error) return wrap(`<span style="color:#b42318">Fergus close-off failed: ${escapeHtml(c.error)}</span>${btn}`);
+        const when = c.at ? fmtDate(new Date(c.at)) : '';
+        let out = `Closed in Fergus ${escapeHtml(when)}: ${escapeHtml(this.summary(c))}.`;
+        (c.held || []).forEach((p) => {
+          const v = p.next_visit ? new Date(p.next_visit).toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' }) : '';
+          out += `<br><span style="color:#b54708">Left open: ${escapeHtml(p.title || 'phase')}${v ? ` — visit booked ${escapeHtml(v)}` : ''}</span>`;
+        });
+        (c.failed || []).forEach((p) => {
+          out += `<br><span style="color:#b42318">Not closed: ${escapeHtml(p.title || 'phase')} (${escapeHtml(p.error || 'error')})</span>`;
+        });
+        if ((c.held || []).length || (c.failed || []).length) out += btn;
+        return wrap(out);
+      },
+    };
+
     const fergusPush = {
       // Resolve the match without writing anything, so it can be approved first.
       async preview(jobId) {
