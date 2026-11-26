@@ -277,6 +277,132 @@ function transcriptHtml(t: unknown) {
   return turns.map((x) => `<p style="margin:0 0 8px;font-size:14px;line-height:1.45"><b style="color:${x.who === 'Sally' ? '#0F6E63' : '#333'}">${x.who}:</b> ${escapeHtml(x.text)}</p>`).join('');
 }
 
+// ------------------------------------------------------------ feedback texts
+// Trial: after each call from a mobile, a text asking how Sally went. Once per
+// number per 30 days, never to staff or opted-out numbers, and only sent
+// between 8am and 8pm Melbourne. Replies come back through Twilio's inbound
+// webhook (handleInboundSms) and are saved on the call.
+
+const FEEDBACK_MIN_SECONDS = 20;
+
+function melbHour(d = new Date()) {
+  return Number(new Intl.DateTimeFormat('en-AU', { timeZone: TZ, hour: 'numeric', hourCycle: 'h23' }).format(d));
+}
+
+function melbDate(d = new Date()) {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
+}
+
+// Five minutes after the call during the day; otherwise 9am the next morning.
+function feedbackDueAt(now = new Date()) {
+  const h = melbHour(now);
+  if (h >= 8 && h < 20) return new Date(now.getTime() + 5 * 60000);
+  let t = new Date(now.getTime());
+  for (let i = 0; i < 24 * 4; i++) {
+    t = new Date(t.getTime() + 15 * 60000);
+    if (melbHour(t) === 9) return t;
+  }
+  return new Date(now.getTime() + 12 * 3600000);
+}
+
+async function isOptedOut(sb: SupabaseClient, phone: string) {
+  const { data } = await sb.from('receptionist_sms_optout').select('phone').eq('phone', phone).maybeSingle();
+  return !!data;
+}
+
+async function scheduleFeedback(sb: SupabaseClient, row: any, settings: Record<string, string>) {
+  if (row.feedback_due_at || row.feedback_sent_at) return;
+  const until = settings['receptionist-feedback-until'] || '';
+  if (!until || melbDate() > until) return;
+  const mobile = normPhone(row.from_number);
+  if (!isMobile(mobile)) return;
+  if ((row.duration_s || 0) < FEEDBACK_MIN_SECONDS) return;
+  const staff = String(settings['receptionist-alert-mobiles'] || '').split(/[,;]/).map(normPhone);
+  if (staff.includes(mobile)) return;
+  if (await isOptedOut(sb, mobile)) return;
+  // Once per number per 30 days, however often they ring.
+  const since = new Date(Date.now() - 30 * 86400000).toISOString();
+  const { data: asked } = await sb.from('receptionist_calls').select('id')
+    .eq('from_number', row.from_number).not('feedback_due_at', 'is', null)
+    .gte('created_at', since).limit(1);
+  if (asked && asked.length) return;
+  await upsertCall(sb, row.call_id, { feedback_due_at: feedbackDueAt().toISOString() });
+}
+
+async function sendDueFeedback(sb: SupabaseClient, settings: Record<string, string>) {
+  const h = melbHour();
+  if (h < 8 || h >= 20) return { sent: 0, reason: 'outside 8am-8pm' };
+  const { data } = await sb.from('receptionist_calls')
+    .select('call_id, from_number, analysis, message')
+    .is('feedback_sent_at', null).not('feedback_due_at', 'is', null)
+    .lte('feedback_due_at', new Date().toISOString()).limit(20);
+  let sent = 0;
+  for (const c of data || []) {
+    const mobile = normPhone(c.from_number);
+    // Claim it first so an overlapping sweep can't text twice.
+    await upsertCall(sb, c.call_id, { feedback_sent_at: new Date().toISOString() });
+    if (!isMobile(mobile) || await isOptedOut(sb, mobile)) continue;
+    const first = firstName(clean(c.analysis?.caller_name) || c.message?.name || '').replace(/[^A-Za-z'-]/g, '');
+    const hi = first && first.length <= 12 ? `Hi ${first}, thanks` : 'Thanks';
+    const body = (settings['receptionist-feedback-sms'] ||
+      '{hi} for calling Dr Drapes. How did Sally, our new AI assistant, go? Reply with a score out of 10 and any feedback. Reply STOP to opt out')
+      .replace('{hi}', hi);
+    const res = await sendSms(toE164(mobile), body);
+    if (res.ok) sent++;
+    else console.error('feedback sms failed', res.error);
+  }
+  return { sent };
+}
+
+// Twilio posts here (form-encoded) when someone texts Sally's number: replies
+// to the feedback text, replies to the quote link, or anything else. All of it
+// is emailed to the office; feedback is saved against the call it answers.
+async function handleInboundSms(sb: SupabaseClient, form: URLSearchParams) {
+  const from = normPhone(form.get('From'));
+  const body = String(form.get('Body') || '').trim();
+  const twiml = (msg = '') => new Response(
+    `<?xml version="1.0" encoding="UTF-8"?><Response>${msg ? `<Message>${escapeHtml(msg)}</Message>` : ''}</Response>`,
+    { headers: { 'Content-Type': 'text/xml' } });
+  if (!from || !body) return twiml();
+
+  if (/^\s*(stop|stop all|unsubscribe|cancel|end|quit)\s*$/i.test(body)) {
+    await sb.from('receptionist_sms_optout').upsert({ phone: from }, { onConflict: 'phone' });
+    return twiml("You've been unsubscribed from Dr Drapes texts. Call 1300 652 866 if you need us.");
+  }
+  if (/^\s*(start|unstop)\s*$/i.test(body)) {
+    await sb.from('receptionist_sms_optout').delete().eq('phone', from);
+    return twiml();
+  }
+
+  const settings = await settingsMap(sb);
+  const since = new Date(Date.now() - 14 * 86400000).toISOString();
+  const { data: calls } = await sb.from('receptionist_calls')
+    .select('call_id, from_number, summary, analysis, feedback_reply, feedback_sent_at, started_at')
+    .gte('created_at', since).order('created_at', { ascending: false }).limit(50);
+  const call = (calls || []).find((c: any) => normPhone(c.from_number) === from && c.feedback_sent_at);
+
+  let subject = `Text reply from ${phoneFmt(from)}`;
+  let intro = 'A text came in to Sally\'s number.';
+  if (call) {
+    const scoreMatch = body.match(/\b(10|[0-9])(\s*\/\s*10|\s*out of\s*10)?\b/i);
+    const score = scoreMatch ? Number(scoreMatch[1]) : null;
+    const reply = call.feedback_reply ? `${call.feedback_reply}\n${body}` : body;
+    await upsertCall(sb, call.call_id, {
+      feedback_reply: reply, feedback_at: new Date().toISOString(),
+      ...(score !== null && !call.feedback_reply ? { feedback_score: score } : {}),
+    });
+    subject = `Feedback on Sally${score !== null ? ` (${score}/10)` : ''} from ${phoneFmt(from)}`;
+    intro = `Reply to the feedback text after their call on ${escapeHtml(melbTime(call.started_at))}.`;
+  }
+  await sendEmail(settings['receptionist-notify-email'] || DEFAULT_NOTIFY, subject, `
+    <div style="font-family:Arial,Helvetica,sans-serif;color:#222;max-width:640px">
+      <p style="margin:0 0 6px;color:#666">${intro}</p>
+      <p style="font-size:16px;margin:0 0 14px;padding:10px 12px;background:#f5f7f7;border-radius:6px">${escapeHtml(body)}</p>
+      ${call?.summary ? `<p style="margin:0;color:#555;font-size:13px"><b>The call:</b> ${escapeHtml(call.summary)}</p>` : ''}
+    </div>`);
+  return twiml();
+}
+
 // Keep working after the response has gone back to Retell. Supabase's runtime
 // holds the worker open for anything handed to waitUntil.
 function inBackground(p: Promise<unknown>) {
@@ -460,9 +586,15 @@ async function onCallEvent(sb: SupabaseClient, event: string, call: any, setting
 
   if (event !== 'call_analyzed') return json({ ok: true });
 
+  // What Retell sent in its analysis, so a missing field set is easy to spot.
+  console.log('call_analyzed keys', JSON.stringify(Object.keys(call.call_analysis || {})),
+    'custom', JSON.stringify(Object.keys(call.call_analysis?.custom_analysis_data || {})));
+
   const row = await getCall(sb, callId);
   if (!row) return json({ ok: true });
   const caller = normPhone(row.from_number) || 'withheld number';
+  try { await scheduleFeedback(sb, row, settings); }
+  catch (e) { console.error('feedback schedule failed', e); }
 
   // Text alert for every call, to the mobiles in receptionist-alert-mobiles.
   // Short on purpose: who, what, and whether they need a callback. The email
@@ -535,6 +667,15 @@ Deno.serve(async (req) => {
   const secret = await receptionistSecret(sb);
   if (!secret || !safeEqual(key, secret)) return json({ error: 'unauthorised' }, 401);
 
+  // Twilio's inbound SMS webhook is form-encoded; everything from Retell is JSON.
+  if ((req.headers.get('content-type') || '').includes('application/x-www-form-urlencoded')) {
+    try { return await handleInboundSms(sb, new URLSearchParams(await req.text())); }
+    catch (e) {
+      console.error('inbound sms failed', e);
+      return new Response('<?xml version="1.0" encoding="UTF-8"?><Response></Response>', { headers: { 'Content-Type': 'text/xml' } });
+    }
+  }
+
   let body: any;
   try { body = await req.json(); } catch { return json({ error: 'bad json' }, 400); }
 
@@ -542,6 +683,8 @@ Deno.serve(async (req) => {
     if (body.event === 'call_inbound') return await onInbound(sb, body.call_inbound);
 
     const settings = await settingsMap(sb);
+
+    if (body.event === 'feedback_tick') return json(await sendDueFeedback(sb, settings));
 
     if (['call_started', 'call_ended', 'call_analyzed'].includes(body.event)) {
       return await onCallEvent(sb, body.event, body.call, settings);
