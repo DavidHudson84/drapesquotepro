@@ -143,6 +143,9 @@
       font-weight: 600; text-decoration: none; cursor: pointer;
     }
     .login-alt a:hover { text-decoration: underline; }
+    .login-about { text-align: center; margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
+    .login-about a { color: var(--muted); font-size: 13px; text-decoration: none; }
+    .login-about a:hover { color: var(--navy-mid); text-decoration: underline; }
 
     /* ============================================================
        APP CHROME (top bar + main)
@@ -184,7 +187,7 @@
       border-left: 4px solid var(--navy-mid);
     }
     .stat .label { font-size: 12.5px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
-    .stat .value { font-family: 'Montserrat'; font-weight: 800; font-size: 30px; margin-top: 6px; color: var(--navy-dark); }
+    .stat .value { font-family: 'Poppins'; font-weight: 800; font-size: 30px; margin-top: 6px; color: var(--navy-dark); }
     .stat.accent-teal { border-left-color: var(--teal); }
     .stat.accent-green { border-left-color: var(--green); }
     .stat.accent-red { border-left-color: var(--red); }
@@ -200,7 +203,7 @@
        DASHBOARD
        ============================================================ */
     .dash-band { margin-bottom: 26px; }
-    .dash-band-title { font-family: 'Montserrat'; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 12px; }
+    .dash-band-title { font-family: 'Poppins'; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 12px; }
     .dash-band-title .bt-note { display: block; font-family: inherit; font-size: 11.5px; font-weight: 600; text-transform: none; letter-spacing: 0; color: var(--muted); opacity: .8; margin-top: 3px; }
     .rep-flag { display: flex; gap: 10px; align-items: flex-start; background: #fef3c7; border: 1px solid #fde68a; color: #92400e; border-radius: 8px; padding: 10px 14px; font-size: 13.5px; margin-bottom: 18px; }
     .dash-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
@@ -229,9 +232,9 @@
     .metric.green { border-top-color: var(--green); }
     .metric.red { border-top-color: var(--red); }
     .metric .m-label { font-size: 12.5px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
-    .metric .m-value { font-family: 'Montserrat'; font-weight: 800; font-size: 28px; color: var(--navy-dark); margin-top: 4px; line-height: 1.1; }
+    .metric .m-value { font-family: 'Poppins'; font-weight: 800; font-size: 28px; color: var(--navy-dark); margin-top: 4px; line-height: 1.1; }
     .metric .m-sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
-    .metric .m-count { font-family: 'Montserrat'; font-weight: 700; font-size: 15px; color: var(--navy-mid); }
+    .metric .m-count { font-family: 'Poppins'; font-weight: 700; font-size: 15px; color: var(--navy-mid); }
 
     .progress { margin-top: 10px; }
     .progress-track { height: 7px; background: #eef0f6; border-radius: 999px; overflow: hidden; }
@@ -249,7 +252,7 @@
     }
     .attn-card:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(26,28,80,.12); }
     .attn-card.ok { border-left-color: var(--green); cursor: default; }
-    .attn-card .a-count { font-family: 'Montserrat'; font-weight: 800; font-size: 30px; color: var(--navy-dark); }
+    .attn-card .a-count { font-family: 'Poppins'; font-weight: 800; font-size: 30px; color: var(--navy-dark); }
     .attn-card .a-label { font-size: 13.5px; color: var(--ink); font-weight: 600; margin-top: 2px; }
     .attn-card .a-hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
 
@@ -259,7 +262,7 @@
       text-align: center; cursor: pointer; transition: transform .08s;
     }
     .funnel-step:hover { transform: translateY(-1px); }
-    .funnel-step .f-count { font-family: 'Montserrat'; font-weight: 800; font-size: 24px; color: var(--navy-dark); }
+    .funnel-step .f-count { font-family: 'Poppins'; font-weight: 800; font-size: 24px; color: var(--navy-dark); }
     .funnel-step .f-label { font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .03em; margin-top: 2px; }
 
     /* Quotes to chase — an actionable list, not just a number to click through.
@@ -280,7 +283,7 @@
     .fu-badge.none { background: #eef0f6; color: var(--muted); }
     .fu-badge.last { background: #fde8e6; color: var(--red); }
     .chase-actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
-    .btn-mini { font: 600 12px 'Montserrat', sans-serif; padding: 7px 13px; border-radius: 6px; background: var(--navy-mid); color: #fff; }
+    .btn-mini { font: 600 12px 'Poppins', sans-serif; padding: 7px 13px; border-radius: 6px; background: var(--navy-mid); color: #fff; }
     .btn-mini:hover { filter: brightness(1.1); }
     .btn-mini:disabled { opacity: .5; cursor: default; }
     .btn-mini.ghost { background: #eef0f6; color: var(--navy-mid); }
@@ -308,7 +311,7 @@
     .enq-card.s-called { border-left-color: #d97706; }
     .enq-card.s-converted { border-left-color: var(--green); }
     .enq-card .e-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
-    .enq-card .e-name { font-family: 'Montserrat'; font-weight: 700; font-size: 16px; color: var(--navy-dark); }
+    .enq-card .e-name { font-family: 'Poppins'; font-weight: 700; font-size: 16px; color: var(--navy-dark); }
     .enq-card .e-meta { font-size: 13px; color: var(--muted); margin-top: 2px; }
     .enq-card .e-when { font-size: 12px; color: var(--muted); }
     .enq-card .e-detail { margin-top: 12px; font-size: 14px; color: var(--ink); }
@@ -348,7 +351,7 @@
     .enq-rooms { margin-top: 12px; }
     .enq-room { border-top: 1px solid var(--line); padding-top: 10px; margin-top: 10px; }
     .enq-room:first-child { border-top: none; padding-top: 0; }
-    .enq-room-name { font-family: 'Montserrat', sans-serif; font-weight: 700; color: var(--navy-mid); font-size: 14px; margin-bottom: 4px; }
+    .enq-room-name { font-family: 'Poppins', sans-serif; font-weight: 700; color: var(--navy-mid); font-size: 14px; margin-bottom: 4px; }
     .enq-items { list-style: none; padding: 0; margin: 0; }
     .enq-items li { font-size: 13.5px; color: var(--ink); padding: 2px 0; }
     .enq-items li small { display: inline-block; margin-left: 6px; font-size: 11px; font-style: italic; }
@@ -416,13 +419,13 @@
     }
     .job-row:last-child { border-bottom: none; }
     .job-row:hover { background: #f8f9fc; }
-    .job-row .dq { font-family: 'Montserrat'; font-weight: 800; color: var(--navy-mid); font-size: 14px; }
-    .job-row .fergus { font-family: 'Montserrat'; font-weight: 600; color: var(--muted); font-size: 13px; }
+    .job-row .dq { font-family: 'Poppins'; font-weight: 800; color: var(--navy-mid); font-size: 14px; }
+    .job-row .fergus { font-family: 'Poppins'; font-weight: 600; color: var(--muted); font-size: 13px; }
     .job-row .cust { font-weight: 600; }
     .job-row .cust small { display: block; color: var(--muted); font-weight: 400; font-size: 12.5px; }
     .job-row .addr { color: var(--muted); font-size: 13px; }
     .job-row .date { color: var(--muted); font-size: 12.5px; white-space: nowrap; }
-    .job-row .amt { font-family: 'Montserrat'; font-weight: 700; text-align: right; }
+    .job-row .amt { font-family: 'Poppins'; font-weight: 700; text-align: right; }
     .row-arch-wrap { display: inline-block; }
     .row-arch { font-family: 'Open Sans'; font-weight: 600; font-size: 11px; color: var(--muted); cursor: pointer; margin-left: 8px; padding: 2px 7px; border-radius: 5px; background: #eef0f6; white-space: nowrap; }
     .row-arch:hover { background: #e3e6f1; color: var(--navy-mid); }
@@ -463,7 +466,7 @@
     }
     .job-header .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
     .job-header h1 { font-size: 24px; font-weight: 800; }
-    .job-header .dq-big { font-family: 'Montserrat'; font-weight: 800; color: var(--navy-mid); font-size: 15px; margin-top: 2px; }
+    .job-header .dq-big { font-family: 'Poppins'; font-weight: 800; color: var(--navy-mid); font-size: 15px; margin-top: 2px; }
     .job-header .meta { color: var(--muted); font-size: 13.5px; margin-top: 4px; }
 
     /* Tappable status bar */
@@ -562,7 +565,7 @@
       width: 100%; padding: 9px 10px; border: 1.5px solid var(--line); border-radius: 6px; background: #fff; font-size: 14px;
     }
     .qb-line select:focus, .qb-line input:focus { outline: none; border-color: var(--navy-mid); box-shadow: 0 0 0 2px rgba(43,45,126,.12); }
-    .qb-line .line-amt { font-family: 'Montserrat'; font-weight: 800; color: var(--navy-dark); font-size: 15px; white-space: nowrap; text-align: right; min-width: 84px; }
+    .qb-line .line-amt { font-family: 'Poppins'; font-weight: 800; color: var(--navy-dark); font-size: 15px; white-space: nowrap; text-align: right; min-width: 84px; }
     .qb-line .line-basis { font-size: 11px; color: var(--muted); text-align: right; margin-top: 2px; }
     .cm-tag { display: block; font-size: 10.5px; color: #b45309; font-style: italic; margin-top: 3px; font-weight: 600; }
 
@@ -580,7 +583,7 @@
     .es-panel .es-obs strong { color: var(--navy-mid); }
     .es-panel .es-desc { background: #fff; border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; font-size: 13.5px; color: var(--ink); white-space: pre-wrap; margin: 8px 0; }
     .es-panel .es-room { border-top: 1px solid var(--line); padding-top: 8px; margin-top: 8px; }
-    .es-panel .es-room-name { font-family: 'Montserrat'; font-weight: 700; color: var(--navy-mid); font-size: 13.5px; margin-bottom: 4px; }
+    .es-panel .es-room-name { font-family: 'Poppins'; font-weight: 700; color: var(--navy-mid); font-size: 13.5px; margin-bottom: 4px; }
     .es-panel .es-items { list-style: disc; padding-left: 20px; margin: 4px 0; }
     .es-panel .es-items li { font-size: 13px; color: var(--ink); padding: 1px 0; }
     .es-panel .es-photos { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
@@ -598,7 +601,7 @@
     .admin-tab:hover { color: var(--navy-mid); }
     .admin-tab.active { color: var(--navy-dark); border-bottom-color: var(--navy-mid); }
     .admin-section { background: var(--card); border-radius: var(--r); padding: 24px 28px; box-shadow: var(--shadow); margin-bottom: 18px; }
-    .admin-section h3 { font-family: 'Montserrat'; font-size: 16px; color: var(--navy-dark); margin-bottom: 4px; }
+    .admin-section h3 { font-family: 'Poppins'; font-size: 16px; color: var(--navy-dark); margin-bottom: 4px; }
     .admin-section .section-hint { color: var(--muted); font-size: 13px; margin-bottom: 16px; }
     .admin-section .field { margin-bottom: 14px; }
     .admin-section input, .admin-section textarea { width: 100%; padding: 10px 13px; border: 1.5px solid var(--line); border-radius: var(--r-sm); font-size: 14px; }
@@ -610,7 +613,7 @@
     .price-grid .p-label small { color: var(--muted); font-size: 11.5px; display: block; }
     .price-grid input { padding: 7px 10px; font-size: 13.5px; text-align: right; }
     .price-group { margin-bottom: 22px; }
-    .price-group h4 { font-family: 'Montserrat'; font-size: 13px; color: var(--navy-mid); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
+    .price-group h4 { font-family: 'Poppins'; font-size: 13px; color: var(--navy-mid); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
     .save-bar { position: sticky; bottom: 0; background: var(--bg); padding: 14px 0; margin-top: 8px; display: flex; gap: 10px; align-items: center; }
     .save-bar .save-status { color: var(--muted); font-size: 13px; }
     .save-bar .save-status.dirty { color: #b45309; font-weight: 600; }
@@ -647,12 +650,12 @@
       background: #eef0f6; padding: 12px 14px; border-bottom: 1px solid #d9dcec;
     }
     .qb-room-head input.room-name {
-      flex: 1; font-family: 'Montserrat'; font-weight: 700; font-size: 15px; color: var(--navy-dark);
+      flex: 1; font-family: 'Poppins'; font-weight: 700; font-size: 15px; color: var(--navy-dark);
       border: 1.5px solid transparent; background: transparent; padding: 6px 8px; border-radius: 6px;
     }
     .qb-room-head input.room-name:hover { background: #fff; }
     .qb-room-head input.room-name:focus { outline: none; background: #fff; border-color: var(--navy-mid); }
-    .qb-room-subtotal { font-family: 'Montserrat'; font-weight: 700; font-size: 14px; color: var(--navy-mid); white-space: nowrap; }
+    .qb-room-subtotal { font-family: 'Poppins'; font-weight: 700; font-size: 14px; color: var(--navy-mid); white-space: nowrap; }
     .qb-room-del { background: #fee2e2; color: var(--red); border-radius: 6px; padding: 7px 11px; font-weight: 700; font-size: 13px; }
     .qb-room-del:hover { background: #fecaca; }
     .qb-room-body { padding: 14px; }
@@ -665,7 +668,7 @@
     }
     .qb-add-room:hover { filter: brightness(1.1); }
 
-    .qb-block-title { font-family: 'Montserrat'; font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--navy-mid); margin: 18px 0 10px; }
+    .qb-block-title { font-family: 'Poppins'; font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--navy-mid); margin: 18px 0 10px; }
 
     .qb-extras { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 8px; }
     .qb-extras .field { margin: 0; }
@@ -679,7 +682,7 @@
 
     .qb-totals { background: var(--navy-dark); color: #fff; border-radius: var(--r-sm); padding: 16px 20px; margin-top: 18px; }
     .qb-totals .row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 14px; }
-    .qb-totals .row.grand { font-family: 'Montserrat'; font-weight: 800; font-size: 20px; border-top: 1px solid rgba(255,255,255,.2); margin-top: 6px; padding-top: 10px; }
+    .qb-totals .row.grand { font-family: 'Poppins'; font-weight: 800; font-size: 20px; border-top: 1px solid rgba(255,255,255,.2); margin-top: 6px; padding-top: 10px; }
     .qb-totals .row .lbl { color: rgba(255,255,255,.8); }
     .qb-totals .row.disc .lbl, .qb-totals .row.disc .val { color: var(--teal-light); }
 
@@ -748,7 +751,7 @@
     .insp-row select:focus, .insp-row input:focus { outline: none; border-color: var(--navy-mid); box-shadow: 0 0 0 3px rgba(43,45,126,.12); }
 
     .check-group { margin-bottom: 16px; }
-    .check-group h4 { font-family: 'Montserrat'; font-size: 13px; font-weight: 700; color: var(--navy-mid); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 8px; }
+    .check-group h4 { font-family: 'Poppins'; font-size: 13px; font-weight: 700; color: var(--navy-mid); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 8px; }
     .check-items { display: flex; flex-direction: column; gap: 6px; }
     .check-item { display: flex; align-items: center; gap: 10px; }
     .check-item label { display: flex; align-items: center; gap: 8px; font-size: 14px; min-width: 150px; cursor: pointer; }
@@ -761,7 +764,7 @@
     .score-wrap label { font-size: 13px; font-weight: 700; color: var(--navy-mid); display: block; margin-bottom: 6px; }
     .score-row { display: flex; align-items: center; gap: 14px; }
     .score-row input[type=range] { flex: 1; }
-    .score-val { font-family: 'Montserrat'; font-weight: 800; font-size: 22px; color: var(--navy-dark); min-width: 48px; text-align: center; }
+    .score-val { font-family: 'Poppins'; font-weight: 800; font-size: 22px; color: var(--navy-dark); min-width: 48px; text-align: center; }
 
     .insp-notes .field { margin-bottom: 12px; }
     .insp-notes textarea { width: 100%; padding: 11px 13px; border: 1.5px solid var(--line); border-radius: var(--r-sm); font-size: 14px; resize: vertical; }
@@ -841,7 +844,7 @@
        ============================================================ */
     .it-tabs { display: flex; gap: 4px; flex-wrap: wrap; border-bottom: 2px solid var(--line); margin-bottom: 16px; }
     .it-tab {
-      padding: 10px 16px; font-family: 'Montserrat'; font-weight: 700; font-size: 13.5px;
+      padding: 10px 16px; font-family: 'Poppins'; font-weight: 700; font-size: 13.5px;
       color: var(--muted); border-bottom: 3px solid transparent; margin-bottom: -2px; cursor: pointer;
       user-select: none; border-radius: 6px 6px 0 0;
     }
@@ -855,7 +858,7 @@
     .it-prog-fill { height: 100%; background: var(--teal); border-radius: 99px; transition: width .25s; }
     .it-prog-label { font-size: 12px; color: var(--muted); margin-top: 5px; font-weight: 600; }
 
-    .it-room { font-family: 'Montserrat'; font-weight: 700; font-size: 13px; text-transform: uppercase;
+    .it-room { font-family: 'Poppins'; font-weight: 700; font-size: 13px; text-transform: uppercase;
       letter-spacing: .05em; color: var(--navy-mid); margin: 18px 0 8px; }
     .it-room:first-child { margin-top: 0; }
 
@@ -1133,6 +1136,7 @@
         </div>
         <button id="login-btn" class="btn btn-primary">Sign in</button>
         <div class="login-alt"><a id="forgot-link">Forgot your password?</a></div>
+        <div class="login-about"><a href="drapr/">What is Drapr? See how it works &rarr;</a></div>
       </div>
 
       <!-- Shown instead of the login card when the page is opened from a
@@ -2938,7 +2942,7 @@
               <div>
                 <h1>${escapeHtml(job.customer_name || 'No name')}</h1>
                 ${jobAccountLine(job) ? `<div class="meta" style="font-weight:700;color:var(--navy-mid)">${escapeHtml(jobAccountLine(job))}</div>` : ''}
-                <div class="dq-big">${escapeHtml(job.quote_number || '—')}${job.drd_number ? ` &nbsp;·&nbsp; <span style="color:var(--muted);font-weight:600">Fergus: ${escapeHtml(job.drd_number)}</span>` : ''}${job.data?.po_number ? ` &nbsp;·&nbsp; <span style="color:var(--muted);font-weight:600">PO: ${escapeHtml(job.data.po_number)}</span>` : ''}${(!job.fergus_job_id && ACCEPTED_STATUSES.includes(job.status)) ? ` &nbsp;·&nbsp; <button id="fergus-push" style="font:600 12px 'Montserrat',sans-serif;color:var(--muted);background:none;border:1px solid var(--muted);border-radius:4px;padding:2px 8px;cursor:pointer">Push to Fergus</button>` : ''}</div>
+                <div class="dq-big">${escapeHtml(job.quote_number || '—')}${job.drd_number ? ` &nbsp;·&nbsp; <span style="color:var(--muted);font-weight:600">Fergus: ${escapeHtml(job.drd_number)}</span>` : ''}${job.data?.po_number ? ` &nbsp;·&nbsp; <span style="color:var(--muted);font-weight:600">PO: ${escapeHtml(job.data.po_number)}</span>` : ''}${(!job.fergus_job_id && ACCEPTED_STATUSES.includes(job.status)) ? ` &nbsp;·&nbsp; <button id="fergus-push" style="font:600 12px 'Poppins',sans-serif;color:var(--muted);background:none;border:1px solid var(--muted);border-radius:4px;padding:2px 8px;cursor:pointer">Push to Fergus</button>` : ''}</div>
                 <div class="meta">${escapeHtml(job.customer_phone || '')}${job.customer_phone && job.site_address ? ' · ' : ''}${escapeHtml(job.site_address || '')}</div>
               </div>
               <span class="status-pill s-${job.status}" style="align-self:center">${STATUS_LABEL[job.status]}</span>
@@ -10371,10 +10375,10 @@ If anything isn't right, just reply to this email and we'll sort it out.`;
         const b = document.createElement('div');
         b.id = 'version-banner';
         b.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:9999;background:#2b2d7e;color:#fff;'
-          + "font:600 14px 'Montserrat',Arial,sans-serif;padding:12px 16px;display:flex;justify-content:center;"
+          + "font:600 14px 'Poppins',Arial,sans-serif;padding:12px 16px;display:flex;justify-content:center;"
           + 'gap:14px;align-items:center;flex-wrap:wrap';
         b.innerHTML = '<span>A newer version of Drapr is available. Reload before accepting any more quotes.</span>'
-          + '<button id="version-reload" style="font:600 13px Montserrat,Arial,sans-serif;background:#fff;'
+          + '<button id="version-reload" style="font:600 13px Poppins,Arial,sans-serif;background:#fff;'
           + 'color:#2b2d7e;border:0;border-radius:4px;padding:6px 14px;cursor:pointer">Reload now</button>';
         document.body.appendChild(b);
         document.getElementById('version-reload').addEventListener('click', () => location.reload());
